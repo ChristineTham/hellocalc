@@ -9,3 +9,10 @@ allowBuilds:
 overrides:
   tldts: 7.4.7
   tldts-core: 7.4.7
+  # Dependabot #57/#58: vite <=8.0.15 fs.deny bypass + launch-editor NTLMv2
+  # disclosure (Windows-path issues; vite is a transitive devDep via
+  # vitest/@vitejs/plugin-react, so an override is the only way to move it).
+  vite: 8.0.16
+  # Dependabot #52: postcss <8.5.10 XSS via unescaped </style>. next@16.2.10
+  # pins postcss@8.4.31 exactly; everything else already resolves 8.5.16.
+  postcss: '>=8.5.10'
