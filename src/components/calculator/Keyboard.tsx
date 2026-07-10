@@ -6,6 +6,7 @@
 
 import { CalcKey } from "./CalcKey";
 import type { VoyagerKey } from "./models";
+import type { KeyboardGeometry } from "@/lib/layout/keyboardGeometry";
 import type { Prefix } from "@/hooks/useRpnCalculator";
 
 const toneFor = (kind: VoyagerKey["kind"]) => {
@@ -27,12 +28,13 @@ const toneFor = (kind: VoyagerKey["kind"]) => {
 
 export interface KeyboardProps {
   keys: VoyagerKey[];
+  geometry: KeyboardGeometry;
   prefix: Prefix;
   onArm: (p: Prefix) => void;
   onPress: (fn: string) => void;
 }
 
-export function Keyboard({ keys, prefix, onArm, onPress }: KeyboardProps) {
+export function Keyboard({ keys, geometry, prefix, onArm, onPress }: KeyboardProps) {
   const handle = (k: VoyagerKey) => {
     if (k.kind === "pf") return onArm("f");
     if (k.kind === "pg") return onArm("g");
@@ -41,12 +43,17 @@ export function Keyboard({ keys, prefix, onArm, onPress }: KeyboardProps) {
     onPress(fn);
   };
 
+  // Priority 1 (docs/responsive-layout.md §4.3): the block is an aspect-locked
+  // box (aspect from the model's real grid) of equal minmax(0,1fr) tracks, so
+  // every key resolves to a uniform pitch — nothing stretches.
   return (
     <div
-      className="grid gap-1.5"
+      data-slot="keyboard"
+      className="grid w-full gap-1.5"
       style={{
-        gridTemplateColumns: "repeat(10, minmax(0, 1fr))",
-        gridTemplateRows: "repeat(4, minmax(2.75rem, 1fr))",
+        aspectRatio: String(geometry.aspect),
+        gridTemplateColumns: `repeat(${geometry.cols}, minmax(0, 1fr))`,
+        gridTemplateRows: `repeat(${geometry.rows}, minmax(0, 1fr))`,
       }}
     >
       {keys.map((k) => (

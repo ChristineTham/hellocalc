@@ -84,6 +84,34 @@
   --radius-4xl: calc(var(--radius) * 2.6);
   --radius-key: 5px;
   --radius-bezel: 14px;
+
+  /* ---- Responsive layout system (docs/responsive-layout.md §7) -------------
+     --kbd-a / --kbd-cols / --kbd-rows are per-model DATA set inline by
+     KeyboardFitter — deliberately not tokens here. */
+  /* Keyboard fidelity & sizing */
+  --calc-key-gap: 1.2cqmin;
+  --calc-kbd-max-w: 44rem;
+  --calc-kbd-max-h: 68dvh;
+  --hp-key-aspect-voyager: 1.15;
+  --hp-key-aspect-classic: 1.15;
+  --hp-key-aspect-rpl: 1.1;
+  /* Shell / region layout */
+  --calc-topbar-h: 3.5rem;
+  --calc-sidebar-w: 16rem;
+  --calc-toolstrip-h: 3.25rem;
+  --calc-region-gap: 0.75rem;
+  --calc-panel-min-w: 16.25rem;
+  --calc-panel-max-w: 26.25rem;
+  /* LCD */
+  --hp-lcd-aspect-mini: 4 / 3;
+  --calc-lcd-line-h: 3.25rem;
+  --calc-lcd-mini-min-h: 13rem;
+  --hp-lcd-pad: 1rem;
+  --text-hp-lcd-hero: 30px;
+  --text-hp-lcd-value: 32px;
+  --text-hp-lcd-stack: 17px;
+  --text-hp-lcd-annun: 9.5px;
+  --text-hp-lcd-reg: 10px;
 }
 
 /* ---------- LIGHT (default) — warm "steel + olive LCD" ---------- */

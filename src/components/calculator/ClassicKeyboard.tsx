@@ -6,6 +6,12 @@
 import { useState } from "react";
 import { CalcKey } from "./CalcKey";
 import type { ClassicKey } from "./models";
+import {
+  rowUnitsOf,
+  subgridColumns,
+  subgridSpan,
+  type KeyboardGeometry,
+} from "@/lib/layout/keyboardGeometry";
 
 const toneFor = (cat: ClassicKey["cat"], legend: string) => {
   if (legend.startsWith("ENTER")) return "enter" as const;
@@ -18,10 +24,11 @@ const ARC: Record<string, string> = { SIN: "SIN⁻¹", COS: "COS⁻¹", TAN: "TA
 
 export interface ClassicKeyboardProps {
   rows: ClassicKey[][];
+  geometry: KeyboardGeometry;
   onPress: (fn: string) => void;
 }
 
-export function ClassicKeyboard({ rows, onPress }: ClassicKeyboardProps) {
+export function ClassicKeyboard({ rows, geometry, onPress }: ClassicKeyboardProps) {
   const [arc, setArc] = useState(false);
 
   const handle = (k: ClassicKey) => {
@@ -38,25 +45,40 @@ export function ClassicKeyboard({ rows, onPress }: ClassicKeyboardProps) {
     if (arc) setArc(false);
   };
 
+  // Aspect-locked dual-pitch grid (§4.3–4.4): the HP-35's 4-key digit rows
+  // span the same width as its 5-key function rows — digit keys are genuinely
+  // wider on the real device. lcm(5,4)=20 subcolumns make every row fill
+  // exactly (auto-flow stays row-major; a plain 5-col grid would let keys
+  // from the next row float up into the shortfall).
+  const rowUnits = rowUnitsOf(rows);
+  const subcols = subgridColumns(rowUnits);
+
   return (
-    <div className="flex flex-col gap-1.5">
-      {rows.map((row, ri) => (
-        <div key={ri} className="flex gap-1.5">
-          {row.map((k, ki) => (
+    <div
+      data-slot="keyboard"
+      className="grid w-full gap-1.5"
+      style={{
+        aspectRatio: String(geometry.aspect),
+        gridTemplateColumns: `repeat(${subcols}, minmax(0, 1fr))`,
+        gridTemplateRows: `repeat(${geometry.rows}, minmax(0, 1fr))`,
+      }}
+    >
+      {rows.map((row, ri) =>
+        row.map((k, ki) => {
+          const spanCols = subgridSpan(k, rowUnits[ri], subcols);
+          return (
             <CalcKey
-              key={ki}
+              key={`${ri}-${ki}`}
               aria-label={k.legend}
               primary={k.legend}
               tone={toneFor(k.cat, k.legend)}
-              className={cnFlex(k.flex)}
+              style={{ gridColumn: `span ${spanCols} / span ${spanCols}` }}
               armed={k.fn === "arc" && arc ? "f" : "none"}
               onClick={() => handle(k)}
             />
-          ))}
-        </div>
-      ))}
+          );
+        }),
+      )}
     </div>
   );
 }
-
-const cnFlex = (flex?: number) => (flex && flex > 1 ? "flex-[2]" : "flex-1");

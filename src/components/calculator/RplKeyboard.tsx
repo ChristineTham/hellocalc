@@ -8,6 +8,12 @@
 import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import { cn } from "@/lib/utils";
 import type { RplKey } from "./models";
+import {
+  rowUnitsOf,
+  subgridColumns,
+  subgridSpan,
+  type KeyboardGeometry,
+} from "@/lib/layout/keyboardGeometry";
 import type { RplPrefix } from "@/hooks/useRplCalculator";
 
 const bgFor = (kind: RplKey["kind"]) => {
@@ -37,12 +43,13 @@ function resolve(k: RplKey, prefix: RplPrefix): string {
 
 export interface RplKeyboardProps {
   rows: RplKey[][];
+  geometry: KeyboardGeometry;
   prefix: RplPrefix;
   onArm: (p: RplPrefix) => void;
   onPress: (fn: string) => void;
 }
 
-export function RplKeyboard({ rows, prefix, onArm, onPress }: RplKeyboardProps) {
+export function RplKeyboard({ rows, geometry, prefix, onArm, onPress }: RplKeyboardProps) {
   const handle = (k: RplKey) => {
     if (k.kind === "ls") return onArm("ls");
     if (k.kind === "rs") return onArm("rs");
@@ -51,19 +58,36 @@ export function RplKeyboard({ rows, prefix, onArm, onPress }: RplKeyboardProps) 
     if (fn) onPress(fn);
   };
 
+  // Dual-pitch grid (§4.4 caveat): the 48G's 5-key digit rows span the SAME
+  // width as its 6-key function rows — digit keys are genuinely wider. Model
+  // it with an lcm-of-row-widths subcolumn grid (48G: lcm(6,5)=30) so every
+  // row fills exactly and key heights stay a uniform 1fr — the fix for the
+  // old flex layout that stretched keys ~1.9× too wide.
+  const rowUnits = rowUnitsOf(rows);
+  const subcols = subgridColumns(rowUnits);
+
   return (
-    <div className="flex flex-col gap-1">
-      {rows.map((row, ri) => (
-        <div key={ri} className="flex gap-1">
-          {row.map((k, ki) => (
+    <div
+      data-slot="keyboard"
+      className="grid w-full gap-1"
+      style={{
+        aspectRatio: String(geometry.aspect),
+        gridTemplateColumns: `repeat(${subcols}, minmax(0, 1fr))`,
+        gridTemplateRows: `repeat(${rows.length}, minmax(0, 1fr))`,
+      }}
+    >
+      {rows.map((row, ri) =>
+        row.map((k, ki) => {
+          const spanCols = subgridSpan(k, rowUnits[ri], subcols);
+          return (
             <ButtonPrimitive
-              key={ki}
+              key={`${ri}-${ki}`}
               aria-label={k.p || (k.kind === "soft" ? "menu" : "key")}
               onClick={() => handle(k)}
+              style={{ gridColumn: `span ${spanCols} / span ${spanCols}` }}
               className={cn(
-                "relative flex min-h-10 flex-1 select-none flex-col items-center justify-center rounded-[var(--radius-key)] px-0.5 pt-2 font-legend text-[13px] font-bold leading-none shadow-[0_2px_0_var(--color-hp-key-border)] outline-none transition-transform duration-[50ms] active:translate-y-0.5 focus-visible:brightness-110",
+                "relative flex select-none flex-col items-center justify-center rounded-[var(--radius-key)] px-0.5 pt-2 font-legend text-[13px] font-bold leading-none shadow-[0_2px_0_var(--color-hp-key-border)] outline-none transition-transform duration-[50ms] active:translate-y-0.5 focus-visible:brightness-110",
                 bgFor(k.kind),
-                k.w && k.w > 1 && "flex-[2]",
               )}
             >
               {/* left-shift (purple) / right-shift (green) legends */}
@@ -80,9 +104,9 @@ export function RplKeyboard({ rows, prefix, onArm, onPress }: RplKeyboardProps) 
                 </span>
               )}
             </ButtonPrimitive>
-          ))}
-        </div>
-      ))}
+          );
+        }),
+      )}
     </div>
   );
 }

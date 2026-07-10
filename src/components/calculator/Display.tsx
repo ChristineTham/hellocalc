@@ -6,7 +6,10 @@
 // (render with katex.renderToString(tex, { throwOnError: false }) at the seam).
 "use client";
 
+import { useState } from "react";
+import { ChevronsDownUp, ChevronsUpDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import type { Family } from "./models";
 
 // ---- shared types the engine/hook exposes ----------------------------------
@@ -83,60 +86,97 @@ export function Display({
   fmt,
 }: DisplayProps) {
   const isRpl = family === "rpl";
+  // Collapsible LCD: full multi-line view on larger screens; on small screens it
+  // defaults to a compact single-line readout resembling the real device, with a
+  // toggle to expand (FR-UI-9). `null` = follow the responsive default.
+  const compactByDefault = useMediaQuery("(max-width: 639px)");
+  const [userExpanded, setUserExpanded] = useState<boolean | null>(null);
+  const expanded = userExpanded ?? !compactByDefault;
+  const compactValue =
+    s.entry != null
+      ? s.entry
+      : isRpl
+        ? s.rpl && s.rpl.length
+          ? fmt(s.rpl[s.rpl.length - 1], s.dec)
+          : "0"
+        : fmt(s.X, s.dec);
+
   return (
     <div className="flex flex-col rounded-lg border border-hp-display-border bg-hp-display p-4 shadow-[inset_0_1px_0_rgb(255_255_255/0.22),inset_0_-10px_20px_rgb(0_0_0/0.14)]">
-      {/* annunciators */}
-      <div className="mb-1.5 flex justify-end gap-3">
+      {/* annunciators + expand/collapse toggle */}
+      <div className="mb-1.5 flex items-center justify-end gap-3">
         <Annunciator label="f" hot={s.prefix === "f"} />
         <Annunciator label="g" hot={s.prefix === "g"} />
         {showAngle && s.ang && <Annunciator label={s.ang} hot />}
         <Annunciator label={isRpl ? "RPL" : "RPN"} hot />
         {family === "voyager" && <Annunciator label={s.beg ? "BEG" : "END"} hot />}
         {s.err && <Annunciator label="Error" hot />}
+        <button
+          type="button"
+          onClick={() => setUserExpanded(!expanded)}
+          aria-label={expanded ? "Collapse display" : "Expand display"}
+          aria-expanded={expanded}
+          className="ml-1 text-hp-display-dim transition-colors hover:text-hp-display-fg"
+        >
+          {expanded ? (
+            <ChevronsDownUp className="size-3.5" />
+          ) : (
+            <ChevronsUpDown className="size-3.5" />
+          )}
+        </button>
       </div>
 
-      {/* KaTeX hero */}
-      <div
-        className="flex min-h-[52px] items-center text-[30px] text-hp-display-fg"
-        dangerouslySetInnerHTML={renderLatex(s.latex)}
-      />
+      {expanded ? (
+        <>
+          {/* KaTeX hero */}
+          <div
+            className="flex min-h-[52px] items-center text-[30px] text-hp-display-fg"
+            dangerouslySetInnerHTML={renderLatex(s.latex)}
+          />
 
-      {/* stack */}
-      {isRpl ? (
-        <RplStack rpl={s.rpl ?? []} entry={s.entry} fmt={(n) => fmt(n, s.dec)} />
+          {/* stack */}
+          {isRpl ? (
+            <RplStack rpl={s.rpl ?? []} entry={s.entry} fmt={(n) => fmt(n, s.dec)} />
+          ) : (
+            <div className="mt-2">
+              <StackRow label="T" value={fmt(s.T, s.dec)} muted />
+              <StackRow label="Z" value={fmt(s.Z, s.dec)} muted />
+              <StackRow label="Y" value={fmt(s.Y, s.dec)} />
+              <div className="my-[3px] h-px bg-hp-display-dim opacity-30" />
+              <div className="flex items-baseline justify-between">
+                <span className="font-mono text-[11px] font-bold tracking-[0.1em] text-hp-display-fg opacity-70">
+                  X
+                </span>
+                <span className={cn(num, "text-[30px]")}>
+                  {s.entry != null ? s.entry : fmt(s.X, s.dec)}
+                </span>
+              </div>
+              <StackRow label="LST x" value={fmt(s.lastX, s.dec)} muted />
+            </div>
+          )}
+
+          {/* TVM registers (HP-12C) */}
+          {showRegisters && s.reg && (
+            <div className="mt-2.5 flex flex-wrap gap-2.5 border-t border-hp-display-dim pt-2">
+              {(["n", "i", "PV", "PMT", "FV"] as const).map((k) => (
+                <span
+                  key={k}
+                  className={cn(
+                    "font-mono text-[10px]",
+                    s.reg![k] ? "text-hp-display-fg" : "text-hp-display-dim",
+                  )}
+                >
+                  <b className="text-hp-display-dim">{k} </b>
+                  {s.reg![k] || "—"}
+                </span>
+              ))}
+            </div>
+          )}
+        </>
       ) : (
-        <div className="mt-2">
-          <StackRow label="T" value={fmt(s.T, s.dec)} muted />
-          <StackRow label="Z" value={fmt(s.Z, s.dec)} muted />
-          <StackRow label="Y" value={fmt(s.Y, s.dec)} />
-          <div className="my-[3px] h-px bg-hp-display-dim opacity-30" />
-          <div className="flex items-baseline justify-between">
-            <span className="font-mono text-[11px] font-bold tracking-[0.1em] text-hp-display-fg opacity-70">
-              X
-            </span>
-            <span className={cn(num, "text-[30px]")}>
-              {s.entry != null ? s.entry : fmt(s.X, s.dec)}
-            </span>
-          </div>
-          <StackRow label="LST x" value={fmt(s.lastX, s.dec)} muted />
-        </div>
-      )}
-
-      {/* TVM registers (HP-12C) */}
-      {showRegisters && s.reg && (
-        <div className="mt-2.5 flex flex-wrap gap-2.5 border-t border-hp-display-dim pt-2">
-          {(["n", "i", "PV", "PMT", "FV"] as const).map((k) => (
-            <span
-              key={k}
-              className={cn(
-                "font-mono text-[10px]",
-                s.reg![k] ? "text-hp-display-fg" : "text-hp-display-dim",
-              )}
-            >
-              <b className="text-hp-display-dim">{k} </b>
-              {s.reg![k] || "—"}
-            </span>
-          ))}
+        // Compact single-line readout — resembles the real device's LCD.
+        <div className="flex min-h-[52px] items-center justify-end">
+          <span className={cn(num, "text-[32px]")}>{compactValue}</span>
         </div>
       )}
     </div>
@@ -188,9 +228,12 @@ export interface StackPanelProps {
   state: RpnState;
   family: Family;
   fmt: (n: number, dec?: number) => string;
+  className?: string;
+  /** when provided (mobile drawer), renders a close button */
+  onClose?: () => void;
 }
 
-export function StackPanel({ state: s, family, fmt }: StackPanelProps) {
+export function StackPanel({ state: s, family, fmt, className, onClose }: StackPanelProps) {
   const isRpl = family === "rpl";
   const rows = isRpl
     ? (() => {
@@ -211,10 +254,27 @@ export function StackPanel({ state: s, family, fmt }: StackPanelProps) {
       }));
 
   return (
-    <aside className="flex max-w-[420px] min-w-[280px] flex-1 flex-col self-stretch rounded-[var(--radius-bezel)] border border-border bg-hp-panel p-5">
-      <h2 className="mb-3.5 font-mono text-[10.5px] font-semibold tracking-[0.18em] text-muted-foreground uppercase">
-        History
-      </h2>
+    <aside
+      className={cn(
+        "flex w-full max-w-[420px] min-w-[260px] flex-col self-stretch rounded-[var(--radius-bezel)] border border-border bg-hp-panel p-5",
+        className,
+      )}
+    >
+      <div className="mb-3.5 flex items-center justify-between">
+        <h2 className="font-mono text-[10.5px] font-semibold tracking-[0.18em] text-muted-foreground uppercase">
+          History
+        </h2>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close panel"
+            className="text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <X className="size-4" />
+          </button>
+        )}
+      </div>
       <div className="flex min-h-[200px] flex-1 flex-col gap-2.5 overflow-y-auto">
         {(s.hist ?? [])
           .slice()

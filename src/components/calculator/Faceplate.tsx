@@ -20,7 +20,7 @@ export interface FaceplateProps {
 
 export function Faceplate({ model, rpn, rpl }: FaceplateProps) {
   return (
-    <div className="flex w-full max-w-xl flex-col gap-4 rounded-[var(--radius-bezel)] border border-hp-bezel-border bg-hp-bezel p-5 shadow-2xl">
+    <div className="flex w-[34rem] max-w-none flex-col gap-4 rounded-[var(--radius-bezel)] border border-hp-bezel-border bg-hp-bezel p-5 shadow-2xl">
       <div className="flex items-end justify-between">
         <div className="flex flex-col leading-tight">
           <span className="font-sans text-[10px] font-bold tracking-[0.22em] text-hp-key-fg opacity-70">
@@ -45,7 +45,13 @@ export function Faceplate({ model, rpn, rpl }: FaceplateProps) {
             renderLatex={rpn.renderLatex}
             fmt={rpn.fmt}
           />
-          <Keyboard keys={model.keys} prefix={rpn.prefix} onArm={rpn.arm} onPress={rpn.press} />
+          <Keyboard
+            keys={model.keys}
+            geometry={model.geometry}
+            prefix={rpn.prefix}
+            onArm={rpn.arm}
+            onPress={rpn.press}
+          />
         </>
       )}
 
@@ -57,7 +63,7 @@ export function Faceplate({ model, rpn, rpl }: FaceplateProps) {
             renderLatex={rpn.renderLatex}
             fmt={rpn.fmt}
           />
-          <ClassicKeyboard rows={model.rows} onPress={rpn.press} />
+          <ClassicKeyboard rows={model.rows} geometry={model.geometry} onPress={rpn.press} />
         </>
       )}
 
@@ -70,7 +76,13 @@ export function Faceplate({ model, rpn, rpl }: FaceplateProps) {
             renderLatex={rpl.renderLatex}
             fmt={rpl.fmt}
           />
-          <RplKeyboard rows={model.rows} prefix={rpl.prefix} onArm={rpl.arm} onPress={rpl.press} />
+          <RplKeyboard
+            rows={model.rows}
+            geometry={model.geometry}
+            prefix={rpl.prefix}
+            onArm={rpl.arm}
+            onPress={rpl.press}
+          />
         </>
       )}
     </div>

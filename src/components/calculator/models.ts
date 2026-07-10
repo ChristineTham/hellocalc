@@ -8,6 +8,10 @@
 // layers, so their rows are authored here, mirroring hp/layouts/<MODEL>.md.
 
 import { GENERATED_VOYAGER } from "./models.generated";
+import {
+  computeKeyboardGeometry,
+  type KeyboardGeometry,
+} from "@/lib/layout/keyboardGeometry";
 
 export type Family = "voyager" | "classic" | "rpl";
 
@@ -56,6 +60,10 @@ export interface ModelBase {
   name: string;
   sub: string; // display sub-label
   angle: boolean; // exposes DEG/RAD/GRD
+  // Keyboard-block geometry (docs/responsive-layout.md §4): cols/rows/aspect
+  // DERIVED from the key data via computeKeyboardGeometry — drives the
+  // aspect-locked fitter (--kbd-a) and template selection (data-aspect).
+  geometry: KeyboardGeometry;
 }
 export type Model =
   | (ModelBase & { family: "voyager"; keys: VoyagerKey[] })
@@ -101,11 +109,21 @@ const HP48G_ROWS: RplKey[][] = [
   [r("ON","CONT","OFF","",1,"on"),r("0","=","→","",1,"digit"),r(".","","↵",""),r("SPC","π","∡",""),r("+","{ }","::","",1,"arith")],
 ];
 
+// Geometry is DERIVED per model from its key data (never hand-tuned): the
+// 10×4 Voyagers land ≈2.89 (landscape); HP-35 5×8 ≈0.70 and HP-48G 6×9 ≈0.72
+// (both portrait — just above the 0.68 tall threshold).
+const GEOM = {
+  "HP-35": computeKeyboardGeometry({ rows: HP35_ROWS }, "classic"),
+  "HP-12C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-12C"] }, "voyager"),
+  "HP-15C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-15C"] }, "voyager"),
+  "HP-48G": computeKeyboardGeometry({ rows: HP48G_ROWS }, "rpl"),
+} satisfies Record<string, KeyboardGeometry>;
+
 export const MODELS: Record<string, Model> = {
-  "HP-35":  { id: "HP-35",  name: "HP-35",  family: "classic", sub: "RPN · LED",        angle: false, rows: HP35_ROWS },
-  "HP-12C": { id: "HP-12C", name: "HP-12C", family: "voyager", sub: "RPN · FINANCIAL",  angle: false, keys: GENERATED_VOYAGER["HP-12C"] },
-  "HP-15C": { id: "HP-15C", name: "HP-15C", family: "voyager", sub: "RPN · SCIENTIFIC", angle: true,  keys: GENERATED_VOYAGER["HP-15C"] },
-  "HP-48G": { id: "HP-48G", name: "HP-48G", family: "rpl",     sub: "RPL · GRAPHING",   angle: true,  rows: HP48G_ROWS },
+  "HP-35":  { id: "HP-35",  name: "HP-35",  family: "classic", sub: "RPN · LED",        angle: false, geometry: GEOM["HP-35"],  rows: HP35_ROWS },
+  "HP-12C": { id: "HP-12C", name: "HP-12C", family: "voyager", sub: "RPN · FINANCIAL",  angle: false, geometry: GEOM["HP-12C"], keys: GENERATED_VOYAGER["HP-12C"] },
+  "HP-15C": { id: "HP-15C", name: "HP-15C", family: "voyager", sub: "RPN · SCIENTIFIC", angle: true,  geometry: GEOM["HP-15C"], keys: GENERATED_VOYAGER["HP-15C"] },
+  "HP-48G": { id: "HP-48G", name: "HP-48G", family: "rpl",     sub: "RPL · GRAPHING",   angle: true,  geometry: GEOM["HP-48G"], rows: HP48G_ROWS },
 };
 
 export const MODEL_ORDER = ["HP-35", "HP-12C", "HP-15C", "HP-48G"] as const;

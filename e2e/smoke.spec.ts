@@ -64,4 +64,41 @@ test.describe("hellocalc — smoke", () => {
     await page.getByRole("button", { name: "+", exact: true }).click();
     await expect(page.getByText("5.00").first()).toBeVisible();
   });
+
+  test("keyboard blocks keep their real aspect ratio (Priority 1 regression guard)", async ({ page }) => {
+    // Expected block aspects derived from the key data — the Vitest oracle in
+    // src/__tests__/keyboardGeometry.test.ts pins the same values (±0.02).
+    // Guards the old RPL flex layout bug that stretched 48G keys ~1.9× wide.
+    const EXPECTED: Record<string, number> = {
+      "HP-12C": 2.887,
+      "HP-15C": 2.887,
+      "HP-35": 0.703,
+      "HP-48G": 0.722,
+    };
+    await page.goto("/");
+    for (const [label, aspect] of Object.entries(EXPECTED)) {
+      await selectModel(page, label);
+      const box = await page.locator('[data-slot="keyboard"]').boundingBox();
+      if (!box) throw new Error(`no keyboard box for ${label}`);
+      const ratio = box.width / box.height;
+      expect(Math.abs(ratio - aspect) / aspect).toBeLessThan(0.02);
+    }
+  });
+
+  test("small screens: faceplate fits, LCD collapses, history is a drawer", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 700 });
+    await page.goto("/");
+    // faceplate scaled to fit — no horizontal page overflow
+    const noOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth + 1,
+    );
+    expect(noOverflow).toBe(true);
+    // LCD starts compact on small screens → an "Expand display" control is shown
+    await expect(page.getByRole("button", { name: "Expand display" })).toBeVisible();
+    // history/stack is behind a toggle → opens a drawer, then closes
+    await page.getByRole("button", { name: "Toggle history and stack" }).click();
+    await expect(page.getByRole("dialog", { name: "History and stack" })).toBeVisible();
+    await page.getByRole("button", { name: "Close panel", exact: true }).click();
+    await expect(page.getByRole("dialog", { name: "History and stack" })).toHaveCount(0);
+  });
 });

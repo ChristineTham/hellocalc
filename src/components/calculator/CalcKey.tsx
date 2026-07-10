@@ -10,8 +10,11 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 /** Base face styling by key role. Legends are layered as absolute children. */
+// No min-height floor: key height comes from the keyboard's aspect-locked
+// equal-1fr row tracks (docs/responsive-layout.md §4.3) — a floor would fight
+// the uniform pitch when the block scales down.
 export const calcKeyVariants = cva(
-  "relative flex min-h-11 select-none items-center justify-center rounded-[var(--radius-key)] font-legend font-bold leading-none shadow-[0_2px_0_var(--color-hp-key-border),0_3px_5px_rgb(0_0_0/0.35)] transition-transform duration-[50ms] outline-none active:translate-y-0.5 focus-visible:brightness-110",
+  "relative flex select-none items-center justify-center rounded-[var(--radius-key)] font-legend font-bold leading-none shadow-[0_2px_0_var(--color-hp-key-border),0_3px_5px_rgb(0_0_0/0.35)] transition-transform duration-[50ms] outline-none active:translate-y-0.5 focus-visible:brightness-110",
   {
     variants: {
       tone: {
