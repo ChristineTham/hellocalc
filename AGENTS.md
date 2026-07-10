@@ -21,10 +21,12 @@ a shared TypeScript math engine. It deploys to **GitHub Pages under base path `/
 1. **Fully-typed TypeScript.** No `any`, no `as` casts unless genuinely unavoidable (and then
    comment why). Prefer precise types, discriminated unions, and `unknown` + narrowing over
    casts. `strict` is on — keep it green.
-2. **Vanilla Tailwind only.** This project uses Tailwind v4 (CSS-first, no `tailwind.config`).
-   Use built-in utilities and the theme tokens defined in `src/app/globals.css`. **Do not**
-   invent custom variants, arbitrary sizes, or bespoke spacing scales; if a token is missing,
-   add it to the `@theme` in `globals.css` rather than hardcoding one-off values.
+2. **Vanilla Tailwind + the project's own design tokens.** This project uses Tailwind v4
+   (CSS-first, no `tailwind.config`). Use built-in utilities and the theme tokens defined in
+   the `@theme` block of `src/app/globals.css` — the app's **HP-calculator design system**
+   (established via design exploration). There is **no external/fixed palette mandate**. **Do
+   not** invent custom variants, arbitrary sizes, or bespoke spacing scales; if a token is
+   missing, add it to the `@theme` in `globals.css` rather than hardcoding one-off values.
 3. **shadcn with Base UI.** UI primitives come from shadcn (configured for Base UI /
    `@base-ui/react`, style `base-nova` in `components.json`). **Always add components with the
    shadcn CLI** — never hand-write or hallucinate a `components/ui/*` implementation:
@@ -77,8 +79,13 @@ Follow [`docs/architecture.md`](docs/architecture.md). Key constraints:
   `src/lib/engine/`). It must not import React, Next, or any DOM/UI code — so it stays
   unit-testable and reusable in a Web Worker. UI holds only view state.
 - **One value tower / one core.** Build on **math.js** (arithmetic, parser, units, matrices,
-  complex) with **decimal.js** used directly only in the finance module. Don't glue in a
-  second overlapping number library without cause.
+  complex), **configured globally to `BigNumber`** so standard arithmetic carries no
+  IEEE-754 error (e.g. `0.1 + 0.2` is exact), with units handled by math.js's built-in
+  dimensional tracking; use **decimal.js** directly only in the finance module (build
+  financial formulas on high-precision numbers to avoid compounding rounding faults). Don't
+  glue in a second overlapping number library without cause.
+- **Math output is always typeset.** Render results and expressions through **KaTeX**
+  (`react-katex`) — never surface raw math strings to the user.
 - **Tiered CAS behind a `CasProvider` interface** (`diff`, `integrate`, `factor`, `simplify`,
   `solve`, `toLatex`). Light tier (Nerdamer `nerdamer-prime` / Algebrite) and heavy tier
   (Pyodide + SymPy) are **lazy-loaded** via dynamic `import()`. Never import them eagerly.

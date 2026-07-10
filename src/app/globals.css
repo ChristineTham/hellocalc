@@ -46,24 +46,6 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
-
-  /* Rosely Palette */
-  --color-rosely-grey-100: #fffcf2;
-  --color-rosely-grey-300: #ccc9c2;
-  --color-rosely-grey-500: #aaa7a0;
-  --color-rosely-grey-800: #555350;
-  --color-rosely-pink-100: #ffcde6;
-  --color-rosely-pink-300: #e89abf;
-  --color-rosely-pink-500: #ba508a;
-  --color-rosely-pink-800: #721d4d;
-  --color-rosely-purple-100: #ebd5ff;
-  --color-rosely-purple-300: #c39be6;
-  --color-rosely-purple-500: #9159c2;
-  --color-rosely-purple-800: #4a1e70;
-  --color-rosely-coral: #ffb5b5;
-  --color-rosely-yellow: #f5c277;
-  --color-rosely-green: #abdb8f;
-  --color-rosely-cyan: #85e0e0;
 }
 
 :root {

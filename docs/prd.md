@@ -213,7 +213,7 @@ the unified [`hp/mapping/mapping.json`](../hp/mapping/mapping.json).
 - **FR-UI-2 (M):** Physical-keyboard input maps to keys/entry in every mode.
 - **FR-UI-3 (M):** Responsive layouts optimized for mobile, tablet, and desktop.
 - **FR-UI-4 (S):** Notebook / block-evaluation editor for multi-step work (native mode).
-- **FR-UI-5 (S):** Theme adherence to the Rosely color palette (per README).
+- **FR-UI-5 (S):** Adhere to the app's HP-calculator design system / theme tokens (defined in `globals.css` `@theme`).
 - **FR-UI-6 (C):** Light/dark themes.
 
 ---
@@ -254,7 +254,7 @@ Full detail and rationale in [`architecture.md`](architecture.md) (approved). Su
 - **Plotting (lazy):** function-plot (2D) + Plotly.js (3D/statistical).
 - **Model-adapter layer** drives keystroke dispatch and per-model exposure from the
   [`hp/`](../hp/) data assets.
-- UI: Next.js (client components), shadcn/ui on Base UI (`@base-ui/react`), Tailwind (Rosely palette), TypeScript.
+- UI: Next.js (client components), shadcn/ui on Base UI (`@base-ui/react`), Tailwind v4 (HP-calculator design tokens), TypeScript.
 
 ## 10. Data assets
 

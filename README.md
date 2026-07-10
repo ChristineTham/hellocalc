@@ -92,9 +92,9 @@ library-by-library evaluation is in [docs/architecture.md](docs/architecture.md)
 - **Model-adapter layer** drives keystroke dispatch and per-model exposure from the `hp/`
   data assets (below).
 
-**UI stack:** Next.js (React client components) · shadcn/ui on Base UI · Tailwind CSS
-(strictly the [Rosely colour palette](https://rosely.hellotham.com/design/colours-and-palettes/))
-· TypeScript · React state (`useState`/`useReducer`) for history and the RPN stack.
+**UI stack:** Next.js (React client components) · shadcn/ui on Base UI · Tailwind CSS v4
+(the app's own HP-calculator design tokens in the `@theme` block of `globals.css`) ·
+TypeScript · React state (`useState`/`useReducer`) for history and the RPN stack.
 
 Heavy dependencies (Plotly, Pyodide, CAS libraries) are code-split and lazy-loaded to keep
 the initial bundle small.
