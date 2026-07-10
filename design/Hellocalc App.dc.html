@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<style>
+@font-face{font-family:"DSEG7";src:url("https://cdn.jsdelivr.net/gh/keshikan/DSEG@v0.46/fonts/DSEG7-Classic/DSEG7Classic-Bold.woff2") format("woff2");font-weight:700;font-display:swap}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:"Archivo",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#5b8fd6;text-decoration:none}a:hover{color:#7ba6e6}
+.hc-key{transition:transform .05s ease,box-shadow .09s ease,filter .09s ease;-webkit-user-select:none;user-select:none;cursor:pointer;font-family:inherit;border:none;outline:none;padding:0}
+.hc-key:active{transform:translateY(2px)}
+.hc-key:focus-visible{filter:brightness(1.15)}
+.hc-ni{border:none;outline:none;background:transparent;width:100%;font-family:inherit}
+.hc-scroll::-webkit-scrollbar{width:8px}.hc-scroll::-webkit-scrollbar-thumb{background:rgba(128,120,100,.35);border-radius:4px}
+.katex{font-size:inherit}
+</style>
+</helmet>
+<div>{{ app }}</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.MODELS = this.buildModels();
+    this.state = {
+      model:'HP-12C', mode:'rpn', theme:'dark', katexReady:!!(typeof window!=='undefined'&&window.katex),
+      calc: this.seed(),
+      nInput:'', nHist:[{expr:'sqrt(144) + 3', latex:'\\sqrt{144}+3 = 15', val:15}],
+    };
+  }
+  componentDidMount(){
+    if(!this.state.katexReady){ const t=setInterval(()=>{ if(window.katex){clearInterval(t);this.setState({katexReady:true});} },120); setTimeout(()=>clearInterval(t),8000); }
+    if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>this.forceUpdate());
+  }
+  seed(){ return { T:0,Z:0,Y:1500,X:12, lastX:144, entry:null, lift:true, prefix:'none', beg:false, dec:2, ang:'DEG',
+    hist:[{op:'1500',v:'1,500.00'},{op:'ENTER',v:'1,500.00'},{op:'g √x',v:'12.00'}], latex:'\\sqrt{144}=12',
+    reg:{n:'',i:'',PV:'',PMT:'',FV:''}, tvm:{n:0,i:0,PV:0,PMT:0,FV:0}, rpl:[1500,12], err:'' }; }
+  // ================= design tokens: vintage, light + dark ramps =================
+  tokens(){
+    const dark = {
+      appBg:'#141310', chrome:'#201e19', chromeBd:'#2f2c25', text:'#ded9cc', muted:'#8f8977', faint:'#66614f',
+      bezel:'#33322e', bezelBd:'#48463f', bezelInner:'#3b3934',
+      disp:'#aeb79c', dispBd:'#8a927a', ink:'#1b2016', dim:'#5c6350',
+      glow:'inset 0 1px 0 rgba(255,255,255,.22), inset 0 -10px 20px rgba(0,0,0,.14)',
+      key:'#2b2a27', keyBd:'#141310', keyTx:'#ece7db', keySh:'0 2px 0 #100f0d, 0 3px 5px rgba(0,0,0,.45)',
+      op:'#38362f', opTx:'#f0d9a4', enter:'#3d3b34', enterTx:'#ece7db',
+      gold:'#d3a441', blue:'#5b8fd6', on:'#e08a7a',
+      panel:'#1b1a16', panelBd:'#2c2a23', shadow:'0 24px 60px rgba(0,0,0,.5)',
+    };
+    const light = {
+      appBg:'#e6e3da', chrome:'#f3f0e8', chromeBd:'#dcd8cc', text:'#2a2823', muted:'#7d7869', faint:'#a6a08e',
+      bezel:'#cdcabf', bezelBd:'#b4b1a4', bezelInner:'#d5d2c7',
+      disp:'#c1cbaa', dispBd:'#a3ab8c', ink:'#222a1a', dim:'#6b7256',
+      glow:'inset 0 1px 0 rgba(255,255,255,.5), inset 0 -8px 16px rgba(90,95,70,.1)',
+      key:'#e9e6dc', keyBd:'#c6c2b5', keyTx:'#2a2823', keySh:'0 2px 0 #c2beb0, 0 3px 4px rgba(80,72,50,.16)',
+      op:'#ddd9cd', opTx:'#8a5a20', enter:'#2b2a27', enterTx:'#ece7db',
+      gold:'#a9832f', blue:'#35619e', on:'#b23b2f',
+      panel:'#efece3', panelBd:'#dcd8cc', shadow:'0 18px 44px rgba(70,62,40,.14)',
+    };
+    return this.state.theme==='dark'?dark:light;
+  }
+  // ================= model keyboards (source: hp/layouts) =================
+  buildModels(){
+    const mk = (rows)=>{ const keys=[]; rows.forEach((row,r)=>{ row.forEach((cell,cix)=>{ if(cell===null) return; const [primary,f,g]=cell; const col=cix+1, rowN=r+1;
+      let kind='std'; if('0123456789'.includes(primary)) kind='digit'; else if(primary==='•'||primary==='.') kind='digit'; else if('+−×÷'.includes(primary)) kind='arith'; else if(primary==='ENTER') kind='enter'; else if(primary==='f') kind='pf'; else if(primary==='g') kind='pg'; else if(primary==='ON') kind='on';
+      const rowSpan = primary==='ENTER'?2:1;
+      keys.push({primary,f:f||'',g:g||'',col,row:rowN,kind,rowSpan}); }); }); return keys; };
+    const HP12C = mk([
+      [['n','AMORT','12×'],['i','INT','12÷'],['PV','NPV','CFo'],['PMT','RND','CFj'],['FV','IRR','Nj'],['CHS','','DATE'],['7','','BEG'],['8','','END'],['9','','MEM'],['÷','','']],
+      [['yˣ','PRICE','√x'],['1/x','YTM','eˣ'],['%T','SL','LN'],['Δ%','SOYD','FRAC'],['%','DB','INTG'],['EEX','','ΔDYS'],['4','',''],['5','',''],['6','',''],['×','','']],
+      [['R/S','P/R','PSE'],['SST','Σ','BST'],['R↓','PRGM','GTO'],['x⇄y','FIN','x≤y'],['CLx','REG','x=0'],['ENTER','PREFIX','LSTx'],['1','','x̂,r'],['2','','ŷ,r'],['3','','n!'],['−','','']],
+      [['ON','',''],['f','',''],['g','',''],['STO','',''],['RCL','',''],null,['0','','x̄'],['•','','s'],['Σ+','','Σ−'],['+','','']],
+    ]);
+    const HP15C = mk([
+      [['√x','A','x²'],['eˣ','B','LN'],['10ˣ','C','LOG'],['yˣ','D','%'],['1/x','E','Δ%'],['CHS','MATRIX','ABS'],['7','FIX','DEG'],['8','SCI','RAD'],['9','ENG','GRD'],['÷','SOLVE','x≤y']],
+      [['SST','LBL','BST'],['GTO','HYP','HYP⁻¹'],['SIN','DIM','SIN⁻¹'],['COS','(i)','COS⁻¹'],['TAN','I','TAN⁻¹'],['EEX','RESULT','π'],['4','x≷','SF'],['5','DSE','CF'],['6','ISG','F?'],['×','∫','x=0']],
+      [['R/S','PSE','P/R'],['GSB','CLΣ','RTN'],['R↓','CLPRGM','R↑'],['x⇄y','CLREG','RND'],['←','CLPREF','CLx'],['ENTER','RAN#','LSTx'],['1','→R','→P'],['2','→H.MS','→H'],['3','→RAD','→DEG'],['−','Re⇄Im','TEST']],
+      [['ON','',''],['f','',''],['g','',''],['STO','FRAC','INT'],['RCL','USER','MEM'],null,['0','x!','x̄'],['•','ŷ,r','s'],['Σ+','L.R.','Σ−'],['+','Py,x','Cy,x']],
+    ]);
+    return { 'HP-35':this.make35(), 'HP-12C':{keys:HP12C, sub:'RPN · FINANCIAL', angle:false, family:'voyager'}, 'HP-15C':{keys:HP15C, sub:'RPN · SCIENTIFIC', angle:true, family:'voyager'}, 'HP-48G':this.make48G() };
+  }
+  // ================= number format =================
+  fmt(n,dec){ if(n===''||n==null||isNaN(n)||!isFinite(n)) return isFinite(n)?'0.00':'Error'; const d=dec==null?2:dec; const neg=n<0; let s=Math.abs(n).toFixed(d); let [ip,fp]=s.split('.'); ip=ip.replace(/\B(?=(\d{3})+(?!\d))/g,','); return (neg?'-':'')+ip+(fp?'.'+fp:''); }
+  tex(n){ if(n==null||isNaN(n)) return '0'; return this.fmt(n,2).replace(/,/g,'{,}'); }
+  escTex(s){ return String(s).replace(/([%&#_{}])/g,'\\$1'); }
+  toRad(x,ang){ return ang==='RAD'?x: ang==='GRD'? x*Math.PI/200 : x*Math.PI/180; }
+  fromRad(x,ang){ return ang==='RAD'?x: ang==='GRD'? x*200/Math.PI : x*180/Math.PI; }
+  fact(x){ if(x<0||x!==Math.floor(x)||x>170) return NaN; let r=1; for(let k=2;k<=x;k++) r*=k; return r; }
+  // ================= RPN engine =================
+  press(key){
+    const fam=this.MODELS[this.state.model].family; if(fam==='rpl') return this.pressRpl(key); if(fam==='classic') return this.press35(key);
+    const c={...this.state.calc, reg:{...this.state.calc.reg}, hist:this.state.calc.hist.slice()};
+    const p=key.primary;
+    if(p==='f'){ c.prefix=c.prefix==='f'?'none':'f'; this.setState({calc:c}); return; }
+    if(p==='g'){ c.prefix=c.prefix==='g'?'none':'g'; this.setState({calc:c}); return; }
+    if(p==='ON'){ const s=this.seed(); s.T=0;s.Z=0;s.Y=0;s.X=0;s.lastX=0;s.hist=[];s.latex='';s.reg={n:'',i:'',PV:'',PMT:'',FV:''}; this.setState({calc:s}); return; }
+    const pref=c.prefix; c.prefix='none'; c.err='';
+    const func = pref==='f'? key.f : pref==='g'? key.g : p;
+    if((pref==='f'||pref==='g') && !func){ this.setState({calc:c}); return; }
+    this.exec(c, func); this.setState({calc:c});
+  }
+  pushLift(c){ c.T=c.Z; c.Z=c.Y; c.Y=c.X; }
+  drop(c){ c.X=c.Y; c.Y=c.Z; c.Z=c.T; }
+  logHist(c,op,val){ c.hist=[...c.hist,{op,v:this.fmt(val,c.dec)}].slice(-40); }
+  finishEntry(c){ if(c.entry!=null){ c.X=parseFloat(c.entry)||0; c.entry=null; } }
+  exec(c,func){
+    const wasEntry=c.entry!=null;
+    const digit='0123456789'.includes(func)?func:null;
+    if(digit!=null && func.length===1 && !c._shift){ if(c.entry==null){ if(c.lift) this.pushLift(c); c.entry=''; c.lift=false; } c.entry=(c.entry==='0'?'':c.entry)+digit; c.X=parseFloat(c.entry)||0; return; }
+    if(func==='•'||func==='.'){ if(c.entry==null){ if(c.lift) this.pushLift(c); c.entry='0'; c.lift=false; } if(!c.entry.includes('.')) c.entry+='.'; return; }
+    if(func==='CHS'){ if(c.entry!=null){ c.entry=c.entry.startsWith('-')?c.entry.slice(1):'-'+c.entry; c.X=parseFloat(c.entry)||0; } else { c.X=-c.X; } return; }
+    this.finishEntry(c);
+    const U=(fn,ltx)=>{ c.lastX=c.X; const r=fn(c.X); c.X=r; c.lift=true; c.latex=ltx(c.lastX,r); this.logHist(c,func,r); };
+    const B=(fn,sym)=>{ const y=c.Y,x=c.X; c.lastX=x; const r=fn(y,x); this.drop(c); c.X=r; c.lift=true; c.latex=`${this.tex(y)} ${sym} ${this.tex(x)} = ${this.tex(r)}`; this.logHist(c,func,r); };
+    switch(func){
+      case 'ENTER': this.pushLift(c); c.lift=false; this.logHist(c,'ENTER',c.X); return;
+      case '+': B((a,b)=>a+b,'+'); return;
+      case '−': B((a,b)=>a-b,'-'); return;
+      case '×': B((a,b)=>a*b,'\\times'); return;
+      case '÷': B((a,b)=>{ if(b===0){c.err='÷0';return 0;} return a/b; },'\\div'); return;
+      case 'yˣ': { const y=c.Y,x=c.X; c.lastX=x; const r=Math.pow(y,x); this.drop(c); c.X=r; c.lift=true; c.latex=`${this.tex(y)}^{${this.tex(x)}} = ${this.tex(r)}`; this.logHist(c,'yˣ',r); return; }
+      case '√x': U(x=>Math.sqrt(x),(a,r)=>`\\sqrt{${this.tex(a)}} = ${this.tex(r)}`); return;
+      case 'x²': U(x=>x*x,(a,r)=>`${this.tex(a)}^2 = ${this.tex(r)}`); return;
+      case '1/x': U(x=>x===0?(c.err='÷0',0):1/x,(a,r)=>`\\frac{1}{${this.tex(a)}} = ${this.tex(r)}`); return;
+      case 'LN': U(x=>Math.log(x),(a,r)=>`\\ln(${this.tex(a)}) = ${this.tex(r)}`); return;
+      case 'LOG': U(x=>Math.log10(x),(a,r)=>`\\log(${this.tex(a)}) = ${this.tex(r)}`); return;
+      case 'eˣ': U(x=>Math.exp(x),(a,r)=>`e^{${this.tex(a)}} = ${this.tex(r)}`); return;
+      case '10ˣ': U(x=>Math.pow(10,x),(a,r)=>`10^{${this.tex(a)}} = ${this.tex(r)}`); return;
+      case 'SIN': U(x=>Math.sin(this.toRad(x,c.ang)),(a,r)=>`\\sin(${this.tex(a)}) = ${this.tex(r)}`); return;
+      case 'COS': U(x=>Math.cos(this.toRad(x,c.ang)),(a,r)=>`\\cos(${this.tex(a)}) = ${this.tex(r)}`); return;
+      case 'TAN': U(x=>Math.tan(this.toRad(x,c.ang)),(a,r)=>`\\tan(${this.tex(a)}) = ${this.tex(r)}`); return;
+      case 'SIN⁻¹': U(x=>this.fromRad(Math.asin(x),c.ang),(a,r)=>`\\sin^{-1}(${this.tex(a)}) = ${this.tex(r)}`); return;
+      case 'COS⁻¹': U(x=>this.fromRad(Math.acos(x),c.ang),(a,r)=>`\\cos^{-1}(${this.tex(a)}) = ${this.tex(r)}`); return;
+      case 'TAN⁻¹': U(x=>this.fromRad(Math.atan(x),c.ang),(a,r)=>`\\tan^{-1}(${this.tex(a)}) = ${this.tex(r)}`); return;
+      case 'π': this.pushLift(c); c.X=Math.PI; c.lift=true; c.latex='\\pi = '+this.tex(Math.PI); this.logHist(c,'π',Math.PI); return;
+      case 'x!': case 'n!': U(x=>this.fact(x),(a,r)=>`${this.tex(a)}! = ${this.tex(r)}`); return;
+      case '%': { const y=c.Y,x=c.X; c.lastX=x; const r=y*x/100; c.X=r; c.lift=true; c.latex=`${this.tex(y)}\\times\\frac{${this.tex(x)}}{100} = ${this.tex(r)}`; this.logHist(c,'%',r); return; }
+      case '%T': { const y=c.Y,x=c.X; c.lastX=x; const r=y===0?0:x/y*100; c.X=r; c.lift=true; c.latex=`\\%T = ${this.tex(r)}`; this.logHist(c,'%T',r); return; }
+      case 'Δ%': { const y=c.Y,x=c.X; c.lastX=x; const r=y===0?0:(x-y)/y*100; c.X=r; c.lift=true; c.latex=`\\Delta\\% = ${this.tex(r)}`; this.logHist(c,'Δ%',r); return; }
+      case 'ABS': U(x=>Math.abs(x),(a,r)=>`|${this.tex(a)}| = ${this.tex(r)}`); return;
+      case 'FRAC': U(x=>x-Math.trunc(x),(a,r)=>`\\mathrm{FRAC} = ${this.tex(r)}`); return;
+      case 'INTG': case 'INT': U(x=>Math.trunc(x),(a,r)=>`\\mathrm{INT} = ${this.tex(r)}`); return;
+      case 'CHS': if(c.entry!=null){ c.entry=c.entry.startsWith('-')?c.entry.slice(1):'-'+c.entry; c.X=parseFloat(c.entry)||0; } else c.X=-c.X; return;
+      case 'CLx': c.X=0; c.entry=null; c.lift=false; return;
+      case 'CLR': c.T=0; c.Z=0; c.Y=0; c.X=0; c.entry=null; c.lift=false; c.latex=''; return;
+      case '←': if(c.entry!=null&&c.entry.length>1){ c.entry=c.entry.slice(0,-1); c.X=parseFloat(c.entry)||0; } else { c.entry=null; c.X=0; c.lift=false; } return;
+      case 'x⇄y': case 'x≷y': { const t=c.X; c.X=c.Y; c.Y=t; c.lift=true; return; }
+      case 'R↓': { const t=c.X; c.X=c.Y; c.Y=c.Z; c.Z=c.T; c.T=t; c.lift=true; return; }
+      case 'R↑': { const t=c.T; c.T=c.Z; c.Z=c.Y; c.Y=c.X; c.X=t; c.lift=true; return; }
+      case 'LSTx': this.pushLift(c); c.X=c.lastX; c.lift=true; return;
+      case 'DEG': c.ang='DEG'; return; case 'RAD': c.ang='RAD'; return; case 'GRD': c.ang='GRD'; return;
+      case 'BEG': c.beg=true; return; case 'END': c.beg=false; return;
+      case 'n': case 'i': case 'PV': case 'PMT': case 'FV': this.tvmKey(c,func,wasEntry); return;
+      case 'STO': case 'RCL': c.lift=true; return;
+      default: c.lift=true; c.latex=`\\text{${this.escTex(func)}}`; return;
+    }
+  }
+  // ================= native-mode expression evaluator (safe recursive descent) =================
+  evalExpr(src){
+    const s=src.replace(/\s+/g,''); if(!s) throw new Error('empty');
+    let i=0; const fns={sqrt:Math.sqrt,ln:Math.log,log:Math.log10,sin:x=>Math.sin(x),cos:x=>Math.cos(x),tan:x=>Math.tan(x),exp:Math.exp,abs:Math.abs,asin:Math.asin,acos:Math.acos,atan:Math.atan};
+    const peek=()=>s[i];
+    const num=()=>{ let j=i; while(/[0-9.]/.test(s[i])) i++; if(i===j) throw new Error('num'); return parseFloat(s.slice(j,i)); };
+    const factor=()=>{ if(peek()==='('){ i++; const v=expr(); if(peek()!==')') throw new Error(')'); i++; return v; }
+      if(peek()==='-'){ i++; return -factor(); } if(peek()==='+'){ i++; return factor(); }
+      if(/[a-z]/i.test(peek())){ let j=i; while(/[a-z]/i.test(s[i])) i++; const id=s.slice(j,i); if(id==='pi') return Math.PI; if(id==='e') return Math.E; const fn=fns[id]; if(!fn) throw new Error('fn '+id); if(peek()!=='(') throw new Error('('); i++; const a=expr(); if(peek()!==')') throw new Error(')'); i++; return fn(a); }
+      return num(); };
+    const power=()=>{ let a=factor(); if(peek()==='^'){ i++; return Math.pow(a,power()); } return a; };
+    const term=()=>{ let a=power(); while(peek()==='*'||peek()==='/'||peek()==='×'||peek()==='÷'){ const op=s[i++]; const b=power(); a=(op==='*'||op==='×')?a*b:a/b; } return a; };
+    const expr=()=>{ let a=term(); while(peek()==='+'||peek()==='-'||peek()==='−'){ const op=s[i++]; const b=term(); a=(op==='+')?a+b:a-b; } return a; };
+    const v=expr(); if(i<s.length) throw new Error('trailing'); return v;
+  }
+  toLatex(src){ return src.replace(/\*/g,'\\times ').replace(/sqrt\(([^()]*)\)/g,'\\sqrt{$1}').replace(/pi/g,'\\pi ').replace(/\^/g,'^'); }
+  runNative(){
+    const src=this.state.nInput.trim(); if(!src) return;
+    let val, latex;
+    try{ val=this.evalExpr(src); latex=`${this.toLatex(src)} = ${this.fmt(val,4).replace(/,/g,'{,}')}`; }
+    catch(e){ latex=`\\text{${this.escTex(src)}}\\;\\Rightarrow\\;\\mathrm{Error}`; val=null; }
+    const nHist=[...this.state.nHist,{expr:src,latex,val}].slice(-40);
+    // push result onto shared stack (state retained across modes)
+    const c={...this.state.calc}; if(val!=null&&isFinite(val)){ this.pushLift(c); c.X=val; c.lift=true; c.latex=latex; }
+    this.setState({nHist, nInput:'', calc:c});
+  }
+  // ================= rendering =================
+  renderLatex(tex,color,size){ const h=React.createElement;
+    if(this.state.katexReady&&window.katex){ let html; try{ html=window.katex.renderToString(tex||'',{throwOnError:false,displayMode:true}); }catch(e){ html='<span>'+(tex||'')+'</span>'; } return h('span',{style:{color,fontSize:size},dangerouslySetInnerHTML:{__html:html}}); }
+    return h('span',{style:{color,fontFamily:'IBM Plex Mono, monospace',fontSize:size}},(tex||'').replace(/\\/g,'')); }
+  renderKey(t,c,k){ const h=React.createElement; const active=c.prefix; const isPf=k.primary==='f', isPg=k.primary==='g';
+    let face=t.key, tx=t.keyTx, sh=t.keySh;
+    if(k.kind==='arith'){ face=t.op; tx=t.opTx; } if(k.kind==='enter'){ face=t.enter; tx=t.enterTx; }
+    if(isPf){ face=t.gold; tx='#231a05'; } if(isPg){ face=t.blue; tx='#ffffff'; } if(k.kind==='on'){ tx=t.on; }
+    const fHot=active==='f'&&k.f, gHot=active==='g'&&k.g;
+    const legF=k.f?h('span',{style:{position:'absolute',top:'4px',left:'1px',right:'1px',textAlign:'center',fontSize:k.f.length>4?'7px':'8.5px',fontWeight:700,lineHeight:1,color:t.gold,fontFamily:'Barlow Semi Condensed,sans-serif',opacity:fHot?1:.9,transform:fHot?'translateY(-1px)':'none',textShadow:fHot?`0 0 7px ${t.gold}`:'none',transition:'all .1s',letterSpacing:'.01em'}},k.f):null;
+    const legG=k.g?h('span',{style:{position:'absolute',bottom:'3px',left:'1px',right:'1px',textAlign:'center',fontSize:k.g.length>4?'7px':'8.5px',fontWeight:700,lineHeight:1,color:t.blue,fontFamily:'Barlow Semi Condensed,sans-serif',opacity:gHot?1:.88,transform:gHot?'translateY(1px)':'none',textShadow:gHot?`0 0 7px ${t.blue}`:'none',transition:'all .1s'}},k.g):null;
+    const psz=k.primary.length>3?'11px':(k.primary.length>2?'12.5px':'15px');
+    const prim=h('span',{style:{fontSize:psz,fontWeight:700,color:tx,fontFamily:'Barlow Semi Condensed,sans-serif',lineHeight:1,zIndex:1}}, isPf?'f':isPg?'g':k.primary);
+    const outline=(fHot||gHot)?`0 0 0 2px ${active==='f'?t.gold:t.blue}`:'none';
+    return h('button',{key:k.col+'-'+k.row,className:'hc-key',onClick:()=>this.press(k),
+      style:{position:'relative',gridColumn:String(k.col),gridRow:k.rowSpan>1?`${k.row} / span ${k.rowSpan}`:String(k.row),minHeight:'46px',display:'flex',alignItems:'center',justifyContent:'center',background:face,borderRadius:'5px',boxShadow:(outline!=='none'?outline+', ':'')+sh,paddingTop:k.f?'10px':0,paddingBottom:k.g?'9px':0}}, legF,prim,legG); }
+  renderKeyboard(t,c){ const h=React.createElement; const keys=this.MODELS[this.state.model].keys;
+    return h('div',{style:{display:'grid',gridTemplateColumns:'repeat(10,1fr)',gridTemplateRows:'repeat(4,46px)',gap:'6px'}}, keys.map(k=>this.renderKey(t,c,k))); }
+  stackRow(t,label,val,muted){ const h=React.createElement; return h('div',{style:{display:'flex',alignItems:'baseline',justifyContent:'space-between',padding:'1px 0'}},
+    h('span',{style:{fontFamily:'IBM Plex Mono,monospace',fontSize:'11px',fontWeight:600,color:t.dim,letterSpacing:'.1em'}},label),
+    h('span',{style:{fontFamily:'DSEG7,IBM Plex Mono,monospace',fontSize:'17px',color:muted?t.dim:t.ink,letterSpacing:'.02em'}},val)); }
+  annun(t,c){ const h=React.createElement; const model=this.MODELS[this.state.model];
+    const on=(lab,hot,col)=>h('span',{style:{fontFamily:'IBM Plex Mono,monospace',fontSize:'9.5px',fontWeight:700,letterSpacing:'.14em',color:hot?(col||t.ink):t.dim,opacity:hot?1:.4}},lab);
+    return h('div',{style:{display:'flex',gap:'11px',alignItems:'center'}}, on('f',c.prefix==='f',t.gold), on('g',c.prefix==='g',t.blue), model.angle?on(c.ang,true):null, on(this.MODELS[this.state.model].family==='rpl'?'RPL':'RPN',true), on(c.beg?'BEG':'END',true), c.err?on('Error',true,t.on):null); }
+  renderDisplay(t,c){ const h=React.createElement;
+    return h('div',{style:{background:t.disp,border:`1px solid ${t.dispBd}`,borderRadius:'8px',padding:'16px 18px',boxShadow:t.glow,display:'flex',flexDirection:'column'}},
+      h('div',{style:{display:'flex',justifyContent:'flex-end',marginBottom:'6px'}}, this.annun(t,c)),
+      h('div',{style:{minHeight:'52px',display:'flex',alignItems:'center'}}, this.renderLatex(c.latex,t.ink,'30px')),
+      h('div',{style:{marginTop:'8px'}},
+        this.stackRow(t,'T',this.fmt(c.T,c.dec),true), this.stackRow(t,'Z',this.fmt(c.Z,c.dec),true), this.stackRow(t,'Y',this.fmt(c.Y,c.dec),false),
+        h('div',{style:{height:'1px',background:t.dim,opacity:.3,margin:'3px 0'}}),
+        h('div',{style:{display:'flex',alignItems:'baseline',justifyContent:'space-between'}},
+          h('span',{style:{fontFamily:'IBM Plex Mono,monospace',fontSize:'11px',fontWeight:700,color:t.ink,letterSpacing:'.1em',opacity:.7}},'X'),
+          h('span',{style:{fontFamily:'DSEG7,IBM Plex Mono,monospace',fontSize:'30px',color:t.ink,letterSpacing:'.02em'}}, c.entry!=null?c.entry:this.fmt(c.X,c.dec))),
+        this.stackRow(t,'LST x',this.fmt(c.lastX,c.dec),true)),
+      this.state.model==='HP-12C'? h('div',{style:{display:'flex',gap:'10px',flexWrap:'wrap',marginTop:'10px',paddingTop:'8px',borderTop:`1px solid ${t.dim}`}},
+        ['n','i','PV','PMT','FV'].map(r=>h('span',{key:r,style:{fontFamily:'IBM Plex Mono,monospace',fontSize:'10px',color:c.reg[r]?t.ink:t.dim}}, h('b',{style:{color:t.dim}},r+' '), c.reg[r]||'—'))) : null); }
+  renderCalc(t,c){ const h=React.createElement; const model=this.MODELS[this.state.model];
+    if(model.family==='rpl') return this.render48G(t,c);
+    if(model.family==='classic') return this.render35(t,c);
+    return h('div',{style:{background:t.bezel,border:`1px solid ${t.bezelBd}`,borderRadius:'14px',padding:'20px',boxShadow:t.shadow,width:'100%'}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'14px'}},
+        h('span',{style:{fontFamily:'Barlow Semi Condensed,sans-serif',fontWeight:700,fontSize:'14px',letterSpacing:'.02em',color:this.state.theme==='dark'?'#d8d3c6':'#2a2823'}},'hp ',h('b',{style:{fontWeight:800}},this.state.model.replace('HP-','').toLowerCase())),
+        h('span',{style:{fontFamily:'IBM Plex Mono,monospace',fontSize:'9.5px',letterSpacing:'.16em',color:t.muted}}, model.sub)),
+      this.renderDisplay(t,c),
+      h('div',{style:{marginTop:'14px'}}, this.renderKeyboard(t,c))); }
+  renderNative(t,c){ const h=React.createElement;
+    return h('div',{style:{background:t.bezel,border:`1px solid ${t.bezelBd}`,borderRadius:'14px',padding:'20px',boxShadow:t.shadow,width:'100%',display:'flex',flexDirection:'column'}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'14px'}},
+        h('span',{style:{fontFamily:'Barlow Semi Condensed,sans-serif',fontWeight:800,fontSize:'14px',letterSpacing:'.02em',color:this.state.theme==='dark'?'#d8d3c6':'#2a2823'}},'native'),
+        h('span',{style:{fontFamily:'IBM Plex Mono,monospace',fontSize:'9.5px',letterSpacing:'.16em',color:t.muted}},'EXPRESSION · FULL ENGINE')),
+      h('div',{className:'hc-scroll',style:{background:t.disp,border:`1px solid ${t.dispBd}`,borderRadius:'8px',padding:'18px 20px',boxShadow:t.glow,minHeight:'320px',maxHeight:'420px',overflowY:'auto',display:'flex',flexDirection:'column',gap:'14px'}},
+        this.state.nHist.length===0? h('div',{style:{color:t.dim,fontFamily:'IBM Plex Mono,monospace',fontSize:'13px'}},'Type an expression below — e.g. sqrt(144)+3, sin(30), 2^10') :
+        this.state.nHist.map((e,x)=>h('div',{key:x,style:{display:'flex',flexDirection:'column',gap:'2px'}},
+          h('div',{style:{fontFamily:'IBM Plex Mono,monospace',fontSize:'11px',color:t.dim}}, '› '+e.expr),
+          h('div',{style:{fontSize:'22px'}}, this.renderLatex(e.latex, e.val==null?t.on:t.ink,'22px'))))),
+      h('div',{style:{display:'flex',alignItems:'center',gap:'10px',marginTop:'14px',background:t.key,border:`1px solid ${t.keyBd}`,borderRadius:'10px',padding:'0 14px'}},
+        h('span',{style:{fontFamily:'IBM Plex Mono,monospace',color:t.gold,fontSize:'16px'}},'›'),
+        h('input',{className:'hc-ni',type:'text',placeholder:'expression…',value:this.state.nInput,
+          style:{color:t.keyTx,fontSize:'16px',padding:'14px 0',fontFamily:'IBM Plex Mono,monospace'},
+          onChange:e=>this.setState({nInput:e.target.value}), onKeyDown:e=>{ if(e.key==='Enter') this.runNative(); }}),
+        h('button',{className:'hc-key',onClick:()=>this.runNative(),style:{background:t.gold,color:'#231a05',borderRadius:'7px',padding:'8px 16px',fontFamily:'Barlow Semi Condensed,sans-serif',fontWeight:700,fontSize:'13px',letterSpacing:'.04em'}},'EVAL'))); }
+  segBtn(t,label,activeVal,val,onClick){ const h=React.createElement; const on=activeVal===val;
+    return h('button',{className:'hc-key',onClick,style:{background:on?t.gold:'transparent',color:on?'#231a05':t.text,borderRadius:'7px',padding:'7px 13px',fontFamily:'Barlow Semi Condensed,sans-serif',fontWeight:700,fontSize:'13px',letterSpacing:'.02em'}},label); }
+  renderSidePanel(t,c){ const h=React.createElement;
+    const items = this.state.mode==='native' ? this.state.nHist.slice().reverse() : c.hist.slice().reverse();
+    return h('div',{style:{background:t.panel,border:`1px solid ${t.panelBd}`,borderRadius:'14px',padding:'18px 20px',flex:'1 1 300px',minWidth:'280px',maxWidth:'420px',alignSelf:'stretch',display:'flex',flexDirection:'column'}},
+      h('div',{style:{fontFamily:'IBM Plex Mono,monospace',fontSize:'10.5px',letterSpacing:'.18em',textTransform:'uppercase',color:t.muted,marginBottom:'14px'}},'History'),
+      h('div',{className:'hc-scroll',style:{flex:1,overflowY:'auto',display:'flex',flexDirection:'column',gap:'10px',minHeight:'200px'}},
+        items.length===0? h('div',{style:{color:t.faint,fontFamily:'IBM Plex Mono,monospace',fontSize:'12px'}},'No history yet.') :
+        this.state.mode==='native'
+          ? items.map((e,x)=>h('div',{key:x,style:{borderBottom:`1px solid ${t.panelBd}`,paddingBottom:'10px'}},
+              h('div',{style:{fontFamily:'IBM Plex Mono,monospace',fontSize:'11px',color:t.muted}}, e.expr),
+              h('div',{style:{fontSize:'15px'}}, this.renderLatex(e.latex,e.val==null?t.on:t.text,'15px'))))
+          : items.map((e,x)=>h('div',{key:x,style:{display:'flex',justifyContent:'space-between',alignItems:'baseline',borderBottom:`1px solid ${t.panelBd}`,paddingBottom:'8px'}},
+              h('span',{style:{fontFamily:'Barlow Semi Condensed,sans-serif',fontWeight:600,fontSize:'13px',color:t.muted}},e.op),
+              h('span',{style:{fontFamily:'IBM Plex Mono,monospace',fontSize:'14px',color:t.text}},e.v)))),
+      this.renderStackPanel(t,c)); }
+  renderApp(){ const h=React.createElement; const t=this.tokens(); const c=this.state.calc; const model=this.MODELS[this.state.model];
+    const topSelect = h('div',{style:{display:'flex',gap:'2px',background:t.chrome==='#201e19'?'#17150f':'#e6e2d8',borderRadius:'9px',padding:'3px',border:`1px solid ${t.chromeBd}`}},
+      this.segBtn(t,'HP-35',this.state.model==='HP-35'&&this.state.mode!=='native','X',()=>this.setState({model:'HP-35',mode:'rpn'})),
+      this.segBtn(t,'HP-12C',this.state.model==='HP-12C'&&this.state.mode!=='native','X',()=>this.setState({model:'HP-12C',mode:'rpn'})),
+      this.segBtn(t,'HP-15C',this.state.model==='HP-15C'&&this.state.mode!=='native','X',()=>this.setState({model:'HP-15C',mode:'rpn'})),
+      this.segBtn(t,'HP-48G',this.state.model==='HP-48G'&&this.state.mode!=='native','X',()=>this.setState({model:'HP-48G',mode:'rpn'})),
+      this.segBtn(t,'Native',this.state.mode==='native','X'===''?'':(this.state.mode==='native'?'X':''),()=>this.setState({mode:'native'})));
+    const topBar = h('header',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:'14px',padding:'16px clamp(16px,4vw,40px)',background:t.chrome,borderBottom:`1px solid ${t.chromeBd}`}},
+      h('div',{style:{display:'flex',alignItems:'baseline',gap:'12px'}},
+        h('span',{style:{fontFamily:'Barlow Semi Condensed,sans-serif',fontWeight:800,fontSize:'20px',letterSpacing:'-.01em',color:t.text}},'hellocalc'),
+        h('span',{style:{fontFamily:'IBM Plex Mono,monospace',fontSize:'10px',letterSpacing:'.16em',color:t.gold}},'RPN · ONE ENGINE')),
+      h('div',{style:{display:'flex',alignItems:'center',gap:'12px',flexWrap:'wrap'}}, topSelect,
+        model.angle&&this.state.mode!=='native'? h('div',{style:{display:'flex',gap:'2px',background:t.chrome==='#201e19'?'#17150f':'#e6e2d8',borderRadius:'9px',padding:'3px',border:`1px solid ${t.chromeBd}`}},
+          ['DEG','RAD','GRD'].map(a=>this.segBtn(t,a,c.ang,a,()=>{ const cc={...this.state.calc,ang:a}; this.setState({calc:cc}); }))) : null,
+        h('button',{className:'hc-key',onClick:()=>this.setState({theme:this.state.theme==='dark'?'light':'dark'}),style:{background:'transparent',border:`1px solid ${t.chromeBd}`,borderRadius:'9px',padding:'8px 12px',color:t.text,fontFamily:'Barlow Semi Condensed,sans-serif',fontWeight:700,fontSize:'13px',display:'flex',alignItems:'center',gap:'7px'}},
+          h('span',{style:{width:'10px',height:'10px',borderRadius:'50%',background:this.state.theme==='dark'?t.gold:t.bezel,display:'inline-block'}}), this.state.theme==='dark'?'Dark':'Light')));
+    const calcCol = h('div',{style:{flex:'0 1 460px',minWidth:'320px',maxWidth:'520px'}}, this.state.mode==='native'?this.renderNative(t,c):this.renderCalc(t,c));
+    const body = h('main',{style:{display:'flex',flexWrap:'wrap',gap:'clamp(20px,3vw,34px)',alignItems:'flex-start',padding:'clamp(20px,4vw,44px)',justifyContent:'center'}}, calcCol, this.renderSidePanel(t,c));
+    return h('div',{style:{minHeight:'100vh',background:t.appBg,transition:'background .2s'}}, topBar, body,
+      h('footer',{style:{textAlign:'center',padding:'0 20px 40px',fontFamily:'IBM Plex Mono,monospace',fontSize:'11px',color:t.faint}}, 'Voyager design system · gold ',h('b',{style:{color:t.gold}},'f'),' / blue ',h('b',{style:{color:t.blue}},'g'),' · state retained across models')); }
+  // ================= TVM (Time Value of Money) solver =================
+  solveTVM(field,m,beg){ const n=+m.n, ip=(+m.i)/100, PV=+m.PV, PMT=+m.PMT, FV=+m.FV, S=beg?1:0; const powf=(x)=>Math.pow(1+ip,x);
+    if(field==='FV'){ if(ip===0) return -(PV+PMT*n); return -(PV*powf(n)+PMT*(1+ip*S)*(powf(n)-1)/ip); }
+    if(field==='PV'){ if(ip===0) return -(FV+PMT*n); return -(FV*powf(-n)+PMT*(1+ip*S)*(1-powf(-n))/ip); }
+    if(field==='PMT'){ if(ip===0) return -(PV+FV)/n; const tf=(1+ip*S)*(1-powf(-n))/ip; return -(PV+FV*powf(-n))/tf; }
+    if(field==='n'){ if(ip===0) return PMT===0?NaN:-(PV+FV)/PMT; const k=PMT*(1+ip*S)/ip; const num=k-FV, den=k+PV; if(den===0||num/den<=0) return NaN; return Math.log(num/den)/Math.log(1+ip); }
+    if(field==='i'){ const res=(r)=>{ if(r===0) return PV+PMT*n+FV; return PV+PMT*(1+r*S)*(1-Math.pow(1+r,-n))/r+FV*Math.pow(1+r,-n); }; let lo=-0.9999,hi=1,flo=res(lo),fhi=res(hi),tries=0; while(flo*fhi>0&&hi<1e6&&tries<60){ hi*=2; fhi=res(hi); tries++; } if(flo*fhi>0) return NaN; for(let it=0;it<200;it++){ const mid=(lo+hi)/2,fm=res(mid); if(Math.abs(fm)<1e-9) return mid*100; if(flo*fm<0){ hi=mid; } else { lo=mid; flo=fm; } } return (lo+hi)/2*100; }
+    return NaN; }
+  tvmKey(c,field,wasEntry){ if(wasEntry){ c.tvm={...c.tvm,[field]:c.X}; c.reg={...c.reg,[field]:this.fmt(c.X,c.dec)}; c.lift=true; this.logHist(c,field+' =',c.X); return; }
+    const val=this.solveTVM(field,c.tvm,c.beg); c.tvm={...c.tvm,[field]:isFinite(val)?val:c.tvm[field]}; c.reg={...c.reg,[field]:isFinite(val)?this.fmt(val,c.dec):'Error'};
+    if(!isFinite(val)){ c.err='TVM'; return; } if(c.lift) this.pushLift(c); c.X=val; c.lift=true; const lbl={n:'n',i:'i\\%',PV:'PV',PMT:'PMT',FV:'FV'}[field]; c.latex=`\\mathrm{${lbl}} = ${this.tex(val)}`; this.logHist(c,'SOLVE '+field,val); }
+  // ================= HP-48G (RPL) =================
+  k48kind(p){ if(p.length===1&&'0123456789'.includes(p))return 'digit'; if(p==='+'||p==='−'||p==='×'||p==='÷')return 'arith'; if(p==='ENTER')return 'enter'; if(p==='ON')return 'on'; return 'std'; }
+  make48G(){ const K=(p,ls,rs,al,w,kind)=>({p,ls:ls||'',rs:rs||'',al:al||'',w:w||1,kind:kind||this.k48kind(p)});
+    const rows=[
+      [K('','','','A',1,'soft'),K('','','','B',1,'soft'),K('','','','C',1,'soft'),K('','','','D',1,'soft'),K('','','','E',1,'soft'),K('','','','F',1,'soft')],
+      [K('MTH','','','G'),K('PRG','I/O','I/O','H'),K('CST','MODES','MODES','I'),K('VAR','MEM','MEM','J'),K('▲','LIB','LIB','K',1,'cur'),K('NXT','PREV','','L')],
+      [K('′','','','M'),K('STO','DEF','RCL','N'),K('EVAL','→Q','→NUM','O'),K('◄','GRAPH','','P',1,'cur'),K('▼','REVIEW','','Q',1,'cur'),K('►','SWAP','','R',1,'cur')],
+      [K('SIN','ASIN','∂','S'),K('COS','ACOS','∫','T'),K('TAN','ATAN','Σ','U'),K('√x','x²','ˣ√y','V'),K('yˣ','10ˣ','LOG','W'),K('1/x','eˣ','LN','X')],
+      [K('ENTER','EQUATION','MATRIX','',2),K('+/−','EDIT','VISIT','Y'),K('EEX','','','Z'),K('DEL','PURGE','',''),K('◄','DROP','CLEAR','',1,'bksp')],
+      [K('α','USR','ENTRY','',1,'alpha'),K('7','SOLVE','SOLVE',''),K('8','PLOT','PLOT',''),K('9','SYMB','SYMB',''),K('÷','( )','#','')],
+      [K('◄','','','',1,'ls'),K('4','TIME','TIME',''),K('5','STAT','STAT',''),K('6','UNITS','',''),K('×','[ ]','_','')],
+      [K('►','','','',1,'rs'),K('1','RAD','POLAR',''),K('2','STACK','STACK',''),K('3','CMD','MENU',''),K('−','« »','" "','')],
+      [K('ON','CONT','OFF','',1,'on'),K('0','=','→',''),K('.','','↵',''),K('SPC','π','∡',''),K('+','{ }','::','')],
+    ];
+    return { family:'rpl', sub:'RPL · GRAPHING', angle:true, rows }; }
+  pressRpl(key){ const calc=this.state.calc; const c={...calc, rpl:[...calc.rpl], hist:calc.hist.slice()};
+    if(key.kind==='ls'){ c.prefix=c.prefix==='ls'?'none':'ls'; this.setState({calc:c}); return; }
+    if(key.kind==='rs'){ c.prefix=c.prefix==='rs'?'none':'rs'; this.setState({calc:c}); return; }
+    if(key.kind==='alpha'){ c.prefix=c.prefix==='alpha'?'none':'alpha'; this.setState({calc:c}); return; }
+    if(key.kind==='on'){ c.prefix='none'; c.entry=null; this.setState({calc:c}); return; }
+    const pref=c.prefix; c.prefix='none'; c.err='';
+    let fn = pref==='ls'?key.ls : pref==='rs'?key.rs : key.p;
+    if(key.kind==='bksp'&&pref==='none') fn='BKSP';
+    if((pref==='ls'||pref==='rs') && !fn){ this.setState({calc:c}); return; }
+    this.execRpl(c, fn, key); this.setState({calc:c}); }
+  finalizeR(c){ if(c.entry!=null&&c.entry!==''&&c.entry!=='-'){ c.rpl.push(parseFloat(c.entry)||0); } c.entry=null; }
+  execRpl(c,fn,key){ const st=c.rpl;
+    if(fn&&fn.length===1&&'0123456789'.includes(fn)){ c.entry=(c.entry||'')+fn; return; }
+    if(fn==='.'){ c.entry=(c.entry==null?'0':c.entry); if(!c.entry.includes('.'))c.entry+='.'; return; }
+    if(fn==='SPC'){ this.finalizeR(c); return; }
+    if(fn==='ENTER'){ if(c.entry!=null&&c.entry!==''){ this.finalizeR(c); } else if(st.length){ st.push(st[st.length-1]); } return; }
+    if(fn==='BKSP'){ if(c.entry!=null){ c.entry=c.entry.slice(0,-1); if(c.entry==='')c.entry=null; } else st.pop(); return; }
+    if(fn==='DROP'){ this.finalizeR(c); st.pop(); return; }
+    if(fn==='CLEAR'){ c.rpl.length=0; c.entry=null; return; }
+    if(fn==='SWAP'){ this.finalizeR(c); if(st.length>=2){ const n=st.length,tmp=st[n-1]; st[n-1]=st[n-2]; st[n-2]=tmp; } return; }
+    if(fn==='RAD'){ c.ang=c.ang==='RAD'?'DEG':'RAD'; return; }
+    if(fn==='π'){ this.finalizeR(c); st.push(Math.PI); c.latex='\\pi = '+this.tex(Math.PI); this.logHist(c,'π',Math.PI); return; }
+    if(fn==='+/−'&&c.entry!=null&&c.entry!==''){ c.entry=c.entry.startsWith('-')?c.entry.slice(1):'-'+c.entry; return; }
+    const B=(f,sym)=>{ this.finalizeR(c); if(st.length>=2){ const b=st.pop(),a=st.pop(),r=f(a,b); st.push(r); c.latex=`${this.tex(a)} ${sym} ${this.tex(b)} = ${this.tex(r)}`; this.logHist(c,fn,r);} };
+    const U=(f,ltx)=>{ this.finalizeR(c); if(st.length>=1){ const a=st.pop(),r=f(a); st.push(r); c.latex=ltx(a,r); this.logHist(c,fn,r);} };
+    switch(fn){
+      case '+': return B((a,b)=>a+b,'+'); case '−': return B((a,b)=>a-b,'-'); case '×': return B((a,b)=>a*b,'\\times'); case '÷': return B((a,b)=>a/b,'\\div');
+      case 'yˣ': return B((a,b)=>Math.pow(a,b),'^{\\wedge}'); case 'ˣ√y': return B((a,b)=>Math.pow(b,1/a),'\\sqrt[x]{y}');
+      case '+/−': return U(x=>-x,(a,r)=>`-(${this.tex(a)}) = ${this.tex(r)}`);
+      case '√x': return U(x=>Math.sqrt(x),(a,r)=>`\\sqrt{${this.tex(a)}} = ${this.tex(r)}`);
+      case 'x²': return U(x=>x*x,(a,r)=>`${this.tex(a)}^2 = ${this.tex(r)}`);
+      case '1/x': return U(x=>1/x,(a,r)=>`\\frac{1}{${this.tex(a)}} = ${this.tex(r)}`);
+      case 'eˣ': return U(x=>Math.exp(x),(a,r)=>`e^{${this.tex(a)}} = ${this.tex(r)}`);
+      case '10ˣ': return U(x=>Math.pow(10,x),(a,r)=>`10^{${this.tex(a)}} = ${this.tex(r)}`);
+      case 'LN': return U(x=>Math.log(x),(a,r)=>`\\ln(${this.tex(a)}) = ${this.tex(r)}`);
+      case 'LOG': return U(x=>Math.log10(x),(a,r)=>`\\log(${this.tex(a)}) = ${this.tex(r)}`);
+      case 'SIN': return U(x=>Math.sin(this.toRad(x,c.ang)),(a,r)=>`\\sin(${this.tex(a)}) = ${this.tex(r)}`);
+      case 'COS': return U(x=>Math.cos(this.toRad(x,c.ang)),(a,r)=>`\\cos(${this.tex(a)}) = ${this.tex(r)}`);
+      case 'TAN': return U(x=>Math.tan(this.toRad(x,c.ang)),(a,r)=>`\\tan(${this.tex(a)}) = ${this.tex(r)}`);
+      case 'ASIN': return U(x=>this.fromRad(Math.asin(x),c.ang),(a,r)=>`\\sin^{-1}(${this.tex(a)}) = ${this.tex(r)}`);
+      case 'ACOS': return U(x=>this.fromRad(Math.acos(x),c.ang),(a,r)=>`\\cos^{-1}(${this.tex(a)}) = ${this.tex(r)}`);
+      case 'ATAN': return U(x=>this.fromRad(Math.atan(x),c.ang),(a,r)=>`\\tan^{-1}(${this.tex(a)}) = ${this.tex(r)}`);
+      default: this.finalizeR(c); return;
+    } }
+  render48G(t,c){ const h=React.createElement; const dark=this.state.theme==='dark'; const LS=dark?'#b492e6':'#6d4f9e', RS=dark?'#5fc487':'#2f7d4f';
+    return h('div',{style:{background:t.bezel,border:`1px solid ${t.bezelBd}`,borderRadius:'14px',padding:'20px',boxShadow:t.shadow,width:'100%'}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'14px'}},
+        h('span',{style:{fontFamily:'Barlow Semi Condensed,sans-serif',fontWeight:700,fontSize:'14px',letterSpacing:'.02em',color:dark?'#d8d3c6':'#2a2823'}},'hp ',h('b',{style:{fontWeight:800}},'48g')),
+        h('span',{style:{fontFamily:'IBM Plex Mono,monospace',fontSize:'9.5px',letterSpacing:'.16em',color:t.muted}},'RPL · GRAPHING')),
+      this.renderRplDisplay(t,c,LS,RS), h('div',{style:{marginTop:'14px'}}, this.renderKeyboard48G(t,c,LS,RS))); }
+  renderRplDisplay(t,c,LS,RS){ const h=React.createElement; const st=c.rpl; const start=Math.max(0,st.length-6); const lines=[];
+    for(let i=start;i<st.length;i++){ lines.push({lvl:st.length-i, val:this.fmt(st[i],c.dec)}); }
+    return h('div',{style:{background:t.disp,border:`1px solid ${t.dispBd}`,borderRadius:'8px',padding:'14px 16px',boxShadow:t.glow,display:'flex',flexDirection:'column',minHeight:'230px'}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'6px'}},
+        h('div',{style:{display:'flex',gap:'9px',alignItems:'center'}}, h('span',{style:{fontFamily:'IBM Plex Mono,monospace',fontSize:'10px',fontWeight:700,color:LS}}, c.prefix==='ls'?'◀ SHIFT':'◀'), h('span',{style:{fontFamily:'IBM Plex Mono,monospace',fontSize:'10px',fontWeight:700,color:RS}}, c.prefix==='rs'?'▶ SHIFT':'▶'), h('span',{style:{fontFamily:'IBM Plex Mono,monospace',fontSize:'9.5px',fontWeight:700,letterSpacing:'.12em',color:t.dim}},c.ang)),
+        c.latex? h('div',{style:{fontSize:'12px',maxWidth:'160px',overflow:'hidden'}}, this.renderLatex(c.latex,t.dim,'12px')):null),
+      h('div',{style:{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',gap:'1px'}},
+        lines.length===0? h('div',{style:{color:t.dim,fontFamily:'IBM Plex Mono,monospace',fontSize:'13px',textAlign:'center',padding:'20px 0'}},'( empty stack )') :
+        lines.map(l=>h('div',{key:l.lvl,style:{display:'flex',alignItems:'baseline',gap:'10px',borderTop:`1px solid rgba(0,0,0,.08)`,padding:'3px 0'}},
+          h('span',{style:{fontFamily:'IBM Plex Mono,monospace',fontSize:'11px',color:t.dim,minWidth:'20px'}}, l.lvl+':'),
+          h('span',{style:{flex:1,textAlign:'right',fontFamily:'DSEG7,IBM Plex Mono,monospace',fontSize:'20px',color:t.ink}}, l.val)))),
+      h('div',{style:{marginTop:'6px',borderTop:`2px solid ${t.dispBd}`,paddingTop:'6px',display:'flex',alignItems:'center',gap:'6px'}},
+        h('span',{style:{fontFamily:'IBM Plex Mono,monospace',fontSize:'13px',color:t.dim}},'⊳'),
+        h('span',{style:{flex:1,fontFamily:'DSEG7,IBM Plex Mono,monospace',fontSize:'18px',color:t.ink}}, c.entry||''),
+        h('span',{style:{width:'8px',height:'18px',background:t.ink,opacity:.55,display:'inline-block'}}))); }
+  renderKeyboard48G(t,c,LS,RS){ const h=React.createElement; const model=this.MODELS['HP-48G'];
+    return h('div',{style:{display:'flex',flexDirection:'column',gap:'5px'}},
+      model.rows.map((row,ri)=>h('div',{key:ri,style:{display:'flex',gap:'5px'}}, row.map((k,ki)=>this.renderKey48G(t,c,k,ri+'-'+ki,LS,RS))))); }
+  renderKey48G(t,c,k,key,LS,RS){ const h=React.createElement; let face=t.key,tx=t.keyTx;
+    if(k.kind==='arith'){ face=t.op; tx=t.opTx; } if(k.kind==='enter'){ face=t.enter; tx=t.enterTx; }
+    if(k.kind==='ls'){ face=LS; tx='#fff'; } if(k.kind==='rs'){ face=RS; tx='#fff'; } if(k.kind==='alpha'){ face=t.op; tx=t.text; } if(k.kind==='on'){ tx=t.on; } if(k.kind==='soft'){ face=t.bezelInner; }
+    const lsHot=c.prefix==='ls'&&k.ls, rsHot=c.prefix==='rs'&&k.rs;
+    const legLS=k.ls?h('span',{style:{position:'absolute',top:'2px',left:'3px',fontSize:'6.5px',fontWeight:700,lineHeight:1,color:LS,fontFamily:'Barlow Semi Condensed,sans-serif',opacity:lsHot?1:.92,textShadow:lsHot?`0 0 6px ${LS}`:'none'}},k.ls):null;
+    const legRS=k.rs?h('span',{style:{position:'absolute',top:'2px',right:'3px',fontSize:'6.5px',fontWeight:700,lineHeight:1,color:RS,fontFamily:'Barlow Semi Condensed,sans-serif',opacity:rsHot?1:.92,textShadow:rsHot?`0 0 6px ${RS}`:'none'}},k.rs):null;
+    const legAL=k.al?h('span',{style:{position:'absolute',bottom:'2px',right:'3px',fontSize:'7px',fontWeight:600,lineHeight:1,color:t.dim,fontFamily:'IBM Plex Mono,monospace'}},k.al):null;
+    const psz=k.p.length>3?'11px':(k.p.length>1?'14px':'18px');
+    const prim=h('span',{style:{fontSize:psz,fontWeight:700,color:tx,fontFamily:'Barlow Semi Condensed,sans-serif',lineHeight:1,zIndex:1}}, k.kind==='ls'?'◀':k.kind==='rs'?'▶':k.p);
+    const outline=(lsHot||rsHot)?`0 0 0 2px ${lsHot?LS:RS}`:'none';
+    return h('button',{key,className:'hc-key',onClick:()=>this.press(k),
+      style:{position:'relative',flex:k.w||1,minHeight:'44px',display:'flex',alignItems:'center',justifyContent:'center',background:face,borderRadius:'5px',boxShadow:(outline!=='none'?outline+', ':'')+t.keySh,paddingTop:(k.ls||k.rs)?'8px':0,paddingBottom:k.al?'7px':0}}, legLS,legRS,prim,legAL); }
+  renderStackPanel(t,c){ const h=React.createElement; const rpl=this.MODELS[this.state.model].family==='rpl'; let rows;
+    if(rpl){ const st=c.rpl; const start=Math.max(0,st.length-5); rows=[]; for(let i=st.length-1;i>=start;i--){ rows.push({lab:(st.length-i)+':', val:this.fmt(st[i],c.dec), hot:i===st.length-1}); } if(rows.length===0) rows=[{lab:'1:',val:'—',hot:true}]; }
+    else { rows=['T','Z','Y','X'].map(r=>({lab:r,val:this.fmt(c[r],c.dec),hot:r==='X'})); }
+    return h('div',{style:{marginTop:'14px',paddingTop:'14px',borderTop:`1px solid ${t.panelBd}`}},
+      h('div',{style:{fontFamily:'IBM Plex Mono,monospace',fontSize:'10.5px',letterSpacing:'.18em',textTransform:'uppercase',color:t.muted,marginBottom:'10px'}}, rpl?'RPL Stack':'RPN Stack'),
+      rows.map((r,x)=>h('div',{key:x,style:{display:'flex',justifyContent:'space-between',padding:'2px 0'}},
+        h('span',{style:{fontFamily:'IBM Plex Mono,monospace',fontSize:'12px',color:t.muted,letterSpacing:'.1em'}},r.lab),
+        h('span',{style:{fontFamily:'IBM Plex Mono,monospace',fontSize:'14px',color:r.hot?t.gold:t.text}}, r.val)))); }
+  // ================= HP-35 (classic, red LED, no shift) =================
+  make35(){ const K=(p,fn,cat,flex)=>({p,fn,cat,flex:flex||1});
+    const rows=[
+      [K('xʸ','yˣ','black'),K('log','LOG','black'),K('ln','LN','black'),K('eˣ','eˣ','black'),K('CLR','CLR','blue')],
+      [K('√x','√x','black'),K('arc','arc','black'),K('sin','SIN','black'),K('cos','COS','black'),K('tan','TAN','black')],
+      [K('1/x','1/x','black'),K('x⇄y','x⇄y','black'),K('R↓','R↓','black'),K('STO','STO','black'),K('RCL','RCL','black')],
+      [K('ENTER↑','ENTER','blue',2),K('CHS','CHS','blue'),K('EEX','EEX','blue'),K('CLx','CLx','blue')],
+      [K('−','−','blue'),K('7','7','beige'),K('8','8','beige'),K('9','9','beige')],
+      [K('+','+','blue'),K('4','4','beige'),K('5','5','beige'),K('6','6','beige')],
+      [K('×','×','blue'),K('1','1','beige'),K('2','2','beige'),K('3','3','beige')],
+      [K('÷','÷','blue'),K('0','0','beige'),K('·','•','beige'),K('π','π','beige')],
+    ];
+    return { family:'classic', sub:'RPN · LED', angle:false, rows }; }
+  press35(key){ const calc=this.state.calc; const c={...calc, reg:{...calc.reg}, hist:calc.hist.slice()};
+    if(key.fn==='arc'){ c.prefix=c.prefix==='arc'?'none':'arc'; this.setState({calc:c}); return; }
+    const pref=c.prefix; c.prefix='none'; c.err=''; const arcMap={SIN:'SIN⁻¹',COS:'COS⁻¹',TAN:'TAN⁻¹'};
+    let fn=key.fn; if(pref==='arc'&&arcMap[key.fn]) fn=arcMap[key.fn];
+    this.exec(c, fn); this.setState({calc:c}); }
+  render35(t,c){ const h=React.createElement; const dark=this.state.theme==='dark';
+    return h('div',{style:{background:t.bezel,border:`1px solid ${t.bezelBd}`,borderRadius:'14px',padding:'20px',boxShadow:t.shadow,width:'100%'}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'14px'}},
+        h('span',{style:{fontFamily:'Barlow Semi Condensed,sans-serif',fontWeight:700,fontSize:'14px',letterSpacing:'.02em',color:dark?'#d8d3c6':'#2a2823'}},'hp ',h('b',{style:{fontWeight:800}},'35')),
+        h('span',{style:{fontFamily:'IBM Plex Mono,monospace',fontSize:'9.5px',letterSpacing:'.16em',color:t.muted}},'RPN · LED')),
+      this.renderDisplay(t,c), h('div',{style:{marginTop:'14px'}}, this.renderKeyboard35(t,c))); }
+  renderLedDisplay(t,c){ const h=React.createElement; const bg='#1b0a06', glyph='#ff5a34', dim='#6e2618', bd='#3a140c';
+    const row=(lab,val,muted)=>h('div',{style:{display:'flex',alignItems:'baseline',justifyContent:'space-between',padding:'1px 0'}},
+      h('span',{style:{fontFamily:'IBM Plex Mono,monospace',fontSize:'11px',fontWeight:600,color:dim,letterSpacing:'.1em'}},lab),
+      h('span',{style:{fontFamily:'DSEG7,IBM Plex Mono,monospace',fontSize:'17px',color:muted?dim:glyph,letterSpacing:'.02em',textShadow:muted?'none':`0 0 8px ${glyph}88`}},val));
+    return h('div',{style:{background:bg,border:`1px solid ${bd}`,borderRadius:'8px',padding:'16px 18px',boxShadow:`inset 0 1px 0 rgba(255,120,80,.12), inset 0 -8px 20px rgba(0,0,0,.5)`,display:'flex',flexDirection:'column'}},
+      h('div',{style:{display:'flex',justifyContent:'flex-end',gap:'11px',marginBottom:'6px'}},
+        h('span',{style:{fontFamily:'IBM Plex Mono,monospace',fontSize:'9.5px',fontWeight:700,letterSpacing:'.14em',color:c.prefix==='arc'?glyph:dim,opacity:c.prefix==='arc'?1:.5}},'ARC'),
+        h('span',{style:{fontFamily:'IBM Plex Mono,monospace',fontSize:'9.5px',fontWeight:700,letterSpacing:'.14em',color:glyph,opacity:.8}},'RPN')),
+      h('div',{style:{minHeight:'52px',display:'flex',alignItems:'center'}}, this.renderLatex(c.latex,glyph,'30px')),
+      h('div',{style:{marginTop:'8px'}}, row('T',this.fmt(c.T,c.dec),true), row('Z',this.fmt(c.Z,c.dec),true), row('Y',this.fmt(c.Y,c.dec),true),
+        h('div',{style:{height:'1px',background:dim,opacity:.35,margin:'3px 0'}}),
+        h('div',{style:{display:'flex',alignItems:'baseline',justifyContent:'space-between'}},
+          h('span',{style:{fontFamily:'IBM Plex Mono,monospace',fontSize:'11px',fontWeight:700,color:glyph,letterSpacing:'.1em',opacity:.7}},'X'),
+          h('span',{style:{fontFamily:'DSEG7,IBM Plex Mono,monospace',fontSize:'30px',color:glyph,letterSpacing:'.02em',textShadow:`0 0 12px ${glyph}66`}}, c.entry!=null?c.entry:this.fmt(c.X,c.dec))))); }
+  renderKeyboard35(t,c){ const h=React.createElement; const model=this.MODELS['HP-35']; const dark=this.state.theme==='dark';
+    return h('div',{style:{display:'flex',flexDirection:'column',gap:'6px'}},
+      model.rows.map((row,ri)=>h('div',{key:ri,style:{display:'flex',gap:'6px'}}, row.map((k,ki)=>this.renderKey35(t,c,k,ri+'-'+ki,dark))))); }
+  renderKey35(t,c,k,key,dark){ const h=React.createElement; let face,tx;
+    if(k.cat==='beige'){ face=dark?'#48453d':'#e7e3d6'; tx=dark?'#f2ede1':'#2a2823'; }
+    else if(k.cat==='blue'){ face=t.op; tx=t.blue; }
+    else { face=t.key; tx=t.keyTx; }
+    const arcHot=c.prefix==='arc'&&(k.fn==='SIN'||k.fn==='COS'||k.fn==='TAN'), arcSelf=c.prefix==='arc'&&k.fn==='arc';
+    const psz=k.p.length>4?'15px':(k.p.length>2?'18px':'22px');
+    const outline=(arcHot||arcSelf)?`0 0 0 2px ${t.blue}`:'none';
+    return h('button',{key,className:'hc-key',onClick:()=>this.press(k),
+      style:{position:'relative',flex:k.flex||1,minHeight:'46px',display:'flex',alignItems:'center',justifyContent:'center',background:face,borderRadius:'5px',boxShadow:(outline!=='none'?outline+', ':'')+t.keySh}},
+      h('span',{style:{fontSize:psz,fontWeight:700,color:tx,fontFamily:'Barlow Semi Condensed,sans-serif',lineHeight:1}}, k.p)); }
+  renderVals(){ return { app: this.renderApp() }; }
+}
+</script>
+</body>
+</html>

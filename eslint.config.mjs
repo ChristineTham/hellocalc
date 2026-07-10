@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Vendored agent skill scripts — not project source, don't lint them.
     ".agents/**",
+    // Design handoff / prototype reference — not production source.
+    "design/**",
     // Playwright artifacts.
     "playwright-report/**",
     "test-results/**",

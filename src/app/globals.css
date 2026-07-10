@@ -1,3 +1,11 @@
+/* =============================================================================
+   hellocalc — HP-calculator design system (Voyager vintage direction)
+   Vintage palette mapped onto the existing shadcn/Base UI token names, plus an
+   --hp-* faceplate layer (--hp-key, --hp-display, --hp-shift-f, …). The shadcn
+   radius scale and sidebar/chart tokens are preserved so generated primitives
+   keep working. Light = :root, dark = .dark. Source: design/handoff/globals.css.
+   ============================================================================= */
+
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -7,9 +15,14 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+
+  /* Type — design pairing (see src/app/layout.tsx / next/font/google) */
+  --font-sans: var(--font-archivo), system-ui, sans-serif; /* UI / chrome */
+  --font-heading: var(--font-archivo), system-ui, sans-serif;
+  --font-legend: var(--font-barlow), sans-serif; /* key legends */
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace; /* stack/history */
+  --font-display: var(--font-dseg7), var(--font-plex-mono), monospace; /* segment LCD */
+
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -39,6 +52,29 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+
+  /* HP faceplate layer — consumed by Faceplate / Display / Key components */
+  --color-hp-bezel: var(--hp-bezel);
+  --color-hp-bezel-border: var(--hp-bezel-border);
+  --color-hp-key: var(--hp-key);
+  --color-hp-key-fg: var(--hp-key-fg);
+  --color-hp-key-border: var(--hp-key-border);
+  --color-hp-op: var(--hp-op);
+  --color-hp-op-fg: var(--hp-op-fg);
+  --color-hp-enter: var(--hp-enter);
+  --color-hp-enter-fg: var(--hp-enter-fg);
+  --color-hp-display: var(--hp-display);
+  --color-hp-display-border: var(--hp-display-border);
+  --color-hp-display-fg: var(--hp-display-fg);
+  --color-hp-display-dim: var(--hp-display-dim);
+  --color-hp-panel: var(--hp-panel);
+  /* Shift-accent tokens — SEMANTIC (which prefix reaches a legend), not decor */
+  --color-hp-shift-f: var(--hp-shift-f); /* Voyager gold f (above key)  */
+  --color-hp-shift-f-fg: var(--hp-shift-f-fg); /* dark ink on the gold f-prefix key */
+  --color-hp-shift-g: var(--hp-shift-g); /* Voyager blue g (lower face) */
+  --color-hp-shift-ls: var(--hp-shift-ls); /* RPL left-shift  (48G purple) */
+  --color-hp-shift-rs: var(--hp-shift-rs); /* RPL right-shift (48G green)  */
+
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -46,75 +82,119 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-key: 5px;
+  --radius-bezel: 14px;
 }
 
+/* ---------- LIGHT (default) — warm "steel + olive LCD" ---------- */
 :root {
-  --background: #fffcf2;
-  --foreground: #555350;
-  --card: #fffcf2;
-  --card-foreground: #555350;
-  --popover: #fffcf2;
-  --popover-foreground: #555350;
-  --primary: #9159c2;
-  --primary-foreground: #fffcf2;
-  --secondary: #e89abf;
-  --secondary-foreground: #721d4d;
-  --muted: #ccc9c2;
-  --muted-foreground: #555350;
-  --accent: #ffcde6;
-  --accent-foreground: #721d4d;
-  --destructive: #ffb5b5;
-  --border: #ccc9c2;
-  --input: #ccc9c2;
-  --ring: #c39be6;
-  --chart-1: #ffb5b5;
-  --chart-2: #f5c277;
-  --chart-3: #abdb8f;
-  --chart-4: #85e0e0;
-  --chart-5: #ba508a;
+  --background: #e6e3da;
+  --foreground: #2a2823;
+  --card: #efece3;
+  --card-foreground: #2a2823;
+  --popover: #f3f0e8;
+  --popover-foreground: #2a2823;
+  --primary: #a9832f; /* gold f-accent */
+  --primary-foreground: #fdfcf9;
+  --secondary: #35619e; /* blue g-accent */
+  --secondary-foreground: #fdfcf9;
+  --muted: #ddd9cd;
+  --muted-foreground: #7d7869;
+  --accent: #ddd9cd;
+  --accent-foreground: #2a2823;
+  --destructive: #b23b2f;
+  --border: #dcd8cc;
+  --input: #c6c2b5;
+  --ring: #a9832f;
+  --chart-1: #a9832f;
+  --chart-2: #35619e;
+  --chart-3: #2f7d4f;
+  --chart-4: #6d4f9e;
+  --chart-5: #b23b2f;
   --radius: 0.625rem;
-  --sidebar: #fffcf2;
-  --sidebar-foreground: #555350;
-  --sidebar-primary: #9159c2;
-  --sidebar-primary-foreground: #fffcf2;
-  --sidebar-accent: #ebd5ff;
-  --sidebar-accent-foreground: #4a1e70;
-  --sidebar-border: #ccc9c2;
-  --sidebar-ring: #c39be6;
+  --sidebar: #efece3;
+  --sidebar-foreground: #2a2823;
+  --sidebar-primary: #a9832f;
+  --sidebar-primary-foreground: #fdfcf9;
+  --sidebar-accent: #ddd9cd;
+  --sidebar-accent-foreground: #2a2823;
+  --sidebar-border: #dcd8cc;
+  --sidebar-ring: #a9832f;
+
+  --hp-bezel: #cdcabf;
+  --hp-bezel-border: #b4b1a4;
+  --hp-key: #e9e6dc;
+  --hp-key-fg: #2a2823;
+  --hp-key-border: #c6c2b5;
+  --hp-op: #ddd9cd;
+  --hp-op-fg: #8a5a20;
+  --hp-enter: #2b2a27;
+  --hp-enter-fg: #ece7db;
+  --hp-display: #c1cbaa;
+  --hp-display-border: #a3ab8c;
+  --hp-display-fg: #222a1a;
+  --hp-display-dim: #6b7256;
+  --hp-panel: #efece3;
+  --hp-shift-f: #a9832f;
+  --hp-shift-f-fg: #231a05; /* dark ink — legible on gold in both themes */
+  --hp-shift-g: #35619e;
+  --hp-shift-ls: #6d4f9e;
+  --hp-shift-rs: #2f7d4f;
 }
 
+/* ---------- DARK — graphite chassis + olive LCD ---------- */
 .dark {
-  --background: #555350;
-  --foreground: #fffcf2;
-  --card: #555350;
-  --card-foreground: #fffcf2;
-  --popover: #555350;
-  --popover-foreground: #fffcf2;
-  --primary: #c39be6;
-  --primary-foreground: #4a1e70;
-  --secondary: #ba508a;
-  --secondary-foreground: #ffcde6;
-  --muted: #aaa7a0;
-  --muted-foreground: #fffcf2;
-  --accent: #721d4d;
-  --accent-foreground: #ffcde6;
-  --destructive: #ffb5b5;
-  --border: #aaa7a0;
-  --input: #aaa7a0;
-  --ring: #9159c2;
-  --chart-1: #ffb5b5;
-  --chart-2: #f5c277;
-  --chart-3: #abdb8f;
-  --chart-4: #85e0e0;
-  --chart-5: #e89abf;
-  --sidebar: #555350;
-  --sidebar-foreground: #fffcf2;
-  --sidebar-primary: #c39be6;
-  --sidebar-primary-foreground: #4a1e70;
-  --sidebar-accent: #4a1e70;
-  --sidebar-accent-foreground: #ebd5ff;
-  --sidebar-border: #aaa7a0;
-  --sidebar-ring: #9159c2;
+  --background: #141310;
+  --foreground: #ded9cc;
+  --card: #1b1a16;
+  --card-foreground: #ded9cc;
+  --popover: #201e19;
+  --popover-foreground: #ded9cc;
+  --primary: #d3a441;
+  --primary-foreground: #231a05;
+  --secondary: #5b8fd6;
+  --secondary-foreground: #04101f;
+  --muted: #201e19;
+  --muted-foreground: #8f8977;
+  --accent: #38362f;
+  --accent-foreground: #f0d9a4;
+  --destructive: #e08a7a;
+  --border: #2f2c25;
+  --input: #2b2a27;
+  --ring: #d3a441;
+  --chart-1: #d3a441;
+  --chart-2: #5b8fd6;
+  --chart-3: #5fc487;
+  --chart-4: #b492e6;
+  --chart-5: #e08a7a;
+  --sidebar: #1b1a16;
+  --sidebar-foreground: #ded9cc;
+  --sidebar-primary: #d3a441;
+  --sidebar-primary-foreground: #231a05;
+  --sidebar-accent: #38362f;
+  --sidebar-accent-foreground: #f0d9a4;
+  --sidebar-border: #2f2c25;
+  --sidebar-ring: #d3a441;
+
+  --hp-bezel: #33322e;
+  --hp-bezel-border: #48463f;
+  --hp-key: #2b2a27;
+  --hp-key-fg: #ece7db;
+  --hp-key-border: #141310;
+  --hp-op: #38362f;
+  --hp-op-fg: #f0d9a4;
+  --hp-enter: #3d3b34;
+  --hp-enter-fg: #ece7db;
+  --hp-display: #aeb79c;
+  --hp-display-border: #8a927a;
+  --hp-display-fg: #1b2016;
+  --hp-display-dim: #5c6350;
+  --hp-panel: #1b1a16;
+  --hp-shift-f: #d3a441;
+  --hp-shift-f-fg: #231a05; /* dark ink — legible on gold in both themes */
+  --hp-shift-g: #5b8fd6;
+  --hp-shift-ls: #b492e6;
+  --hp-shift-rs: #5fc487;
 }
 
 @layer base {

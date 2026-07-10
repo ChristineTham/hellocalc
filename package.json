@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "gen:models": "node --experimental-strip-types --no-warnings scripts/gen-models.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

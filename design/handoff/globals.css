@@ -1,0 +1,164 @@
+/* =============================================================================
+   hellocalc — HP-calculator design system (Voyager vintage direction "1a")
+   Drop-in replacement for src/app/globals.css @theme + token layers.
+   Keeps the existing shadcn/Base UI variable names (remapped to the vintage
+   palette) and ADDS an --hp-* layer for faceplate-specific tokens.
+   Light = default (:root), Dark = .dark. All values are the exact tokens the
+   prototype ships (see Hellocalc App.dc.html → tokens()).
+   ============================================================================= */
+
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  /* shadcn/Base UI surface tokens */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* HP faceplate layer — consumed by Faceplate / Display / Key components */
+  --color-hp-bezel: var(--hp-bezel);
+  --color-hp-bezel-border: var(--hp-bezel-border);
+  --color-hp-key: var(--hp-key);
+  --color-hp-key-fg: var(--hp-key-fg);
+  --color-hp-key-border: var(--hp-key-border);
+  --color-hp-op: var(--hp-op);
+  --color-hp-op-fg: var(--hp-op-fg);
+  --color-hp-enter: var(--hp-enter);
+  --color-hp-enter-fg: var(--hp-enter-fg);
+  --color-hp-display: var(--hp-display);
+  --color-hp-display-border: var(--hp-display-border);
+  --color-hp-display-fg: var(--hp-display-fg);
+  --color-hp-display-dim: var(--hp-display-dim);
+  --color-hp-panel: var(--hp-panel);
+  /* Shift-accent tokens — SEMANTIC (which prefix reaches a legend), not decor */
+  --color-hp-shift-f: var(--hp-shift-f);   /* Voyager gold f (above key)  */
+  --color-hp-shift-g: var(--hp-shift-g);   /* Voyager blue g (lower face) */
+  --color-hp-shift-ls: var(--hp-shift-ls); /* RPL left-shift  (48G purple) */
+  --color-hp-shift-rs: var(--hp-shift-rs); /* RPL right-shift (48G green)  */
+
+  /* Type — swap Geist for the design pairing (see layout.fonts.tsx) */
+  --font-sans: var(--font-archivo), system-ui, sans-serif;      /* UI / chrome  */
+  --font-legend: var(--font-barlow), sans-serif;                /* key legends  */
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;  /* stack/history*/
+  --font-display: "DSEG7", var(--font-plex-mono), monospace;    /* segment LCD  */
+
+  /* Shape / sizing */
+  --radius-key: 5px;
+  --radius-bezel: 14px;
+  --radius: 0.625rem;
+}
+
+/* ---------- LIGHT (default) — warm "steel + olive LCD" ---------- */
+:root {
+  --background: #e6e3da;
+  --foreground: #2a2823;
+  --card: #efece3;
+  --card-foreground: #2a2823;
+  --popover: #f3f0e8;
+  --popover-foreground: #2a2823;
+  --primary: #a9832f;            /* gold f-accent */
+  --primary-foreground: #fdfcf9;
+  --secondary: #35619e;          /* blue g-accent */
+  --secondary-foreground: #fdfcf9;
+  --muted: #ddd9cd;
+  --muted-foreground: #7d7869;
+  --accent: #ddd9cd;
+  --accent-foreground: #2a2823;
+  --destructive: #b23b2f;
+  --border: #dcd8cc;
+  --input: #c6c2b5;
+  --ring: #a9832f;
+
+  --hp-bezel: #cdcabf;
+  --hp-bezel-border: #b4b1a4;
+  --hp-key: #e9e6dc;
+  --hp-key-fg: #2a2823;
+  --hp-key-border: #c6c2b5;
+  --hp-op: #ddd9cd;
+  --hp-op-fg: #8a5a20;
+  --hp-enter: #2b2a27;
+  --hp-enter-fg: #ece7db;
+  --hp-display: #c1cbaa;
+  --hp-display-border: #a3ab8c;
+  --hp-display-fg: #222a1a;
+  --hp-display-dim: #6b7256;
+  --hp-panel: #efece3;
+  --hp-shift-f: #a9832f;
+  --hp-shift-g: #35619e;
+  --hp-shift-ls: #6d4f9e;
+  --hp-shift-rs: #2f7d4f;
+}
+
+/* ---------- DARK — graphite chassis + olive LCD ---------- */
+.dark {
+  --background: #141310;
+  --foreground: #ded9cc;
+  --card: #1b1a16;
+  --card-foreground: #ded9cc;
+  --popover: #201e19;
+  --popover-foreground: #ded9cc;
+  --primary: #d3a441;
+  --primary-foreground: #231a05;
+  --secondary: #5b8fd6;
+  --secondary-foreground: #04101f;
+  --muted: #201e19;
+  --muted-foreground: #8f8977;
+  --accent: #38362f;
+  --accent-foreground: #f0d9a4;
+  --destructive: #e08a7a;
+  --border: #2f2c25;
+  --input: #2b2a27;
+  --ring: #d3a441;
+
+  --hp-bezel: #33322e;
+  --hp-bezel-border: #48463f;
+  --hp-key: #2b2a27;
+  --hp-key-fg: #ece7db;
+  --hp-key-border: #141310;
+  --hp-op: #38362f;
+  --hp-op-fg: #f0d9a4;
+  --hp-enter: #3d3b34;
+  --hp-enter-fg: #ece7db;
+  --hp-display: #aeb79c;
+  --hp-display-border: #8a927a;
+  --hp-display-fg: #1b2016;
+  --hp-display-dim: #5c6350;
+  --hp-panel: #1b1a16;
+  --hp-shift-f: #d3a441;
+  --hp-shift-g: #5b8fd6;
+  --hp-shift-ls: #b492e6;
+  --hp-shift-rs: #5fc487;
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  body { @apply bg-background text-foreground; }
+  html { @apply font-sans; }
+}
+
+/* Segment font for LCD readouts (self-host under /public/fonts for offline). */
+@font-face {
+  font-family: "DSEG7";
+  src: url("/fonts/DSEG7Classic-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
