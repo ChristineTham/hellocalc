@@ -321,7 +321,62 @@ function-plot does only line/scatter (false); two jStat distribution-coverage cl
 
 ---
 
-## 9. Sources
+## 9. State persistence & workspaces
+
+All state is **local** (NFR-10) and must survive reloads and model switches, and — because
+browser storage is user-clearable — be **exportable to a file** for backup/transfer
+(FR-STATE-1..4).
+
+**One serializable state tree.** The pure-TS engine keeps all durable state in a single plain,
+JSON-serializable `EngineState` (no live class instances), split by scope:
+
+```ts
+interface EngineState {
+  version: number;                          // schema version → migrations
+  shared:   { stack; lastX; registers; modes; history };     // portable across models
+  perModel: Record<ModelId, PerModelState>; // programs, flags, wsize, fin. regs, directories
+}
+```
+
+- `shared` carries across model switches **where value types are compatible** (FR-STATE-2) — a
+  small compatibility matrix decides what transfers at each family boundary (e.g. 4-level RPN
+  models share the stack; RPN↔RPL transfers only variables/history, not the stack).
+- `perModel[id]` restores each model's own programs/flags when you switch back to it.
+
+**Value-tower codec.** BigNumber / Complex / Unit / Matrix / RPL objects don't survive plain
+`JSON.stringify`, so a **tagged codec** (`{ $type: "BigNumber", v: "0.1" }`, …) with a matching
+reviver serializes them. It grows one value-type per phase (BigNumber P1 → complex/matrix P9 →
+RPL objects P12 → units P13). Every save carries `version`; a **migration chain** upgrades older
+saves as state accumulates, and an unknown/newer version degrades gracefully (start fresh, never
+crash). **Programs** persist as the interpreter's AST/bytecode — never raw JS, the same
+representation the Phase-3 sandboxed Web-Worker interpreter runs.
+
+**Storage backends** sit behind one `StorageAdapter` interface (swappable; an in-memory adapter
+for tests; no network):
+
+- **Session snapshot → `localStorage`** — synchronous, restored on first paint, **debounced
+  autosave** on change; the live working state with bounded history. A reload restores exactly.
+- **Workspaces + program/expression library → `IndexedDB`** — async, larger, structured: named
+  workspaces, the saved-program library, and the native-mode expression library/notebook.
+  Scales past localStorage's ~5 MB and keeps the fast-path snapshot lean.
+
+**Import / export to file (FR-STATE-4).** A workspace (or the entire state) serializes to a
+versioned JSON document the user **downloads** (`Blob` + object URL) and **re-imports** (file
+picker → validate `version` → migrate → load). This is the durable backup/transfer path since
+browser storage can be cleared, and the interchange format for sharing programs/workspaces.
+Calculator "media" map straight onto it: an **HP-65 magnetic card**, an **HP-41 extended-memory
+file**, and an **HP-50g SD-card directory** are each a named library entry, exportable as a file.
+
+**Offline (NFR-2):** state access is fully local; a later service worker caches the app shell.
+
+*Threaded across phases:* Phase 1 lands the state tree + codec (numbers) + localStorage autosave
++ history and a first file export/import; later phases extend the codec (P9/P12/P13) and add
+program/file/directory persistence (P3/P6/P11/P15/P20); Phase 23 finalizes named workspaces and
+full import/export.
+
+---
+
+## 10. Sources
 
 Primary (project docs/repos):
 - Pyodide — https://github.com/pyodide/pyodide · https://pyodide.org/

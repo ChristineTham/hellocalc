@@ -11,8 +11,8 @@ engine through a typed expression evaluator with history, variables, and an expr
 library.
 
 > **Docs:** [Product Requirements (PRD)](docs/prd.md) ·
-> [Engine Architecture](docs/architecture.md) · [Build rules for agents](AGENTS.md) ·
-> [HP calculator reference](hp/)
+> [Engine Architecture](docs/architecture.md) · [Implementation plan](plan/) ·
+> [Build rules for agents](AGENTS.md) · [HP calculator reference](hp/)
 
 ---
 
@@ -125,6 +125,7 @@ src/
   __tests__/      # unit/component tests (Vitest)
 e2e/              # end-to-end tests (Playwright)
 docs/             # prd.md, architecture.md
+plan/             # phased implementation plan (one .md per phase + index)
 hp/               # HP calculator reference (layouts, functions, mapping, manuals)
 ```
 
@@ -162,19 +163,33 @@ middleware — everything runs in the browser.
 
 ## Roadmap
 
-Milestones (each independently shippable) — see [PRD §12](docs/prd.md) and
-[architecture §7](docs/architecture.md):
+Built in **iterative, chronological phases** — each adds the next HP model (in release order)
+and the engine capability it first required; large subsystems (programmability, RPL, units,
+CAS, plotting, heavy CAS) get their own phase; **native mode is last**. Full detail — one file
+per phase with tasks and acceptance tests — is in [`plan/`](plan/) ([index](plan/README.md)).
 
-1. **Engine core + algebraic** — pure-TS engine, number tower, algebraic eval, history, variables.
-2. **RPN/RPL + first faceplate** — stack machine (both modes), model adapter, HP-12C & HP-15C
-   faceplates, native mode.
-3. **Precision, units, matrices** — decimal.js finance base, units, matrices + decompositions.
-4. **Light CAS** — symbolic diff/integrate/factor/solve, equation solver, KaTeX output.
-5. **Finance & statistics parity** — TVM/NPV/IRR/bond/Black-Scholes, stats/regression/distributions.
-6. **Plotting & programmability** — 2D/3D/stat plots, sandboxed program interpreter, notebook editor.
-7. **Heavy CAS (optional)** — lazy Pyodide + SymPy advanced-CAS tier.
+**Phase 1 — Engine foundation & HP-35 (1972).** The shared pure-TS engine (math.js/BigNumber
+value tower, 4-level RPN stack + `LAST X`, memory, scientific functions), the `hp/mapping`-driven
+model adapter, the responsive faceplate framework, the history display, and state persistence —
+proven end-to-end by the first HP scientific.
 
-*Ongoing:* additional faceplates, persistence polish, PWA/offline.
+Then, in release order:
+
+| Phases | Models · era | Capability introduced |
+|---|---|---|
+| 2–5 | HP-45, HP-65, HP-25, HP-67/97 · 1973–76 | Statistics; **keystroke programmability** (sandboxed); continuous memory; indirect addressing |
+| 6 | HP-41C/CV · 1979–80 | **Alphanumeric display, ALPHA mode, named programs**, USER keys |
+| 7–8 | HP-12C, HP-11C · 1981 | **Financial engine** (TVM/NPV/IRR/bonds); probability |
+| 9–11 | HP-15C, HP-16C, HP-41CX · 1982–83 | **Complex, matrices, SOLVE & ∫**; **integer/base/bitwise**; extended memory |
+| 12–16 | HP-28C, HP-28S, HP-42S · 1986–88 | **RPL dynamic stack**; **units**; **light symbolic CAS**; menu-driven RPN + regression |
+| 17–18 | HP-48SX, HP-48G · 1990–93 | **Plotting** (2D → 3D/statistical); equation writer, apps |
+| 19–20 | HP-49G, HP-50g · 1999–2006 | **Heavy CAS** (lazy Pyodide+SymPy); CAS-graphing consolidation |
+| 21–22 | HP-35s, HP Prime · 2007–13 | Modern RPN/algebraic dual entry; touchscreen CAS, Home/CAS + apps |
+| **23** | **Native mode** | Full-engine expression evaluator: notebook, expression library, copy/paste + KaTeX export |
+
+Responsive scaling, the history display, and state persistence are established in Phase 1 and
+reused by every faceplate; **file import/export and named workspaces** are finalized in Phase 23
+(see [architecture §9](docs/architecture.md)).
 
 ## Contributing
 

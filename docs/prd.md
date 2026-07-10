@@ -182,7 +182,9 @@ the unified [`hp/mapping/mapping.json`](../hp/mapping/mapping.json).
 - **FR-STATE-2 (M):** Retain compatible state when switching models (stack, memory) per
   the product intent (see the [README](../README.md)).
 - **FR-STATE-3 (S):** Save/load named workspaces; store user programs and the expression library.
-- **FR-STATE-4 (C):** Export/import a workspace file for backup/sharing.
+- **FR-STATE-4 (M):** Export/import state — a workspace, or the full state — as a downloadable,
+  versioned file. This is the **durable backup/transfer path** (browser storage is
+  user-clearable) and the interchange format for sharing programs/workspaces.
 
 ---
 
@@ -211,10 +213,20 @@ the unified [`hp/mapping/mapping.json`](../hp/mapping/mapping.json).
 - **FR-UI-1 (M):** Large calculator display showing history, the RPN stack, and KaTeX-rendered
   math — beyond a single-line traditional display.
 - **FR-UI-2 (M):** Physical-keyboard input maps to keys/entry in every mode.
-- **FR-UI-3 (M):** Responsive layouts optimized for mobile, tablet, and desktop.
+- **FR-UI-3 (M):** Fully responsive layouts across all breakpoints — mobile, tablet, desktop.
 - **FR-UI-4 (S):** Notebook / block-evaluation editor for multi-step work (native mode).
 - **FR-UI-5 (S):** Adhere to the app's HP-calculator design system / theme tokens (defined in `globals.css` `@theme`).
 - **FR-UI-6 (C):** Light/dark themes.
+- **FR-UI-7 (M):** The **faceplate scales to fully fit the viewport** — display, buttons, and
+  fonts scale together as one unit at every breakpoint, with no clipping and no page scroll
+  required to reach any key. Preserve the model's key aspect ratio and relative sizing while
+  scaling (fluid sizing / container queries; not a fixed pixel grid).
+- **FR-UI-8 (M):** Surrounding UI components are responsive too. Secondary panels (computation
+  **history**, the side stack rail, plots) reflow with the layout; on small screens they
+  **collapse behind a control** (toggle/drawer) rather than crowding or shrinking the faceplate.
+- **FR-UI-9 (S):** On small screens the display **may collapse to a compact form resembling the
+  real device's LCD** (the model's native single-/two-line readout), with a control to
+  **expand** it to the full multi-line display (history + RPN/RPL stack + KaTeX).
 
 ---
 
