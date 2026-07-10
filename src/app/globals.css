@@ -90,18 +90,30 @@
      KeyboardFitter — deliberately not tokens here. */
   /* Keyboard fidelity & sizing */
   --calc-key-gap: 1.2cqmin;
-  --calc-kbd-max-w: 44rem;
+  /* "Never comically large" (Priority 2) as a per-model-fair KEY-PITCH cap:
+     max module width = --kbd-cols × this, so a 10-col Voyager and a 6-col RPL
+     cap at the same key size, not the same module size. */
+  --calc-key-max-pitch: 4.5rem;
+  --calc-kbd-max-w: 44rem; /* absolute backstop (unused while the pitch cap governs) */
   --calc-kbd-max-h: 68dvh;
   --hp-key-aspect-voyager: 1.15;
   --hp-key-aspect-classic: 1.15;
   --hp-key-aspect-rpl: 1.1;
   /* Shell / region layout */
   --calc-topbar-h: 3.5rem;
-  --calc-sidebar-w: 16rem;
+  /* 0 until Step 4 lands CalcNav content; the §3.3 desktop templates already
+     reference it, so widening to 16rem is a one-token change. */
+  --calc-sidebar-w: 0rem;
   --calc-toolstrip-h: 3.25rem;
   --calc-region-gap: 0.75rem;
   --calc-panel-min-w: 16.25rem;
   --calc-panel-max-w: 26.25rem;
+  /* Machine-module chrome above/around the key grid (nameplate + bezel pads):
+     the fitter and the §3.3 band formulas subtract this so nameplate + A-ratio
+     grid always fit their slot exactly. */
+  --calc-nameplate-h: 2.5rem;
+  --calc-bezel-pad: 0.875rem;
+  --calc-kbd-chrome-h: calc(var(--calc-nameplate-h) + 2 * var(--calc-bezel-pad));
   /* LCD */
   --hp-lcd-aspect-mini: 4 / 3;
   --calc-lcd-line-h: 3.25rem;
@@ -234,5 +246,246 @@
   }
   html {
     @apply font-sans;
+  }
+  /* App shell owns the viewport (100dvh grid): the document itself must never
+     scroll — otherwise transient portal content (popovers/sheets) can extend
+     the page and a click's scroll-into-view permanently offsets the shell.
+     `clip` (not `hidden`) also forbids PROGRAMMATIC scrolling, which is what
+     scroll-into-view uses. Long content scrolls inside its own region. */
+  html,
+  body {
+    overflow: clip;
+    overscroll-behavior: none;
+  }
+}
+
+@layer components {
+  /* ══ Responsive calculator shell — docs/responsive-layout.md §3.3 ═══════════
+     One CSS grid; the template is selected by width media tier × the static
+     per-model aspect class stamped as data-aspect (SSR-known → correct first
+     paint). --kbd-a / --kbd-cols / --kbd-rows are per-model DATA stamped
+     inline on the shell by CalcShell. The shell is 100dvh (definite), so every
+     track — and the keyboard/LCD container slots — has a determinate
+     block-size and cq units never collapse.
+
+     Media breakpoints here MUST stay in lock-step with
+     src/lib/layout/breakpoints.ts (sm 40rem · md 48rem · lg 64rem · xl 80rem):
+     the §10 boundary-parity e2e guards the pairing. */
+  .calc-shell {
+    display: grid;
+    /* Fixed to the viewport: with the shell out of flow the document has zero
+       scrollable height, so transient portals (popovers/sheets) can never
+       scroll-offset the app — belt to the html/body overflow:clip braces. */
+    position: fixed;
+    inset: 0;
+    block-size: 100dvh;
+    gap: var(--calc-region-gap);
+    overflow: hidden;
+  }
+  .calc-shell > [data-region] {
+    min-inline-size: 0;
+    min-block-size: 0;
+  }
+  .calc-shell > [data-region="topbar"] {
+    grid-area: topbar;
+  }
+  .calc-shell > [data-region="keyboard"] {
+    grid-area: keyboard;
+    container: kbd / size;
+    display: grid; /* so .kbd-module's margin:auto centres on both axes */
+  }
+  .calc-shell > [data-region="lcd"] {
+    grid-area: lcd;
+    container: lcd / size;
+    display: flex;
+  }
+  .calc-shell > [data-region="aux"] {
+    grid-area: aux;
+  }
+  .calc-shell > [data-region="sidebar"] {
+    grid-area: sidebar;
+  }
+  /* aux + sidebar default to Sheet/drawer-hosted; templates re-enable inline. */
+  .calc-shell > [data-region="aux"],
+  .calc-shell > [data-region="sidebar"] {
+    display: none;
+  }
+
+  /* Machine module — the aspect-locked fitter (§4.3). The contain formula
+     sizes the module so bezel chrome + the A-ratio key grid fit the slot on
+     BOTH axes; margin:auto centres it; --calc-kbd-max-w is Priority 2's
+     "never comically large". */
+  .kbd-module {
+    inline-size: min(
+      100cqi,
+      calc((100cqb - var(--calc-kbd-chrome-h)) * var(--kbd-a)),
+      calc(var(--kbd-cols) * var(--calc-key-max-pitch))
+    );
+    margin: auto;
+  }
+
+  /* ── TEMPLATE `stack` — phone + sm (<48rem), ALL aspect classes ──────────── */
+  @media (width < 48rem) {
+    .calc-shell {
+      grid-template-areas: "topbar" "lcd" "keyboard";
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows:
+        minmax(var(--calc-topbar-h), auto)
+        minmax(0, 1fr)
+        min(
+          var(--calc-kbd-max-h),
+          calc(100dvw / var(--kbd-a) + var(--calc-kbd-chrome-h)),
+          calc(
+            var(--kbd-cols) * var(--calc-key-max-pitch) / var(--kbd-a) +
+              var(--calc-kbd-chrome-h)
+          )
+        );
+    }
+  }
+
+  /* ── md (48rem–64rem) ────────────────────────────────────────────────────── */
+  @media (48rem <= width < 64rem) {
+    /* TEMPLATE `tablet-portrait-wide` — aspect=landscape (12C/15C). */
+    .calc-shell[data-aspect="landscape"] {
+      grid-template-areas:
+        "topbar   topbar"
+        "lcd      aux"
+        "keyboard keyboard";
+      grid-template-columns: minmax(0, 1fr) minmax(var(--calc-panel-min-w), var(--calc-panel-max-w));
+      grid-template-rows:
+        minmax(var(--calc-topbar-h), auto)
+        minmax(0, 1fr)
+        min(
+          var(--calc-kbd-max-h),
+          calc(100dvw / var(--kbd-a) + var(--calc-kbd-chrome-h)),
+          calc(
+            var(--kbd-cols) * var(--calc-key-max-pitch) / var(--kbd-a) +
+              var(--calc-kbd-chrome-h)
+          )
+        );
+    }
+    .calc-shell[data-aspect="landscape"] > [data-region="aux"] {
+      display: flex;
+    }
+
+    /* TEMPLATE `tablet-portrait-corner` — aspect=portrait|tall.
+       LCD across the top; keyboard bottom-RIGHT; aux bottom-LEFT (§12.1). */
+    .calc-shell[data-aspect="portrait"],
+    .calc-shell[data-aspect="tall"] {
+      grid-template-areas:
+        "topbar topbar"
+        "lcd    lcd"
+        "aux    keyboard";
+      grid-template-columns:
+        minmax(0, 1fr)
+        min(
+          calc(var(--kbd-cols) * var(--calc-key-max-pitch)),
+          calc((100dvh - var(--calc-topbar-h)) / 2 * var(--kbd-a))
+        );
+      grid-template-rows:
+        minmax(var(--calc-topbar-h), auto)
+        minmax(0, 1fr)
+        minmax(0, 1fr);
+    }
+    .calc-shell[data-aspect="portrait"] > [data-region="aux"],
+    .calc-shell[data-aspect="tall"] > [data-region="aux"] {
+      display: flex;
+    }
+  }
+
+  /* ── lg+ (≥64rem): persistent-sidebar chrome; inline aux + sidebar ───────── */
+  @media (width >= 64rem) {
+    .calc-shell > [data-region="aux"],
+    .calc-shell > [data-region="sidebar"] {
+      display: flex;
+    }
+
+    /* TEMPLATE `desktop-landscape` — aspect=landscape (lg == xl == 2xl). */
+    .calc-shell[data-aspect="landscape"] {
+      grid-template-areas:
+        "sidebar topbar   topbar"
+        "sidebar lcd      aux"
+        "sidebar keyboard keyboard";
+      grid-template-columns:
+        var(--calc-sidebar-w)
+        minmax(0, 1fr)
+        minmax(var(--calc-panel-min-w), var(--calc-panel-max-w));
+      grid-template-rows:
+        minmax(var(--calc-topbar-h), auto)
+        minmax(0, 1fr)
+        min(
+          var(--calc-kbd-max-h),
+          calc((100dvw - var(--calc-sidebar-w)) / var(--kbd-a) + var(--calc-kbd-chrome-h)),
+          calc(
+            var(--kbd-cols) * var(--calc-key-max-pitch) / var(--kbd-a) +
+              var(--calc-kbd-chrome-h)
+          )
+        );
+    }
+
+    /* TEMPLATE `desktop-wide` — aspect=portrait (lg == xl == 2xl) and tall@lg.
+       Keyboard right column, height-bound below the topbar. */
+    .calc-shell[data-aspect="portrait"],
+    .calc-shell[data-aspect="tall"] {
+      grid-template-areas:
+        "sidebar topbar topbar"
+        "sidebar lcd    keyboard"
+        "sidebar aux    keyboard";
+      grid-template-columns:
+        var(--calc-sidebar-w)
+        minmax(0, 1fr)
+        min(
+          calc(var(--kbd-cols) * var(--calc-key-max-pitch)),
+          calc((100dvh - var(--calc-topbar-h) - var(--calc-kbd-chrome-h)) * var(--kbd-a))
+        );
+      grid-template-rows:
+        minmax(var(--calc-topbar-h), auto)
+        minmax(0, 1fr)
+        minmax(0, 1fr);
+    }
+  }
+
+  /* TEMPLATE `desktop-tall` — aspect=tall at xl+ (overrides desktop-wide by
+     source order): keyboard takes the ENTIRE height of the right edge. */
+  @media (width >= 80rem) {
+    .calc-shell[data-aspect="tall"] {
+      grid-template-areas:
+        "sidebar topbar keyboard"
+        "sidebar lcd    keyboard"
+        "sidebar aux    keyboard";
+      grid-template-columns:
+        var(--calc-sidebar-w)
+        minmax(0, 1fr)
+        min(
+          calc(var(--kbd-cols) * var(--calc-key-max-pitch)),
+          calc((100dvh - var(--calc-kbd-chrome-h)) * var(--kbd-a))
+        );
+      grid-template-rows:
+        minmax(var(--calc-topbar-h), auto)
+        minmax(0, 1fr)
+        minmax(0, 1fr);
+    }
+  }
+
+  /* ── TEMPLATE `phone-landscape` — short-viewport OVERRIDE (any width ≥ sm).
+     Same specificity (0,2,0) as the aspect rules above; wins by source order.
+     Keyboard height-bound on the right; LCD to its left; aux drawer-hosted. */
+  @media (min-width: 40rem) and (max-height: 34rem) and (orientation: landscape) {
+    .calc-shell[data-aspect] {
+      grid-template-areas:
+        "topbar topbar"
+        "lcd    keyboard";
+      grid-template-columns:
+        minmax(0, 1fr)
+        min(
+          calc(var(--kbd-cols) * var(--calc-key-max-pitch)),
+          calc((100dvh - var(--calc-topbar-h) - var(--calc-kbd-chrome-h)) * var(--kbd-a))
+        );
+      grid-template-rows: minmax(var(--calc-topbar-h), auto) minmax(0, 1fr);
+    }
+    .calc-shell[data-aspect] > [data-region="aux"],
+    .calc-shell[data-aspect] > [data-region="sidebar"] {
+      display: none;
+    }
   }
 }

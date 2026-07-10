@@ -43,6 +43,77 @@ test.describe("hellocalc — smoke", () => {
     await expect(page.getByRole("button", { name: "SIN", exact: true })).toBeVisible();
     // the keyed 7 survived the switch (shared engine)
     await expect(page.getByText("7.00").first()).toBeVisible();
+    // the shell re-stamped the new model's static aspect class (§3.1)
+    await expect(page.locator("main.calc-shell")).toHaveAttribute("data-aspect", "landscape");
+  });
+
+  test("device matrix: keyboard placement per template (§3.3, geometry-first)", async ({
+    page,
+  }) => {
+    const kbd = () => page.locator('[data-slot="keyboard"]');
+
+    // phone 393×852 — `stack`: keyboard owns the full-width bottom band
+    await page.setViewportSize({ width: 393, height: 852 });
+    await page.goto("/");
+    let box = await kbd().boundingBox();
+    if (!box) throw new Error("no keyboard box (phone)");
+    expect(box.width).toBeGreaterThan(340); // fills the width (minus bezel chrome)
+    expect(box.y + box.height).toBeGreaterThan(852 - 80); // anchored at the bottom
+    await expect(page.locator("main.calc-shell")).toHaveAttribute("data-template", "stack");
+
+    // desktop 1366×800, portrait model (HP-48G) — `desktop-wide`: right column
+    await page.setViewportSize({ width: 1366, height: 800 });
+    await selectModel(page, "HP-48G");
+    await expect(page.locator("main.calc-shell")).toHaveAttribute(
+      "data-template",
+      "desktop-wide",
+    );
+    box = await kbd().boundingBox();
+    if (!box) throw new Error("no keyboard box (desktop 48G)");
+    expect(box.x).toBeGreaterThan(1366 / 2); // keyboard on the right side
+    // LCD sits left of the keyboard (§12.1 diagonal: read left, act right)
+    const lcd = await page.locator('[data-region="lcd"]').boundingBox();
+    if (!lcd) throw new Error("no lcd box");
+    expect(lcd.x + lcd.width).toBeLessThanOrEqual(box.x + 1);
+
+    // same viewport, landscape model (HP-12C) — `desktop-landscape`: bottom band
+    await selectModel(page, "HP-12C");
+    await expect(page.locator("main.calc-shell")).toHaveAttribute(
+      "data-template",
+      "desktop-landscape",
+    );
+    box = await kbd().boundingBox();
+    if (!box) throw new Error("no keyboard box (desktop 12C)");
+    expect(box.y + box.height).toBeGreaterThan(800 - 80); // anchored at the bottom
+  });
+
+  test("width-tier boundaries: JS labels match the CSS-active template (§10 parity)", async ({
+    page,
+  }) => {
+    await page.goto("/"); // HP-12C (landscape) active
+    const cases: ReadonlyArray<readonly [number, string]> = [
+      [639, "stack"],
+      [640, "stack"], // sm reuses stack (§11 #2)
+      [767, "stack"],
+      [768, "tablet-portrait-wide"],
+      [1023, "tablet-portrait-wide"],
+      [1024, "desktop-landscape"],
+      [1279, "desktop-landscape"],
+      [1280, "desktop-landscape"],
+      [1535, "desktop-landscape"],
+      [1536, "desktop-landscape"],
+    ];
+    for (const [width, id] of cases) {
+      await page.setViewportSize({ width, height: 900 }); // tall: no short-landscape override
+      await expect(page.locator("main.calc-shell")).toHaveAttribute("data-template", id);
+      // geometry cross-check at the stack↔md boundary: inline aux appears at 768
+      if (width === 767) {
+        await expect(page.locator('[data-region="aux"]')).toBeHidden();
+      }
+      if (width === 768) {
+        await expect(page.locator('[data-region="aux"]')).toBeVisible();
+      }
+    }
   });
 
   test("HP-35 classic faceplate does RPN arithmetic", async ({ page }) => {
