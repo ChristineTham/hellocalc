@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Faceplate } from "@/components/calculator/Faceplate";
 import { StackPanel } from "@/components/calculator/Display";
-import { ModelSwitcher } from "@/components/calculator/ModelSwitcher";
-import { MODELS, MODEL_ORDER } from "@/components/calculator/models";
+import { ModelPicker } from "@/components/calculator/ModelPicker";
+import { MODELS } from "@/components/calculator/models";
 import { useRpnCalculator } from "@/hooks/useRpnCalculator";
 import { useRplCalculator } from "@/hooks/useRplCalculator";
 
@@ -28,7 +28,7 @@ export default function Home() {
             HP calculator emulator · shared math engine
           </p>
         </div>
-        <ModelSwitcher active={modelId} ids={MODEL_ORDER} onSelect={setModelId} />
+        <ModelPicker active={modelId} onSelect={setModelId} />
       </header>
 
       <div className="flex w-full max-w-5xl flex-col items-start justify-center gap-6 lg:flex-row">
