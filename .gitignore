@@ -39,3 +39,17 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# Agent tooling / skills (not product code)
+/.agents/
+
+# HP source manuals: copyrighted, oversized (GitHub rejects >100MB); reproducible
+# from hp/manuals/manifest.tsv. Rendered page images are derived from them.
+/hp/manuals/*.pdf
+/hp/manuals/_pages/

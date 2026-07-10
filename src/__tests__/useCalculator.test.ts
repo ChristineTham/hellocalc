@@ -5,7 +5,8 @@ import { useCalculator } from '../hooks/useCalculator';
 // Polyfill for crypto.randomUUID in jsdom
 beforeAll(() => {
   if (typeof crypto.randomUUID !== 'function') {
-    crypto.randomUUID = () => Math.random().toString() as any;
+    crypto.randomUUID = (() =>
+      Math.random().toString(36).slice(2)) as typeof crypto.randomUUID;
   }
 });
 

@@ -10,7 +10,7 @@ export interface HistoryItem {
 
 export function useCalculator() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [variables, setVariables] = useState<Record<string, any>>({});
+  const [variables, setVariables] = useState<Record<string, unknown>>({});
 
   const evaluate = useCallback((expression: string) => {
     if (!expression.trim()) return;
@@ -38,11 +38,11 @@ export function useCalculator() {
       // We update our React state to persist these
       setVariables(newScope);
       
-    } catch (error: any) {
+    } catch (error) {
       setHistory(prev => [...prev, {
         id: crypto.randomUUID(),
         expression,
-        result: error.message || 'Error',
+        result: error instanceof Error ? error.message : 'Error',
         isError: true,
       }]);
     }

@@ -1,0 +1,11 @@
+allowBuilds:
+  msw: true
+  sharp: true
+  unrs-resolver: true
+
+# Pin transitive Playwright deps to the previous release so pnpm 11's
+# minimumReleaseAge supply-chain guard passes (7.4.8 was published <1 day ago).
+# Upgrade these (and lucide-react) once the newer versions have aged.
+overrides:
+  tldts: 7.4.7
+  tldts-core: 7.4.7

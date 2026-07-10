@@ -14,6 +14,6 @@ const config: ConfigOptions = {
 export const math = create(all, config);
 
 // A helper for ensuring the result is always a formatted string
-export const formatResult = (value: any): string => {
+export const formatResult = (value: unknown): string => {
   return math.format(value, { precision: 14 });
 };
