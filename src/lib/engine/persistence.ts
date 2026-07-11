@@ -134,6 +134,10 @@ interface SerializedRpn {
   };
   userOn?: boolean;
   userAsn?: Record<string, string>;
+  /** P16 (HP-42S): CFIT model + raw Σ points + CUSTOM assignments */
+  fit?: "LINF" | "LOGF" | "EXPF" | "PWRF";
+  pts?: [number, number][];
+  custom42?: string[];
   entry: string | null;
   lift: boolean;
   angle: Angle;
@@ -247,6 +251,9 @@ export function snapshot(
       int: { ...rpn.int },
       userOn: rpn.userOn,
       userAsn: { ...rpn.userAsn },
+      fit: rpn.fit,
+      pts: rpn.pts.map((pt) => [...pt] as [number, number]),
+      custom42: [...rpn.custom42],
       entry: rpn.entry,
       lift: rpn.lift,
       angle: rpn.angle,
@@ -327,6 +334,9 @@ export function restore(state: EngineStateV1): {
     int: state.rpn.int ? { ...state.rpn.int } : fresh.int,
     userOn: state.rpn.userOn ?? false,
     userAsn: state.rpn.userAsn ? { ...state.rpn.userAsn } : {},
+    fit: state.rpn.fit ?? "LINF",
+    pts: state.rpn.pts ? state.rpn.pts.map((pt) => [...pt] as [number, number]) : [],
+    custom42: state.rpn.custom42 ? [...state.rpn.custom42] : [],
     entry: state.rpn.entry,
     lift: state.rpn.lift,
     angle: state.rpn.angle,

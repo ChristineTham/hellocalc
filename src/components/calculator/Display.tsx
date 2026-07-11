@@ -228,6 +228,9 @@ export function Display({
             </span>
           </div>
         )}
+        {/* the softkey row shows in BOTH LCD states (P16 — the 42S is a
+            two-line machine; its menu row is always visible) */}
+        {s.menu && <MenuRow menu={s.menu} />}
       </div>
 
       {/* ── State B: mini 4:3 multi-line (§5.2) ─────────────────────────────── */}
@@ -288,6 +291,7 @@ export function Display({
               </span>
             </div>
             <StackRow label="LST x" value={fmt(s.lastX, s.dec)} muted />
+            {s.menu && <MenuRow menu={s.menu} />}
           </div>
         )}
 
@@ -382,25 +386,33 @@ function RplStack({
         <span className="font-mono text-hp-lcd-reg text-hp-display-dim">⊳</span>
         <span className={cn("flex-1 text-hp-lcd-stack", dotNum)}>{entry ?? ""}</span>
       </div>
-      {menu && (
-        // the softkey label row (P12): bottom LCD line, 6 boxed labels — the
-        // blank keys directly below the glass acquire these meanings
-        <div data-slot="menu-row" className="mt-1 grid grid-cols-6 gap-[3px]">
-          {menu.labels.map((label, i) => (
-            <span
-              key={`${menu.name}-${i}`}
-              className={cn(
-                "truncate rounded-[3px] px-0.5 py-[2px] text-center font-mono text-hp-lcd-annun font-bold tracking-tight",
-                label
-                  ? "bg-hp-display-fg/85 text-hp-display"
-                  : "bg-hp-display-dim/25 text-hp-display-dim",
-              )}
-            >
-              {label || "—"}
-            </span>
-          ))}
-        </div>
-      )}
+      {menu && <MenuRow menu={menu} />}
+    </div>
+  );
+}
+
+/** The softkey label row (P12 RPL / P16 42S): bottom LCD line, 6 boxed labels
+ * — the keys directly below (RPL) or the top key row (42S) acquire them. */
+function MenuRow({
+  menu,
+}: {
+  menu: { name: string; labels: string[]; page: number; pages: number };
+}) {
+  return (
+    <div data-slot="menu-row" className="mt-1 grid grid-cols-6 gap-[3px]">
+      {menu.labels.map((label, i) => (
+        <span
+          key={`${menu.name}-${i}`}
+          className={cn(
+            "truncate rounded-[3px] px-0.5 py-[2px] text-center font-mono text-hp-lcd-annun font-bold tracking-tight",
+            label
+              ? "bg-hp-display-fg/85 text-hp-display"
+              : "bg-hp-display-dim/25 text-hp-display-dim",
+          )}
+        >
+          {label || "—"}
+        </span>
+      ))}
     </div>
   );
 }

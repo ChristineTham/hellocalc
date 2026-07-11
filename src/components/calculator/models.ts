@@ -191,11 +191,11 @@ const HP41_ROWS: ClassicKey[][] = [
 const HP42S_ROWS: ClassicKey[][] = [
   [ck("Σ+","Σ+","black",{f:"Σ−"}),ck("1/x","1/x","black",{f:"yˣ"}),ck("√x","√x","black",{f:"x²"}),ck("LOG","LOG","black",{f:"10ˣ"}),ck("LN","LN","black",{f:"eˣ"}),ck("XEQ","XEQ","black",{f:"GTO"})],
   [ck("STO","STO","black",{f:"COMPLEX"}),ck("RCL","RCL","black",{f:"%"}),ck("R↓","R↓","black",{f:"π"}),ck("SIN","SIN","black",{f:"ASIN"}),ck("COS","COS","black",{f:"ACOS"}),ck("TAN","TAN","black",{f:"ATAN"})],
-  [ck("ENTER","ENTER","black",{flex:2,f:"ALPHA"}),ck("x⇄y","x⇄y","black",{f:"LAST x"}),ck("+/−","CHS","black",{f:"MODES"}),ck("E","EEX","black",{f:"DISP"}),ck("←","←","black",{f:"CLEAR"})],
+  [ck("ENTER","ENTER","black",{flex:2,f:"ALPHA"}),ck("x⇄y","x⇄y","black",{f:"LAST x",fFn:"LSTx"}),ck("+/−","CHS","black",{f:"MODES"}),ck("E","EEX","black",{f:"DISP"}),ck("←","←","black",{f:"CLEAR",fFn:"CLEARM"})],
   [ck("▲","▲","black",{f:"BST"}),ck("7","7","black",{f:"SOLVER"}),ck("8","8","black",{f:"∫f(x)"}),ck("9","9","black",{f:"MATRIX"}),ck("÷","÷","black",{f:"STAT"})],
   [ck("▼","▼","black",{f:"SST"}),ck("4","4","black",{f:"BASE"}),ck("5","5","black",{f:"CONVERT"}),ck("6","6","black",{f:"FLAGS"}),ck("×","×","black",{f:"PROB"})],
   [ck("","f","gold",{kind:"pf"}),ck("1","1","black",{f:"ASSIGN"}),ck("2","2","black",{f:"CUSTOM"}),ck("3","3","black",{f:"PGM.FCN"}),ck("−","−","black",{f:"PRINT"})],
-  [ck("EXIT","EXIT","black",{f:"OFF"}),ck("0","0","black",{f:"TOP.FCN"}),ck(".",".","black",{f:"SHOW"}),ck("R/S","R/S","black",{f:"PRGM"}),ck("+","+","black",{f:"CATALOG"})],
+  [ck("EXIT","EXIT","black",{f:"OFF"}),ck("0","0","black",{f:"TOP.FCN"}),ck(".",".","black",{f:"SHOW"}),ck("R/S","R/S","black",{f:"PRGM",fFn:"W/PRGM"}),ck("+","+","black",{f:"CATALOG"})],
 ];
 
 // ---- HP-35s (modern: yellow ls above / blue rs bottom-left / letters) --------

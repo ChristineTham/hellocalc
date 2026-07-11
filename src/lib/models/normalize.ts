@@ -132,6 +132,11 @@ export const INVERSE_OF: Record<string, string> = {
  * adapter.test.ts guards that the two stay in sync.
  */
 export const MODEL_FN_OVERRIDES: Record<string, Record<string, string>> = {
+  "HP-42S": {
+    CLEAR: "CLEARM", // the 42S CLEAR is a MENU (the 45's bare CLEAR clears regs)
+    PRGM: "W/PRGM",
+    "LAST x": "LSTx",
+  },
   "HP-25": {
     PRGM: "CLEAR PRGM", // the f-row under the 25's CLEAR bracket
     REG: "CLEAR REG",

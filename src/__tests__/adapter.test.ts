@@ -9,11 +9,12 @@ import {
   modelFunctions,
   resolveKey,
 } from "@/lib/models/adapter";
-import { applyFunction, createRpn } from "@/lib/engine/rpn";
+import { createRpn, dispatch } from "@/lib/engine/rpn";
 
 /** Probe: does the RPN engine implement this canonical id today?
  * A fresh engine per probe so error states can't leak between ids. */
-const rpnImplements = (fn: string) => applyFunction(createRpn(), fn);
+// probe through dispatch — the REAL key path (the P16 menu layer lives there)
+const rpnImplements = (fn: string) => dispatch(createRpn(), fn);
 
 describe("model adapter (hp/mapping/mapping.json)", () => {
   it("carries all 21 models", () => {
@@ -126,6 +127,11 @@ describe("model adapter (hp/mapping/mapping.json)", () => {
     const rpl = await import("@/lib/engine/rpl");
     const probe = (fn: string) => rpl.dispatchRpl(rpl.createRpl(), fn);
     const report = coverage("HP-28S", probe);
+    expect(report.missing).toEqual([]);
+  });
+
+  it("HP-42S: NO key remains inert — the menu-driven RPN is live (Phase-16 DoD)", () => {
+    const report = coverage("HP-42S", rpnImplements);
     expect(report.missing).toEqual([]);
   });
 

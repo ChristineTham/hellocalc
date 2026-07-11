@@ -8,7 +8,15 @@
 
 import { useCallback, useMemo, useState } from "react";
 import katex from "katex";
-import { createRpn, dispatch, pushX, xval, type RpnEngine } from "@/lib/engine/rpn";
+import {
+  createRpn,
+  dispatch,
+  menu42Labels,
+  pressSoft42,
+  pushX,
+  xval,
+  type RpnEngine,
+} from "@/lib/engine/rpn";
 import { formatValue } from "@/lib/engine/format";
 import { intFormat } from "@/lib/engine/integer";
 import { bn, type Value } from "@/lib/engine/config";
@@ -25,6 +33,8 @@ export interface RpnCalculator {
   prefix: Prefix;
   /** Dispatch a resolved function id (already prefix-resolved) to the engine. */
   press: (fn: string) => void;
+  /** 42S softkey (P16): top-row key i resolves the active menu label. */
+  soft: (i: number) => void;
   /** Toggle the armed f/g prefix. */
   arm: (p: Prefix) => void;
   /** Recall an exact history value into X (lifts the stack). */
@@ -51,6 +61,10 @@ const clone = (e: RpnEngine): RpnEngine => ({
   sum: { ...e.sum },
   prgm: { ...e.prgm, steps: [...e.prgm.steps], flags: [...e.prgm.flags], ret: [...e.prgm.ret] },
   pending: e.pending ? { ...e.pending } : null,
+  menu: e.menu ? { ...e.menu } : null,
+  menuStack: [...e.menuStack],
+  custom42: [...e.custom42],
+  pts: e.pts.map((pt) => [...pt] as [number, number]),
 });
 
 export function useRpnCalculator(): RpnCalculator {
@@ -74,6 +88,15 @@ export function useRpnCalculator(): RpnCalculator {
     // ALPHA is a latched MODE on the 41/Prime (unlike one-shot f/g): it stays
     // armed while α characters are typed and drops on any other dispatch
     setPrefix((p) => (p === "alpha" && fn.startsWith("α") ? p : "none"));
+  }, []);
+
+  const soft = useCallback((i: number) => {
+    setEngine((prev) => {
+      const next = clone(prev);
+      pressSoft42(next, i);
+      return next;
+    });
+    setPrefix("none");
   }, []);
 
   const recall = useCallback((raw: string) => {
@@ -136,6 +159,16 @@ export function useRpnCalculator(): RpnCalculator {
         pc: engine.prgm.pc,
         steps: [...engine.prgm.steps],
       },
+      // the 42S menu row (P16): labels ride the top key row + the glass
+      menu: engine.menu
+        ? {
+            name: engine.menu.name,
+            // "@" marks a nested menu internally; the glass shows the bare name
+            labels: menu42Labels(engine).map((l) => l.replace(/^@/, "")),
+            page: engine.menu.page,
+            pages: 1,
+          }
+        : undefined,
       hist: engine.hist.map((h) => ({ op: h.op, v: fmt(bn(h.raw)), raw: h.raw })),
     };
   }, [engine, prefix, fmt]);
@@ -147,5 +180,5 @@ export function useRpnCalculator(): RpnCalculator {
     [],
   );
 
-  return { state, prefix, press, arm, recall, fmt, renderLatex, engine, restore };
+  return { state, prefix, press, soft, arm, recall, fmt, renderLatex, engine, restore };
 }

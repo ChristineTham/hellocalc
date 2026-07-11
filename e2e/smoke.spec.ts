@@ -245,6 +245,45 @@ test.describe("hellocalc — smoke", () => {
     await expect(glass().getByText("{ 'HOME' 'D1' }").first()).toBeVisible();
   });
 
+  test("Phase 16 on the live HP-42S: STAT→CFIT menus fit a line; ASSIGN→CUSTOM", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await selectModel(page, "HP-42S");
+    const key = (name: string) =>
+      page.getByRole("button", { name, exact: true }).click();
+    const glass = () => page.locator('[data-lcd-mode]:visible');
+
+    // y = 3x + 2 through (1,5) (2,8) (3,11): y ENTER x Σ+
+    for (const [x, y] of [[1, 5], [2, 8], [3, 11]] as const) {
+      for (const d of String(y)) await key(d);
+      await key("ENTER");
+      for (const d of String(x)) await key(d);
+      await key("Σ+");
+    }
+    // f ÷ opens STAT; the XEQ-position key is softkey 6 (CFIT), √x is SLOPE
+    await key("f");
+    await key("÷"); // → STAT
+    await expect(glass().locator('[data-slot="menu-row"]').first()).toContainText("CFIT");
+    await key("XEQ"); // softkey 6 → CFIT
+    await key("√x"); // softkey 3 → SLOPE
+    await expect(glass().getByText("3.00").first()).toBeVisible();
+    await key("EXIT");
+    await key("EXIT");
+    await key("EXIT");
+
+    // ASSIGN SIN to the CUSTOM row and run it from there
+    await key("f");
+    await key("1"); // ASSIGN
+    await key("SIN");
+    await key("f");
+    await key("2"); // CUSTOM
+    await expect(glass().locator('[data-slot="menu-row"]').first()).toContainText("SIN");
+    for (const d of "90") await key(d);
+    await key("Σ+"); // softkey 1 → SIN (DEG)
+    await expect(glass().getByText("1.00").first()).toBeVisible();
+  });
+
   test("persistence: the session survives a reload (FR-STATE-1)", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "7", exact: true }).click();

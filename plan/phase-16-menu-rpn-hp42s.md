@@ -78,6 +78,34 @@ backs the regression fits. Complex/matrix/SOLVE/∫ come from Phase 9, base from
 - `pnpm lint` / `pnpm test` / `pnpm build` / `pnpm test:e2e` green; the existing UI suites
   (geometry, promotion, typing) stay green.
 
+## Delivery notes (as shipped)
+- The 42S menu layer lives in the RPN engine (menu/menuStack state,
+  `menu42Labels`/`pressSoft42`), rosters in `src/lib/engine/menu42.ts`
+  ("@NAME" labels nest). With a menu open, the TOP KEY ROW is the softkey
+  row (ClassicKeyboard interception, pioneer family only — the glass shows
+  the labels); shifted presses keep their printed functions so menus stay
+  reachable. EXIT pops the nesting stack; ▲/▼ page.
+- CFIT (stats-fit.ts): LINF/LOGF/EXPF/PWRF/BEST + SLOPE/YINT/CORR/FCSTX/
+  FCSTY over RAW Σ points (we keep the pairs, not just the 42S's summation
+  registers — better conditioned, same UX; documented). No stats
+  dependency: four closed-form fits don't justify one (AGENTS §3;
+  simple-statistics was NOT installed despite the plan's assumption).
+- PROB/CONVERT/MODES/DISP/FLAGS/CLEAR reuse the P2/P5/P8 cores through
+  42S prints (COMB/PERM/N!/GAMMA/RAN/SEED, →DEG/→RAD/→HR/→HMS/→REC/→POL,
+  GRAD, ALL→STD, CLP/CLST/CLA/CLX). COMPLEX = the 15C's form-complex op.
+- MATRIX menu extends P9: DET/TRN/INV act on the named A–E store via the
+  pending-letter protocol. SOLVER/∫f(x) menus list program LABELS and run
+  the P9 solver/integrator through them (the 42S's MVAR/VARMENU prompt
+  workflow is accepted-but-inert; named-variable menus arrive with the 48
+  workspace phases — documented).
+- ASSIGN captures the NEXT key's function onto the CUSTOM row (18 max);
+  ALPHA is a letter-page menu typing into the P6 alpha register.
+- Per-model id scoping: CLEAR opens the 42S CLEAR menu via the
+  MODEL_FN_OVERRIDES → CLEARM route (the 45's bare CLEAR still clears
+  registers); PRGM→W/PRGM; LAST x→LSTx. The adapter probe now runs through
+  dispatch() — the real key path.
+- HP-42S coverage oracle: GREEN — no key remains inert (15 models live).
+
 ## Notes / risks
 - **RPN menus ≠ RPL menus.** Keep `menu.ts` (fixed-stack, softkey-driven 42S) separate from the
   Phase-12 RPL menu system; they share the softkey UI widget but not the stack semantics.

@@ -4,6 +4,8 @@ import {
   applyFunction,
   dispatch,
   inputDigit,
+  menu42Labels,
+  pressSoft42,
   pushX,
   xval,
   type RpnEngine,
@@ -1037,6 +1039,163 @@ describe("Phase-11: the 41CX time module (XEQ catalog)", () => {
     s.alpha = "DATE";
     applyFunction(s, "XEQ");
     expect(s.error).toBeNull(); // pushed a date instead of erroring on decode
+  });
+});
+
+describe("Phase-16: the HP-42S menu-driven RPN", () => {
+  const feed = (s: ReturnType<typeof createRpn>, pairs: [number, number][]) => {
+    for (const [x, y] of pairs) run(s, String(y), "ENTER", String(x), "Σ+");
+  };
+
+  it("CFIT LINF: exact line y = 3x + 2 → SLOPE 3, YINT 2, CORR 1", () => {
+    const s = createRpn();
+    feed(s, [[1, 5], [2, 8], [3, 11], [4, 14]]);
+    dispatch(s, "SLOPE");
+    expect(n(xval(s))).toBeCloseTo(3, 12);
+    dispatch(s, "YINT");
+    expect(n(xval(s))).toBeCloseTo(2, 12);
+    dispatch(s, "CORR");
+    expect(n(xval(s))).toBeCloseTo(1, 12);
+    run(s, "10");
+    dispatch(s, "FCSTY");
+    expect(n(xval(s))).toBeCloseTo(32, 10);
+    run(s, "32");
+    dispatch(s, "FCSTX");
+    expect(n(xval(s))).toBeCloseTo(10, 10);
+  });
+
+  it("EXPF and PWRF recover generated models; BEST auto-picks", () => {
+    const s = createRpn();
+    // y = 2·e^(0.5x)
+    feed(s, [[1, 2 * Math.exp(0.5)], [2, 2 * Math.exp(1)], [3, 2 * Math.exp(1.5)], [4, 2 * Math.exp(2)]]);
+    dispatch(s, "EXPF");
+    dispatch(s, "SLOPE");
+    expect(n(xval(s))).toBeCloseTo(0.5, 9);
+    dispatch(s, "YINT");
+    expect(n(xval(s))).toBeCloseTo(2, 9);
+    dispatch(s, "BEST"); // exponential data → EXPF wins
+    expect(s.fit).toBe("EXPF");
+    // y = 4·x^0.7
+    const t = createRpn();
+    feed(t, [[1, 4], [2, 4 * Math.pow(2, 0.7)], [3, 4 * Math.pow(3, 0.7)], [5, 4 * Math.pow(5, 0.7)]]);
+    dispatch(t, "PWRF");
+    dispatch(t, "SLOPE");
+    expect(n(xval(t))).toBeCloseTo(0.7, 9);
+    dispatch(t, "YINT");
+    expect(n(xval(t))).toBeCloseTo(4, 9);
+  });
+
+  it("Σ− removes the last CFIT point; SUM and WMN read the registers", () => {
+    const s = createRpn();
+    feed(s, [[1, 2], [2, 4], [9, 9]]);
+    run(s, "9", "ENTER", "9", "Σ−");
+    expect(s.pts).toEqual([[1, 2], [2, 4]]);
+    dispatch(s, "SUM"); // Σx in X, Σy in Y
+    expect(n(xval(s))).toBe(3);
+    expect(n(s.y)).toBe(6);
+    dispatch(s, "WMN"); // Σxy/Σy = (2+8)/6
+    expect(n(xval(s))).toBeCloseTo(10 / 6, 12);
+  });
+
+  it("menus: STAT opens, @CFIT nests, EXIT pops, ▼ pages", () => {
+    const s = createRpn();
+    dispatch(s, "STAT");
+    expect(menu42Labels(s)).toEqual(["Σ+", "SUM", "MEAN", "WMN", "SDEV", "@CFIT"]);
+    pressSoft42(s, 5); // → CFIT
+    expect(menu42Labels(s)[2]).toBe("SLOPE");
+    pressSoft42(s, 5); // → MODL
+    expect(menu42Labels(s)[0]).toBe("LINF");
+    dispatch(s, "EXIT");
+    expect(s.menu?.name).toBe("CFIT");
+    dispatch(s, "EXIT");
+    expect(s.menu?.name).toBe("STAT");
+    dispatch(s, "EXIT");
+    expect(s.menu).toBeNull();
+  });
+
+  it("PROB menu reuses the P8 core: 5C3=10, 5!=120, GAMMA(5)=24", () => {
+    const s = createRpn();
+    run(s, "5", "ENTER", "3");
+    dispatch(s, "COMB");
+    expect(n(xval(s))).toBe(10);
+    run(s, "5");
+    dispatch(s, "N!");
+    expect(n(xval(s))).toBe(120);
+    run(s, "5");
+    dispatch(s, "GAMMA");
+    expect(n(xval(s))).toBeCloseTo(24, 9);
+  });
+
+  it("CONVERT menu maps the 42S prints onto the P2 conversions", () => {
+    const s = createRpn();
+    run(s, "1.3", "ENTER"); // 1h30m
+    dispatch(s, "→HR");
+    expect(n(xval(s))).toBeCloseTo(1.5, 12);
+    dispatch(s, "→HMS");
+    expect(n(xval(s))).toBeCloseTo(1.3, 12);
+    run(s, "180");
+    dispatch(s, "→RAD");
+    expect(n(xval(s))).toBeCloseTo(Math.PI, 12);
+    dispatch(s, "→DEG");
+    expect(n(xval(s))).toBeCloseTo(180, 12);
+  });
+
+  it("ASSIGN captures the next key onto the CUSTOM row and it executes", () => {
+    const s = createRpn();
+    dispatch(s, "ASSIGN");
+    dispatch(s, "SIN");
+    expect(s.custom42).toEqual(["SIN"]);
+    dispatch(s, "CUSTOM");
+    expect(menu42Labels(s)[0]).toBe("SIN");
+    run(s, "90");
+    pressSoft42(s, 0); // SIN in DEG
+    expect(n(xval(s))).toBeCloseTo(1, 12);
+  });
+
+  it("MATRIX menu: DIM A, DET/TRN/INV act on the named matrix", () => {
+    const s = createRpn();
+    run(s, "2", "ENTER", "2");
+    dispatch(s, "DIM");
+    dispatch(s, "A");
+    s.mats = { ...s.mats, A: [[4, 0], [0, 2]] };
+    dispatch(s, "DET");
+    dispatch(s, "A");
+    expect(n(xval(s))).toBeCloseTo(8, 12);
+    dispatch(s, "INV");
+    dispatch(s, "A");
+    expect(s.mats["A"][0][0]).toBeCloseTo(0.25, 12);
+    dispatch(s, "TRN");
+    dispatch(s, "A");
+    expect(s.mats["A"][1][0]).toBeCloseTo(0, 12);
+  });
+
+  it("SOLVER menu lists program labels and solves through them", () => {
+    const s = createRpn();
+    // program: LBL A: x² − 4  (root at 2)
+    s.prgm = { ...s.prgm, steps: ["LBL", "A", "x²", "4", "−", "RTN"] };
+    dispatch(s, "SOLVER");
+    expect(menu42Labels(s)[0]).toBe("A");
+    run(s, "1", "ENTER", "3"); // bracket
+    pressSoft42(s, 0);
+    expect(n(xval(s))).toBeCloseTo(2, 6);
+  });
+
+  it("ALPHA menu types into the alpha register", () => {
+    const s = createRpn();
+    dispatch(s, "ALPHA");
+    pressSoft42(s, 0); // A
+    pressSoft42(s, 1); // B
+    expect(s.alpha).toBe("AB");
+  });
+
+  it("the CLEAR menu id is model-scoped: CLEARM opens it, CLST zeroes", () => {
+    const s = createRpn();
+    run(s, "5", "ENTER", "6");
+    dispatch(s, "CLEARM");
+    expect(s.menu?.name).toBe("CLEAR");
+    dispatch(s, "CLST");
+    expect(n(xval(s))).toBe(0);
+    expect(n(s.y)).toBe(0);
   });
 });
 

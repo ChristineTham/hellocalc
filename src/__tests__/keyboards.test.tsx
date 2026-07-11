@@ -436,7 +436,7 @@ describe("per-model shift palette (MachineUnit override)", () => {
     const { container } = render(
       <MachineUnit
         model={model}
-        rpn={{ ...stub, engine: createRpn(), restore: noop }}
+        rpn={{ ...stub, soft: noop, engine: createRpn(), restore: noop }}
         rpl={{ ...stub, soft: noop, engine: createRpl(), restore: noop }}
         lcd={<div />}
       />,
@@ -448,7 +448,7 @@ describe("per-model shift palette (MachineUnit override)", () => {
     const g = render(
       <MachineUnit
         model={MODELS["HP-48G"]}
-        rpn={{ ...stub, engine: createRpn(), restore: noop }}
+        rpn={{ ...stub, soft: noop, engine: createRpn(), restore: noop }}
         rpl={{ ...stub, soft: noop, engine: createRpl(), restore: noop }}
         lcd={<div />}
       />,

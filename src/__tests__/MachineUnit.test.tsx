@@ -34,6 +34,7 @@ const rpn: RpnCalculator = {
   state,
   prefix: "none",
   press: noop,
+  soft: noop,
   arm: noop,
   recall: noop,
   fmt,

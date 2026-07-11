@@ -77,6 +77,7 @@ const FACEPLATE_LOCAL = new Set([
   // RPL clamshell hardware keys (P12): the shift itself, the six blank
   // menu keys (dispatched by softkey index), and the cursor/mode rocker
   "(red shift)", "(menu key)", "◄▶ (mode key)",
+  "■ (shift)", // the 42S/pioneer shift key print (P16)
 ]);
 
 /** Coverage report for the no-inert-keys DoD line: which of a model's mapped

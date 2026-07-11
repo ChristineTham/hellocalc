@@ -135,8 +135,11 @@ export function MachineUnit({ model, rpn, rpl, lcd, paper }: MachineUnitProps) {
             rows={model.rows}
             geometry={model.geometry}
             prefix={rpn.prefix}
+            // the 42S menu protocol (P16) applies to the pioneer line only
+            menuLabels={model.family === "pioneer" ? rpn.state.menu?.labels : undefined}
             onArm={rpn.arm}
             onPress={rpn.press}
+            onSoft={model.family === "pioneer" ? rpn.soft : undefined}
           />
         )}
         {model.family === "rpl" && (

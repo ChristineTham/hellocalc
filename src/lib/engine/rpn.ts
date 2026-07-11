@@ -8,7 +8,9 @@
 import { asReal, bn, math, num, PI, type Value } from "./config";
 import { DEFAULT_FORMAT, type DisplayFormat } from "./format";
 import { appendDigit, backspace, parseEntry, startExponent, toggleSign } from "./entry";
-import { determinant as det, Matrix } from "ml-matrix";
+import { bestFit, fit as cfit, forecastX, forecastY } from "./stats-fit";
+import { ALPHA_PAGES, DYNAMIC_MENUS, MENUS42 } from "./menu42";
+import { determinant as det, inverse, Matrix } from "ml-matrix";
 import {
   digitOk,
   freshInt,
@@ -105,7 +107,10 @@ export interface PendingArg {
     | "SOLVE"
     | "∫"
     | "WINDOW"
-    | "SHOW";
+    | "SHOW"
+    | "DET"
+    | "TRN"
+    | "INV";
   /** the XEQ name being assigned (ASN) */
   name?: string;
   arith?: "+" | "−" | "×" | "÷";
@@ -167,6 +172,15 @@ export interface RpnEngine {
   userOn: boolean; // USER mode (P6): key assignments intercept dispatch
   userAsn: Record<string, string>; // key id → XEQ name (ASN)
   pending: PendingArg | null; // argument-taking key in progress
+  /** the 42S RPN menu system (P16): active menu + nesting stack */
+  menu: { name: string; page: number } | null;
+  menuStack: string[];
+  /** CUSTOM row assignments (ASSIGN); assignPend captures the next key */
+  custom42: string[];
+  assignPend: boolean;
+  /** CFIT state: active model + the raw Σ points behind the fits */
+  fit: "LINF" | "LOGF" | "EXPF" | "PWRF";
+  pts: [number, number][];
   entry: string | null; // in-progress digit buffer (null = show x)
   lift: boolean; // stack lifts before the next number is keyed
   angle: Angle;
@@ -190,6 +204,12 @@ export function createRpn(): RpnEngine {
     regsS: Array.from({ length: 10 }, () => zero),
     iReg: zero,
     sum: zeroSum(),
+    menu: null,
+    menuStack: [],
+    custom42: [],
+    assignPend: false,
+    fit: "LINF",
+    pts: [],
     prgm: freshPrgm(),
     fin: freshFin(),
     rng: 12345,
@@ -569,6 +589,30 @@ function resolvePending(s: RpnEngine, fn: string): boolean {
   if (p.op === "RESULT" && /^[A-E]$/.test(fn)) {
     s.pending = null;
     s.matResult = fn;
+    return true;
+  }
+  if ((p.op === "DET" || p.op === "TRN" || p.op === "INV") && /^[A-E]$/.test(fn)) {
+    // P16 (42S MATRIX menu) on the P9 store: DET pushes the determinant;
+    // TRN/INV rewrite the named matrix in place
+    s.pending = null;
+    const m = s.mats[fn];
+    if (!m) {
+      s.error = "Error";
+      return true;
+    }
+    try {
+      if (p.op === "DET") {
+        if (m.length !== (m[0]?.length ?? 0)) throw new Error("dim");
+        pushX(s, bn(String(det(new Matrix(m)))));
+      } else if (p.op === "TRN") {
+        s.mats = { ...s.mats, [fn]: new Matrix(m).transpose().to2DArray() };
+      } else {
+        if (m.length !== (m[0]?.length ?? 0)) throw new Error("dim");
+        s.mats = { ...s.mats, [fn]: inverse(new Matrix(m)).to2DArray() };
+      }
+    } catch {
+      s.error = "Error";
+    }
     return true;
   }
   if (p.op === "MATRIX" && /^[0-9]$/.test(fn)) {
@@ -1582,9 +1626,145 @@ export function applyFunction(s: RpnEngine, fn: string): boolean {
       return true;
     case "CLΣ":
       s.sum = zeroSum();
+      s.pts = [];
       return true;
     case "BEEP":
     case "ON":
+      return true;
+    // ---- HP-42S menu commands (P16) -------------------------------------------
+    case "SUM":
+      commit(s);
+      liftIfEnabled(s);
+      liftIfEnabled(s);
+      s.y = s.sum.y;
+      s.x = s.sum.x;
+      return true;
+    case "MEAN":
+      return applyFunction(s, "x̄");
+    case "SDEV":
+      return applyFunction(s, "s");
+    case "WMN": // weighted mean: Σxy / Σy
+      unary(s, () => (s.sum.y.isZero() ? null : s.sum.xy.div(s.sum.y)));
+      return true;
+    case "LINF":
+    case "LOGF":
+    case "EXPF":
+    case "PWRF":
+      s.fit = fn;
+      return true;
+    case "BEST": {
+      try {
+        s.fit = bestFit(s.pts).model;
+      } catch {
+        s.error = "Insufficient Data";
+      }
+      return true;
+    }
+    case "SLOPE":
+    case "YINT":
+    case "CORR": {
+      try {
+        const f = cfit(s.pts, s.fit);
+        const v = fn === "SLOPE" ? f.slope : fn === "YINT" ? f.yint : f.corr;
+        pushX(s, bn(String(v)));
+      } catch (e) {
+        s.error = e instanceof Error ? e.message : "Error";
+      }
+      return true;
+    }
+    case "FCSTY":
+    case "FCSTX": {
+      commit(s);
+      try {
+        const f = cfit(s.pts, s.fit);
+        const at = num(xval(s));
+        const v = fn === "FCSTY" ? forecastY(f, at) : forecastX(f, at);
+        if (!Number.isFinite(v)) throw new Error("Error");
+        s.lastX = xval(s);
+        s.x = bn(String(v));
+      } catch (e) {
+        s.error = e instanceof Error ? e.message : "Error";
+      }
+      return true;
+    }
+    // PROB menu prints (reuse the P8 core)
+    case "COMB":
+      return applyFunction(s, "Cy,x");
+    case "PERM":
+      return applyFunction(s, "Py,x");
+    case "N!":
+      return applyFunction(s, "x!");
+    case "GAMMA":
+      unary(s, (x) => math.gamma(bn(String(num(x)))));
+      return true;
+    case "RAN":
+      return applyFunction(s, "RAN#");
+    case "SEED": {
+      const x = xval(s);
+      s.rng = Math.max(1, Math.trunc(Math.abs(num(x)) * 2147483647) % 2147483647);
+      return true;
+    }
+    // CONVERT menu — the 42S prints for the P2 conversions
+    case "→DEG":
+      return applyFunction(s, "R→D");
+    case "→RAD":
+      return applyFunction(s, "D→R");
+    case "→HR":
+      return applyFunction(s, "D.MS→");
+    case "→HMS":
+      return applyFunction(s, "→D.MS");
+    case "→REC":
+      return applyFunction(s, "→R");
+    case "→POL":
+      return applyFunction(s, "→P");
+    // MODES / DISP
+    case "GRAD":
+      s.angle = "GRD";
+      return true;
+    case "COMPLEX": // the 42S key: form a complex from Y,X (the 15C's I op)
+      return applyFunction(s, "I");
+    case "ALL": // the 42S's ALL display = minimal-digits STD
+      s.disp = { mode: "STD", digits: s.disp.digits };
+      return true;
+    // CLEAR menu
+    case "CLP":
+      s.prgm = { ...s.prgm, steps: [], pc: 0 };
+      return true;
+    case "CLST": {
+      s.entry = null;
+      const zero = bn(0);
+      s.x = zero;
+      s.y = zero;
+      s.z = zero;
+      s.t = zero;
+      return true;
+    }
+    case "CLX":
+      return applyFunction(s, "CLx");
+    // MATRIX menu (P9 store): DET/TRN/INV act on a named matrix A–E
+    case "DET":
+    case "TRN":
+    case "INV":
+      s.pending = { op: fn };
+      return true;
+    case "MVAR": // program declaration — a no-op at run time (delivery note)
+      return true;
+    case "PRX":
+      s.hist = [...s.hist.slice(-49), { op: "🖨 x", raw: xval(s).toString() }];
+      return true;
+    case "PRSTK":
+      s.hist = [
+        ...s.hist.slice(-49),
+        { op: `🖨 T:${s.t} Z:${s.z} Y:${s.y} X:${s.x}`, raw: "" },
+      ];
+      return true;
+    case "PRΣ":
+      s.hist = [...s.hist.slice(-49), { op: `🖨 n=${s.sum.n} Σx=${s.sum.x} Σy=${s.sum.y}`, raw: "" }];
+      return true;
+    case "PRP":
+      s.hist = [...s.hist.slice(-49), { op: `🖨 PRGM ${s.prgm.steps.length} steps`, raw: "" }];
+      return true;
+    case "OFF":
       return true;
     case "PREFIX":
     case "NOP":
@@ -1616,6 +1796,10 @@ export function applyFunction(s: RpnEngine, fn: string): boolean {
         xy: sgn(s.sum.xy, x.times(s.y)),
       };
       s.x = s.sum.n;
+      // CFIT keeps the raw pairs too (P16) — better conditioned than the
+      // 42S's summation registers, same UX
+      if (sign === 1) s.pts = [...s.pts, [num(x), num(s.y)]];
+      else s.pts = s.pts.slice(0, -1);
       s.lift = false;
       return true;
     }
@@ -2288,7 +2472,100 @@ const VALUE_PRODUCERS = new Set([
  * In PRGM mode this is the RECORDER (P3): keys append as program steps —
  * steps ARE key ids, so playback is dispatch replay, like the hardware.
  */
+function openMenu42(s: RpnEngine, name: string): void {
+  if (s.menu && s.menu.name !== name) s.menuStack = [...s.menuStack, s.menu.name];
+  s.menu = { name, page: 0 };
+}
+
+/** The six labels of the active 42S menu page (dynamic menus resolved). */
+export function menu42Labels(s: RpnEngine): string[] {
+  if (!s.menu) return [];
+  const roster =
+    s.menu.name === "SOLVER" || s.menu.name === "∫f(x)"
+      ? programLabels(s)
+      : s.menu.name === "CUSTOM"
+        ? s.custom42
+        : s.menu.name === "ALPHA"
+          ? ALPHA_PAGES
+          : s.menu.name === "VARMENU"
+            ? [] // named-variable menus arrive with the 48 workflow (note)
+            : s.menu.name === "CATALOG"
+              ? CATALOG42
+              : MENUS42[s.menu.name] ?? [];
+  const pages = Math.max(1, Math.ceil(roster.length / 6));
+  const pg = ((s.menu.page % pages) + pages) % pages;
+  const out = roster.slice(pg * 6, pg * 6 + 6);
+  while (out.length < 6) out.push("");
+  return out;
+}
+
+/** Labels defined in the program store (the SOLVER / ∫f(x) target list). */
+function programLabels(s: RpnEngine): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < s.prgm.steps.length - 1; i++) {
+    if (s.prgm.steps[i] === "LBL") out.push(s.prgm.steps[i + 1]);
+  }
+  return out;
+}
+
+const CATALOG42: string[] = [
+  ...new Set(Object.values(MENUS42).flat().filter((l) => !l.startsWith("@"))),
+].sort();
+
+/** A 42S softkey press: the top-row key i resolves the active menu label. */
+export function pressSoft42(s: RpnEngine, i: number): void {
+  const label = menu42Labels(s)[i];
+  if (!label) return;
+  if (label.startsWith("@")) {
+    openMenu42(s, label.slice(1));
+    return;
+  }
+  if (s.menu?.name === "ALPHA") {
+    s.alpha += label === "␣" ? " " : label;
+    return;
+  }
+  if (s.menu?.name === "SOLVER") {
+    dispatch(s, "SOLVE");
+    dispatch(s, label);
+    return;
+  }
+  if (s.menu?.name === "∫f(x)") {
+    dispatch(s, "∫");
+    dispatch(s, label);
+    return;
+  }
+  dispatch(s, label);
+}
+
 export function dispatch(s: RpnEngine, fn: string): boolean {
+  // ---- the 42S RPN menu layer (P16) — navigation never records as steps ----
+  if (fn === "EXIT") {
+    s.assignPend = false;
+    if (s.menuStack.length) {
+      s.menu = { name: s.menuStack[s.menuStack.length - 1], page: 0 };
+      s.menuStack = s.menuStack.slice(0, -1);
+    } else s.menu = null;
+    return true;
+  }
+  if (fn === "▲" || fn === "▼") {
+    if (s.menu) s.menu = { ...s.menu, page: s.menu.page + (fn === "▼" ? 1 : -1) };
+    return true; // outside a menu the cursor keys are display motion — accepted
+  }
+  if (fn === "ASSIGN") {
+    s.assignPend = true; // the NEXT key's function lands on the CUSTOM row
+    return true;
+  }
+  if (s.assignPend && fn !== "EXIT") {
+    s.assignPend = false;
+    if (!MENUS42[fn] && !DYNAMIC_MENUS.has(fn) && fn !== "CLEARM") {
+      s.custom42 = [...s.custom42.slice(0, 17), fn];
+    }
+    return true;
+  }
+  if (MENUS42[fn] || DYNAMIC_MENUS.has(fn) || fn === "CLEARM") {
+    openMenu42(s, fn === "CLEARM" ? "CLEAR" : fn);
+    return true;
+  }
   if (s.prgm.mode === "PRGM") {
     const p = s.prgm;
     switch (fn) {

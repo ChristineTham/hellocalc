@@ -40,20 +40,33 @@ export interface ClassicKeyboardProps {
   geometry: KeyboardGeometry;
   /** armed shift prefix from the RPN hook ("none" for the shiftless HP-35) */
   prefix?: Prefix;
+  /** 42S menu labels (P16): when set, the top-row keys become softkeys */
+  menuLabels?: string[];
   onArm?: (p: Prefix) => void;
   onPress: (fn: string) => void;
+  onSoft?: (i: number) => void;
 }
 
 export function ClassicKeyboard({
   rows,
   geometry,
   prefix = "none",
+  menuLabels,
   onArm,
   onPress,
+  onSoft,
 }: ClassicKeyboardProps) {
   const [arc, setArc] = useState(false);
+  // the 42S protocol (P16): with a menu open, the six TOP-ROW keys are its
+  // softkeys — unshifted presses resolve the labels, shifted presses keep
+  // their printed functions (so menus stay reachable)
+  const topRow = rows[0] ?? [];
 
   const handle = (k: ClassicKey) => {
+    if (menuLabels && prefix === "none" && topRow.includes(k)) {
+      const i = topRow.indexOf(k);
+      if (i >= 0 && i < 6) return onSoft?.(i);
+    }
     if (k.kind === "pf") return onArm?.("f");
     if (k.kind === "pfi") return onArm?.("fi");
     if (k.kind === "pg") return onArm?.("g");
