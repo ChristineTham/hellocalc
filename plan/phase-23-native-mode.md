@@ -4,7 +4,9 @@
 
 ## Goal
 Deliver the final phase: a **keyboard-first native mode** that exposes the whole engine directly,
-with no faceplate. The user types algebraic (or RPN) input; results render as KaTeX; a history
+with no faceplate — genuinely new work, though it mounts in the app's **existing shell/chrome**
+(topbar, sidebar/nav, paper components, KaTeX rendering path, responsive templates) rather than
+building new chrome. The user types algebraic (or RPN) input; results render as KaTeX; a history
 stack, named variables, user-defined functions, and a save/name/recall **expression library** are
 first-class; a **notebook / block-evaluation editor** supports multi-step work; and a **minimal
 on-screen RPN-stack key set** covers stack manipulation without a full keypad. Copy/paste works in
@@ -13,9 +15,11 @@ almost no new math, only the modern power-user surface over the engine, plus the
 interchange polish deferred through earlier phases.
 
 ## Models delivered
-- **Native mode** (no physical model) — a keyboard-first evaluator surface, not a faceplate. A
-  single large display shows history + the live RPN stack + KaTeX-rendered math; input is a typed
-  expression line (algebraic default, RPN optional); an optional slim on-screen key strip offers
+- **Native mode** (no physical model) — a keyboard-first evaluator surface, not a faceplate, and
+  **not yet live**: the model picker's "Native mode" entry is the fleet's only disabled one. It
+  mounts in the existing shell/chrome rather than building new chrome. A single large display
+  shows history + the live RPN stack + KaTeX-rendered math; input is a typed expression line
+  (algebraic default, RPN optional); an optional slim on-screen key strip offers
   ENTER/`x↔y`/`R↓`/`DROP`/`LASTx` for stack work. All engine features are reachable by name.
 
 ## Engine capabilities added
@@ -56,11 +60,14 @@ Mostly UI/state over the finished engine (architecture §3 native mode; §4 pars
   (ordered blocks + shared scope + downstream re-eval), `io/` (copy/paste/export in
   plain/LaTeX/KaTeX, best-effort import), `state/` workspace save/load/export/import.
 - **Model adapter / data:** no `hp/` faceplate — native mode is engine-direct. A command
-  registry exposes engine functions by name for autocomplete; RPN keys map to stack ops.
-- **Faceplate / UI:** native surface (`src/app/native/` + components) — a typed entry line with
-  function/variable autocomplete, a history + live-stack panel with KaTeX, the slim on-screen
-  RPN key strip, the notebook editor, an expression-library drawer, and copy/export controls.
-  Responsive (mobile/tablet/desktop); light/dark theme tokens (FR-UI-5/6).
+  registry exposes engine functions by name for autocomplete; RPN keys map to stack ops (the
+  prototype already dispatches ENTER/`x↔y`/`DROP` on JS numbers — port onto the value tower /
+  object stack with reference tests).
+- **Wiring / UI:** the native surface (`src/app/native/` + components), mounted in the existing
+  shell/chrome — a typed entry line with function/variable autocomplete, a history + live-stack
+  panel with KaTeX, the slim on-screen RPN key strip, the notebook editor, an expression-library
+  drawer, and copy/export controls. Responsive (mobile/tablet/desktop); light/dark theme tokens
+  (FR-UI-5/6).
 - **Tests:** library save/recall; notebook block dependency re-eval; LaTeX export/round-trip;
   RPN vs algebraic parity; workspace export/import; full-engine reachability spot checks.
 
@@ -79,6 +86,8 @@ local storage only (no backend, base-path-safe per architecture §5 / NFR-1).
 - e2e: type an expression → KaTeX result; save to the expression library and recall it; open the
   notebook, add two dependent blocks, edit the first, see the second update; copy result as LaTeX;
   export and re-import a workspace; toggle RPN and use the on-screen key strip for `x↔y`/`DROP`.
+- **Enable the model picker's "Native mode" entry** — the fleet's only disabled entry goes live,
+  with switching to/from native mode retaining state; enabling it is part of DoD.
 - `pnpm lint` / `pnpm test` / `pnpm build` / `pnpm test:e2e` green. No `hp/layouts` fidelity check
   (native mode has no faceplate); instead assert full-engine reachability and FR-NATIVE coverage.
 

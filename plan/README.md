@@ -1,14 +1,17 @@
 # Hellocalc — Phased Implementation Plan
 
 A chronological, iterative build of hellocalc per [`docs/prd.md`](../docs/prd.md) and
-[`docs/architecture.md`](../docs/architecture.md). Each phase is a shippable increment that
-**builds on the previous one**: it adds one (or a few) HP calculator model(s) in **order of
-release**, and implements — in the shared engine — the capabilities that model first
-required. When a model introduces a large new subsystem (keystroke programmability, RPL,
-units, symbolic CAS, plotting, heavy CAS), that subsystem gets **its own phase**. The final
-phase is **native mode**.
+[`docs/architecture.md`](../docs/architecture.md). **The UI is done** — all 21 faceplates
+are live on the integrated machine shell ([docs/responsive-layout.md](../docs/responsive-layout.md))
+over prototype JS-number engines, so the plan's work is the **calculator engine**: each
+phase is a shippable increment that **builds on the previous one**, taking one (or a few)
+already-playable model(s) in **order of release** and implementing — in the shared engine —
+the capabilities that model first required, then **wiring them through the live faceplate**
+(no key left inert). When a model introduces a large new subsystem (keystroke
+programmability, RPL, units, symbolic CAS, plotting, heavy CAS), that subsystem gets **its
+own phase**. The final phase is **native mode**.
 
-Every phase file follows the same template (goal · models delivered · engine capabilities
+Every phase file follows the same template (goal · models wired live · engine capabilities
 added · PRD requirements · key tasks · new dependencies · tests & DoD · notes).
 
 ---
@@ -19,6 +22,10 @@ added · PRD requirements · key tasks · new dependencies · tests & DoD · not
   (`src/lib/engine/`, per architecture §3). Each model is a *view* that exposes only its own
   keys/functions via the model-adapter layer driven by
   [`hp/mapping/mapping.json`](../hp/mapping/mapping.json).
+- **Faceplates exist; phases wire them.** Every keyboard renders today and dispatches print
+  legends through the adapter seam (`src/lib/models/normalize.ts`); unknown ids no-op
+  safely, so unimplemented keys are **inert, not broken**. A model phase's finish line is
+  "no key on this model remains inert" (per its `hp/functions/` set).
 - **Fidelity from data.** Faceplates render from [`hp/layouts/`](../hp/layouts/); function
   exposure from [`hp/functions/`](../hp/functions/); dispatch from `hp/mapping/`. Never
   hand-author key maps (AGENTS.md §1).
@@ -59,14 +66,14 @@ The repo already contains a substantial, deployed prototype — in two very diff
 
 | Phase | Title | Model(s) · era | Headline capability added |
 |---|---|---|---|
-| [01](phase-01-engine-hp35.md) | Engine foundation & **HP-35** | HP-35 · 1972 | Engine core: math.js/BigNumber value tower, 4-level RPN stack + LAST X, memory, scientific fns, model-adapter, faceplate framework |
+| [01](phase-01-engine-hp35.md) | Engine foundation & **HP-35** | HP-35 · 1972 | Engine core: math.js/BigNumber value tower, 4-level RPN stack + LAST X, memory, scientific fns, model-adapter formalization, state persistence |
 | [02](phase-02-hp45.md) | **HP-45** | HP-45 · 1973 | `f` prefix, storage registers + register arithmetic, descriptive statistics, coordinate/angle/metric conversions |
 | [03](phase-03-programmability-hp65.md) | Keystroke programmability & **HP-65** | HP-65 · 1974 | Program subsystem (record/edit/run, LBL/GTO/RTN, tests, flags, subroutines) in a sandboxed Web-Worker interpreter |
 | [04](phase-04-hp25.md) | **HP-25** | HP-25 · 1975 | `f`/`g` dual prefix, continuous memory persistence, compact programming |
 | [05](phase-05-hp67-hp97.md) | **HP-67 / HP-97** | HP-67, HP-97 · 1976 | `f`/`g`/`h` prefixes, indirect addressing, expanded program control, printer panel (97) |
 | [06](phase-06-hp41-alpha.md) | Alphanumeric & named programs — **HP-41C/CV** | HP-41C, HP-41CV · 1979–80 | Alphanumeric display + ALPHA mode/strings, `XEQ` named functions, USER key assignment, function catalog, expansion ports |
 | [07](phase-07-finance-hp12c.md) | Financial engine & **HP-12C** | HP-12C · 1981 | decimal.js finance: TVM, cash flows (NPV/IRR), bonds, depreciation, amortization, date math |
-| [08](phase-08-hp11c.md) | **HP-11C** | HP-11C · 1981 | Probability (nPr/nCr/x!/RAND); Voyager scientific-programmable faceplate |
+| [08](phase-08-hp11c.md) | **HP-11C** | HP-11C · 1981 | Probability (nPr/nCr/x!/RAND); scientific-programmable Voyager wired complete |
 | [09](phase-09-complex-matrix-solve-hp15c.md) | Complex, matrices, SOLVE & ∫ — **HP-15C** | HP-15C · 1982 | Complex numbers, matrices + linear algebra (ml-matrix), numerical SOLVE & integrate, hyperbolics |
 | [10](phase-10-integer-base-hp16c.md) | Integer & base arithmetic — **HP-16C** | HP-16C · 1982 | Integer mode, word size, HEX/DEC/OCT/BIN, complement modes, bitwise/shift/rotate/bit ops |
 | [11](phase-11-hp41cx.md) | **HP-41CX** | HP-41CX · 1983 | Extended memory/functions, time module (clock/alarms/stopwatch) on the HP-41 subsystem |
@@ -94,8 +101,8 @@ the CX simply extends the HP-41 subsystem already built in Phase 6.
 | Capability (PRD ref) | Introduced in |
 |---|---|
 | 4-level RPN stack, memory, scientific (FR-STK-1, FR-NUM-1/2/6/7) | Phase 01 |
-| Responsive faceplate scaling + collapsible panels/LCD (FR-UI-3/7/8/9) | Phase 01 (framework, reused by every faceplate) |
-| History display (FR-EXP-5, FR-UI-1) | Phase 01 |
+| Responsive machine shell, typing, promotion, panels/LCD (FR-UI-2/3/7–14) | ✅ shipped ahead of the plan ([responsive-layout](../docs/responsive-layout.md)) |
+| History — engine-side recording + recall (FR-EXP-5, FR-UI-1) | Phase 01 (the tape display is live) |
 | Statistics — descriptive (FR-STAT-1) | Phase 02 |
 | Keystroke programmability + sandbox (FR-PRG-1/2/3, NFR-9) | Phase 03 |
 | Continuous-memory persistence (FR-STATE-1) | Phase 04 |
@@ -128,11 +135,11 @@ Each `phase-NN-*.md` uses:
 # Phase N — <Title>
 **Delivers:** <models> · <capability>   **Era:** <year(s)>   **Builds on:** Phase <N-1> (+deps)
 ## Goal
-## Models delivered            (per hp/layouts + hp/functions)
+## Models wired live           (faceplate already playable; completes hp/functions coverage)
 ## Engine capabilities added   (new subsystems/functions, vs architecture §3 layers)
 ## PRD requirements covered    (FR-*/NFR-* ids)
-## Key tasks                   (engine · model-adapter · faceplate · tests)
+## Key tasks                   (engine · model-adapter · wiring/UI · tests)
 ## New dependencies            (architecture §5, load strategy)
-## Tests & acceptance (DoD)    (unit incl. HP reference examples · e2e · lint/build green)
+## Tests & acceptance (DoD)    (unit incl. HP reference examples · e2e · no-inert-keys · green gate)
 ## Notes / risks
 ```

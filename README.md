@@ -210,16 +210,17 @@ middleware — everything runs in the browser.
 
 ## Roadmap
 
-Built in **iterative, chronological phases** — each adds the next HP model (in release order)
-and the engine capability it first required; large subsystems (programmability, RPL, units,
-CAS, plotting, heavy CAS) get their own phase; **native mode is last**. Full detail — one file
-per phase with tasks and acceptance tests — is in [`plan/`](plan/) ([index](plan/README.md)).
+Built in **iterative, chronological phases**. With every faceplate already live, each phase
+takes the next HP model (in release order), implements the engine capability it first
+required, and **wires it through the existing keys** — finish line: no key on that model
+remains inert. Large subsystems (programmability, RPL, units, CAS, plotting, heavy CAS) get
+their own phase; **native mode is last**. Full detail — one file per phase with tasks and
+acceptance tests — is in [`plan/`](plan/) ([index](plan/README.md)).
 
 **Phase 1 — Engine foundation & HP-35 (1972).** The shared pure-TS engine (math.js/BigNumber
 value tower, 4-level RPN stack + `LAST X`, memory, scientific functions), the `hp/mapping`-driven
-model adapter, and state persistence — proven end-to-end by the first HP scientific. (The
-responsive faceplate framework and history display it calls for are already delivered — see
-[Status](#status).)
+model adapter, and state persistence — making the already-live HP-35 the first fully
+functional, exact-arithmetic model.
 
 Then, in release order:
 

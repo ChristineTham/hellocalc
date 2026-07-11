@@ -9,19 +9,22 @@ graphing (Phase 18), units, and numerics behaviours into one coherent ~340-comma
 adds the commands the 50g exposes over the 49G (vector calculus, extra polynomial/number-
 theory ops, `LINSOLVE`/`REF`, `GROBADD`/`ANIMATE`), and introduces **directory + "SD card"
 persistence** backed by browser local storage — save/load named workspaces and a removable-
-store abstraction. It is the RPL analogue of the modern-era consolidation the 35s/Prime bring
-to the RPN line.
+store abstraction — all wired into the live HP-50g faceplate. It is the RPL analogue of the
+modern-era consolidation the 35s/Prime bring to the RPN line.
 
-## Models delivered
+## Models wired live
 - **HP-50g** (2006) — 131×80 dot-matrix LCD; left-shift **white**, right-shift **orange**,
   ALPHA; F1–F6 softkeys with NXT/PREV; RPN + algebraic entry; unified CAS with Exact/Approx,
-  Real/Complex, Rad/Deg flags. Faceplate per `hp/layouts/HP-50g.md`, functions per
-  `hp/functions/HP-50g.md`.
+  Real/Complex, Rad/Deg flags. The faceplate is **already playable** (white/orange shifts,
+  131:80 glass); this phase completes its function coverage per `hp/functions/HP-50g.md`
+  (fidelity reference: `hp/layouts/HP-50g.md`).
 
 ## Engine capabilities added
 - **Command-surface consolidation (~340):** wire the full documented 50g menu set onto the
   already-built engine — CAS (Phase 19), 2D/3D plotting (Phases 17–18), units, matrices,
-  finance, stats — resolving the 49G→50g naming/menu deltas from one dispatch table.
+  finance, stats — resolving the 49G→50g naming/menu deltas from one dispatch table. (The
+  basic slice — arithmetic, trig, stack ops — the prototype already dispatches on JS numbers;
+  port onto the value tower / object stack with reference tests.)
 - **Commands new over the 49G:** vector calculus (`GRAD`/`DIV`/`CURL`/`LAPL`/`HESS`,
   `POTENTIAL`/`VPOTENTIAL`), `LINSOLVE`/`REF`/`rref`, extra polynomials (`RESULTANT`/`STURM`/
   `CYCLOTOMIC`), `SREPL`, `GROBADD`/`ANIMATE`, `DRAW3DMATRIX`, `NDIST`.
@@ -47,9 +50,9 @@ to the RPN line.
 - **Model adapter / data:** consume `hp/mapping/mapping.json` for the 50g keyboard (white/orange
   shifts, CAT, MATHS/MAIN menus); expose the full `hp/functions/HP-50g.md` set; reconcile
   49G↔50g token differences in the adapter, not the engine.
-- **Faceplate / UI:** 50g faceplate; a FILES/workspace browser (directories, save/load,
-  export/import); base-path-safe file download/upload for workspace files (static-export safe,
-  AGENTS.md §5).
+- **Wiring / UI:** a FILES/workspace browser (directories, save/load, export/import);
+  base-path-safe file download/upload for workspace files (static-export safe, AGENTS.md §5).
+  (The 50g faceplate — white/orange shifts, 131:80 glass override — is already live.)
 - **Tests:** persistence round-trip unit tests; e2e for directory create → store → reload →
   restore, and workspace export/import.
 
@@ -62,10 +65,12 @@ already exists from Phases 9–19. No new libraries.
   - `CRDIR` `MYDIR`, `3 'A' STO`, serialize → reload → `'A' RCL` returns `3` from the same path.
   - `'X^2' 'X' GRAD` → `[2·X]`; `[[2,1],[1,3]]` `[3,5]` `LINSOLVE` → `[0.8, 1.4]`
     (reuses Phase-9 linear algebra); workspace export→import reproduces stack + vars + keys.
-- Faceplate e2e: build a directory, store a variable and a program, reload the app → state
-  restored; export a workspace file and re-import it into a cleared session.
-- `pnpm lint`/`test`/`build`/`test:e2e` green; static export still builds (no server APIs).
-  Fidelity vs `hp/layouts/HP-50g.md` (SM-1): keys, white/orange shifts, softkey menus.
+- E2e on the live faceplate: build a directory, store a variable and a program, reload the app →
+  state restored; export a workspace file and re-import it into a cleared session.
+- **No HP-50g key remains inert** — every function in `hp/functions/HP-50g.md` resolves to an
+  engine command.
+- `pnpm lint`/`test`/`build`/`test:e2e` green; static export still builds (no server APIs);
+  the existing UI suites (geometry, promotion, typing) stay green.
 
 ## Notes / risks
 - The 50g firmware exposes 500+ commands; scope to the documented ~340 in

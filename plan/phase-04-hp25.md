@@ -1,20 +1,22 @@
 # Phase 4 — HP-25
 
-**Delivers:** HP-25 · `f`/`g` dual prefix, compact 49-step programming, continuous-memory persistence · **Era:** 1975 · **Builds on:** Phase 3 (program subsystem, sandbox) + Phase 2 (registers, stats) + Phase 1 (stack machine)
+**Delivers:** HP-25 · `f`/`g` dual prefix, compact 49-step programming, continuous-memory persistence · **Era:** 1975 · **Builds on:** Phase 3 (program subsystem, sandbox) + Phase 2 (registers, stats) + Phase 1 (stack machine) + the live faceplate fleet
 
 ## Goal
-Deliver the HP-25 by reusing the Phase-3 programmability subsystem in its compact 49-step,
+Wire the Phase-3 programmability subsystem into the live HP-25 faceplate in its compact 49-step,
 card-less form, and deepen state persistence into true **continuous memory** — stack, registers,
 and the stored program survive reloads exactly as on the HP-25C.
 
-## Models delivered
+## Models wired live
 - **HP-25** (1975) — low-cost programmable scientific; two prefixes (`f`/`g`), 49-step program
-  memory, no card reader. Faceplate per `hp/layouts/HP-25.md`, functions per `hp/functions/HP-25.md`.
+  memory, no card reader. Its faceplate is already live and playable on the prototype engine
+  (fidelity reference: `hp/layouts/HP-25.md`); this phase completes the function set per
+  `hp/functions/HP-25.md` — programming, registers, continuous memory — so no key remains inert.
 
 ## Engine capabilities added
 Mostly reuse; the new work is dual-prefix exposure and continuous-memory persistence:
 - **`f`/`g` dual prefix** — gold `f` (above key) and blue `g` (slanted front face); no `h` shift.
-  Configured in the model adapter (no new engine op).
+  Arming/promotion is already live UI-wide; stays model-adapter config (no new engine op).
 - **Compact 49-step programming** — reuse the Phase-3 `program/` interpreter and Web-Worker
   sandbox unchanged, capped at 49 steps with **no magnetic-card layer** (card model omitted for
   this model). Adds `BST` back-step and `PAUSE` (briefly show X during a run) to the op set.
@@ -38,10 +40,11 @@ Mostly reuse; the new work is dual-prefix exposure and continuous-memory persist
   registers.
 - **Model adapter / data:** `f`/`g` dual-prefix and PRGM–RUN mode in `src/lib/models/adapter.ts`;
   HP-25 exposure from `hp/functions/HP-25.md`; ENG display mode.
-- **Faceplate / UI:** HP-25 faceplate from `hp/layouts/HP-25.md` (two prefix colors, front-face
-  `g` legends, PRGM–RUN slider); continuous-memory status where shown.
+- **Wiring / UI:** resolve every `hp/functions/HP-25.md` function to an engine op (`mapping.json`
+  / `normalize.ts` coverage); PRGM–RUN mode UI + semantics; surface R0–R7/stats and the stored
+  program in the existing `VarsNote` paper panel; continuous-memory status where shown.
 - **Tests:** continuous-memory round-trip (reload restores stack+registers+program); skip-if-false
-  conditionals; `BST`/`PAUSE`; HP-25 faceplate e2e.
+  conditionals; `BST`/`PAUSE`; e2e on the live HP-25 faceplate.
 
 ## New dependencies
 None.
@@ -52,8 +55,12 @@ None.
   right `x̄`/`s`.
 - Persistence test: enter a program + stack + registers, reload, and assert byte-for-byte restore
   (continuous memory).
-- Faceplate e2e: HP-25 record in PRGM (`g x²` … ), switch to RUN, `5 R/S` → result; reload retains it.
-- `pnpm lint` / `pnpm test` / `pnpm build` / `pnpm test:e2e` green; fidelity vs `hp/layouts/HP-25.md`.
+- E2e on the live faceplate: record in PRGM (`g x²` … ), switch to RUN, `5 R/S` → result; reload
+  retains it.
+- **No HP-25 key remains inert** — every function in `hp/functions/HP-25.md` resolves to an
+  engine op.
+- `pnpm lint` / `pnpm test` / `pnpm build` / `pnpm test:e2e` green; the existing UI suites
+  (geometry, promotion, typing) stay green.
 
 ## Notes / risks
 - Distinguish HP-25 (volatile) vs HP-25C (continuous memory) — we emulate the continuous-memory

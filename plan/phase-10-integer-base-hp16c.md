@@ -1,18 +1,20 @@
 # Phase 10 — Integer & base arithmetic — HP-16C
 
-**Delivers:** HP-16C · integer-mode arithmetic with word size, multi-base display, complement modes, bitwise/shift/rotate/bit ops · **Era:** 1982 · **Builds on:** Phase 9 (Voyager scientific-programmable faceplate) — plus stack machine (P1) and programmability (P3–P6)
+**Delivers:** HP-16C · integer-mode arithmetic with word size, multi-base display, complement modes, bitwise/shift/rotate/bit ops · **Era:** 1982 · **Builds on:** Phase 9 + the live faceplate fleet — plus stack machine (P1) and programmability (P3–P6)
 
 ## Goal
-Deliver the HP-16C "Computer Scientist" by adding an **integer arithmetic mode** to the engine:
-a bounded-word integer value type with configurable word size (1–64 bits), HEX/DEC/OCT/BIN
-bases, three complement modes, and the full computer-science operation set (bitwise, shifts,
-rotates, bit manipulation, masks) with carry/overflow flags — plus a Floating-Point mode that
-falls back to the existing BigNumber tower.
+Deliver the HP-16C "Computer Scientist" by adding an **integer arithmetic mode** to the engine,
+wired into the live HP-16C faceplate: a bounded-word integer value type with configurable word
+size (1–64 bits), HEX/DEC/OCT/BIN bases, three complement modes, and the full computer-science
+operation set (bitwise, shifts, rotates, bit manipulation, masks) with carry/overflow flags —
+plus a Floating-Point mode that falls back to the existing BigNumber tower.
 
-## Models delivered
+## Models wired live
 - **HP-16C** (1982) — Voyager computer-scientist calculator; f-gold/g-blue; toggles between
-  Integer mode (HEX/DEC/OCT/BIN) and Floating-Point Decimal mode. Faceplate per
-  `hp/layouts/HP-16C.md`, functions per `hp/functions/HP-16C.md`.
+  Integer mode (HEX/DEC/OCT/BIN) and Floating-Point Decimal mode. The faceplate is **already
+  playable** (generated from `mapping.json`; the A–F keys render as primaries but sit inert) on
+  the prototype engine; this phase completes its function set per `hp/functions/HP-16C.md` so
+  no key remains inert (fidelity reference: `hp/layouts/HP-16C.md`).
 
 ## Engine capabilities added
 Extends architecture §3 value tower with a new integer domain (feature module
@@ -38,8 +40,8 @@ Extends architecture §3 value tower with a new integer domain (feature module
   bases, and complement modes, complementing the BigNumber (FR-NUM-1) and IEEE (FR-NUM-2) types.
 - **FR-NUM-5** — exact integers where the model supports them (bounded-word `BigInt`).
 - **FR-NUM-7** — base/window display formats specific to Integer mode.
-- **FR-MODEL-1/2/3/5** — faithful HP-16C faceplate; key+prefix dispatch via `mapping.json`; only
-  HP-16C functions exposed; base annunciators (h/d/o/b), C/G carry/overflow, windowed LCD.
+- **FR-MODEL-1/2/3/5** — faithful HP-16C faceplate (live); key+prefix dispatch via `mapping.json`;
+  only HP-16C functions exposed; base annunciators (h/d/o/b), C/G carry/overflow, windowed LCD.
 - **FR-PRG-1/2** — the computer-science ops are programmable via the existing P3 interpreter
   (LBL 0–F, GTO/GSB, `x≤y`/`x=0`/… tests, `DSZ`/`ISZ` on R_I).
 - **NFR-5** — bit-exact results at each word size.
@@ -50,8 +52,10 @@ Extends architecture §3 value tower with a new integer domain (feature module
   double-word; `STATUS` reporting complement mode + word size + flags; float↔integer crossing.
 - **Model adapter / data:** expose HP-16C set from `hp/functions/HP-16C.md`; map the `SHOW`,
   `SET COMPL`, and `CLEAR` gold brackets, `WSIZE`, `WINDOW`, `<`/`>` via `mapping.json`.
-- **Faceplate / UI:** HP-16C faceplate from `hp/layouts/HP-16C.md`; base + C/G annunciators;
-  windowed/scrollable integer display; A–F hex-digit keys.
+- **Wiring / UI:** cover `hp/functions/HP-16C.md` end-to-end so no key stays inert — the A–F
+  keys already render as primaries; wire them as hex digits. New capability UI: base readout on
+  the glass with a word-size/base annunciator row, C/G flags, windowed/scrollable integer
+  display.
 - **Tests:** word-size wrap, 1's/2's/unsigned interpretation, every bitwise/shift/rotate op,
   masks, `#B`, double-word multiply/divide, carry/overflow propagation.
 
@@ -62,9 +66,12 @@ None — bounded-word integers use native `BigInt`; no new package (architecture
 - Engine unit tests incl. HP reference examples: `8 [WSIZE]`, `HEX`, `FF [ENTER] 01 +` → `00`
   with carry set; `2's` complement `CHS` of `1` in an 8-bit word → `FF`; `SL` of `0x80` sets
   carry; `MASKR 4` → `0x0F`; `#B` of `0xFF` → `8`.
-- Faceplate e2e: `f WSIZE 8`, `BIN`, key `1010`, `f AND` with `1100` → `1000`; base toggle
-  HEX→DEC updates the same X; `WINDOW`/`>` scrolls a 64-bit word.
-- `pnpm lint` / `pnpm test` / `pnpm build` / `pnpm test:e2e` green; fidelity vs `hp/layouts/HP-16C.md`.
+- E2e on the live faceplate: `f WSIZE 8`, `BIN`, key `1010`, `f AND` with `1100` → `1000`; base
+  toggle HEX→DEC updates the same X; `WINDOW`/`>` scrolls a 64-bit word.
+- **No HP-16C key remains inert** — every function in `hp/functions/HP-16C.md` resolves to an
+  engine op.
+- The existing UI suites (geometry, promotion, typing) stay green.
+- `pnpm lint` / `pnpm test` / `pnpm build` / `pnpm test:e2e` green.
 
 ## Notes / risks
 - Sign interpretation differs across the three complement modes — centralize it in `integer.ts`

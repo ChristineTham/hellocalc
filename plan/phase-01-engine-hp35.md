@@ -1,82 +1,79 @@
 # Phase 1 — Engine foundation & HP-35
 
-**Delivers:** HP-35 · engine core (BigNumber value tower, 4-level RPN stack, model-adapter, faceplate framework) · **Era:** 1972 · **Builds on:** — (foundation)
+**Delivers:** HP-35 fully functional · engine core (BigNumber value tower, 4-level RPN stack, model-adapter formalization, persistence) · **Era:** 1972 · **Builds on:** the live 21-model UI shell ([docs/responsive-layout.md](../docs/responsive-layout.md))
 
 ## Goal
-Stand up the shared pure-TS engine on math.js configured to `BigNumber`, the model-adapter
-layer that dispatches keystrokes from `hp/mapping/mapping.json`, and the data-driven faceplate
-framework — proven end-to-end by the HP-35, the first HP pocket scientific.
+Stand up the shared pure-TS engine on math.js configured to `BigNumber`, formalize the
+model-adapter layer that dispatches keystrokes from `hp/mapping/mapping.json`, and lay the
+state-persistence foundation — wired into the already-live shell so the HP-35, the first HP
+pocket scientific, becomes the first **fully functional, exact-arithmetic** model.
 
-## Models delivered
+## Models wired live
 - **HP-35** (1972) — first HP scientific; every function is a single key (no shift), with `arc`
-  as an inverse-trig prefix. Faceplate per `hp/layouts/HP-35.md`, functions per `hp/functions/HP-35.md`.
+  as an inverse-trig prefix. The faceplate is **already playable** (aspect 0.703, geometry per
+  responsive-layout §4.4) on the JS-number prototype engine; this phase re-bases it onto the
+  BigNumber tower and completes its function set per `hp/functions/HP-35.md`
+  (fidelity reference: `hp/layouts/HP-35.md`).
 
 ## Engine capabilities added
 New subsystems across architecture §3 layers (value tower · parser/eval · stack machine):
 - **Value tower on math.js, globally configured to `BigNumber`** — a `mathjs` instance in
-  `src/lib/engine/config.ts` with `number: 'BigNumber'` so `0.1 + 0.2` is exact. Formalizes the
-  existing `src/lib/mathEngine.ts` prototype (JS numbers) onto the target tower.
-- **4-level RPN stack machine** `src/lib/engine/rpn.ts` (evolve the prototype): `X/Y/Z/T` +
-  `LAST X`, with exact **ENTER-lift / drop / no-lift** rules per `hp/README.md` — `ENTER↑` lifts and
-  disables the next auto-lift; `CLx` clears X with no lift; binary ops drop Z→Y, T→T and save LAST X.
-  (HP-35 itself has no LAST X — the register lands here for reuse by later models.)
-- **Scientific function ops** wired into the stack machine: `sin/cos/tan` + `arc` inverse prefix,
-  `log/ln`, `eˣ`, `xʸ` (`10ˣ` via `xʸ` base 10 per the HP-35), `√x`, `1/x`, `π`, and stack ops
-  `x⇄y`, `R↓`, `CHS`, `EEX`, `CLx`, `CLR`.
-- **Single memory register** (`STO`/`RCL`) in the stack-machine state.
-- **Display formatting** `src/lib/engine/format.ts` — FIX / SCI with configurable digits, and
-  DEG/RAD angle mode feeding the trig ops.
-- **Model-adapter layer** `src/lib/models/` — imports `hp/mapping/mapping.json` at build time and
-  resolves `(physical_key, prefix)` → engine op; per-model exposure from `hp/functions/`.
-- **Faceplate framework** — `Faceplate` / `Keyboard` / `Display` / `CalcKey` (evolve existing
-  `src/components/calculator/*`) rendered from generated model data (`models.generated.ts`).
-- **Responsive layout framework — ✅ already shipped ahead of this phase** (see
-  [docs/responsive-layout.md](../docs/responsive-layout.md), Steps 0–9 + revisions 3–7): the
-  integrated machine bezel (nameplate + LCD + keyboard), aspect-faithful keyboard geometry
-  (`src/lib/layout/`), five page templates, per-family LCD glass (seven-segment vs
-  dot-matrix), paper history/stack/vars components with individual toggles,
-  physical-keyboard input (hotkey maps, key echo, `?` cheat-sheet, ⌘K picker) and prefix
-  promotion. Phase 1 consumes this shell as-is — its remaining UI work is wiring the real
-  engine (above) into it.
-- **History stack** — the engine/hook records each committed entry and result as a running
-  history (`{ op, value }`), recallable into the display; the substrate for the native-mode
-  history/expression library in Phase 23. *(The paper-tape history display and hook-side
-  recording are already live for RPN models; this phase moves recording into `EngineState`
-  and adds recall.)*
+  `src/lib/engine/config.ts` with `number: 'BigNumber'` so `0.1 + 0.2` is exact. Replaces the
+  JS-number arithmetic inside the existing engines.
+- **4-level RPN stack machine** — port `src/lib/engine/rpn.ts` (the live prototype, whose
+  `X/Y/Z/T` + `LAST X` **ENTER-lift / drop / no-lift** rules already match `hp/README.md` and
+  carry unit tests) onto the BigNumber tower. (HP-35 itself has no LAST X — the register lands
+  here for reuse by later models.)
+- **Scientific function ops on the tower** — the prototype already dispatches the HP-35 set
+  (`sin/cos/tan` + `arc` inverses, `log/ln`, `eˣ`, `xʸ`, `√x`, `1/x`, `π`, `x⇄y`, `R↓`, `CHS`,
+  `CLx`, `CLR`) on JS numbers; re-implement on BigNumber with HP reference tests. `EEX`
+  exponent entry gains real behavior (currently digit-buffer only).
+- **Single memory register** (`STO`/`RCL`) in the stack-machine state — currently inert keys.
+- **Display formatting** `src/lib/engine/format.ts` — FIX / SCI with configurable digits
+  (replacing the hook-level fixed 2-decimal `fmt`), DEG/RAD angle mode feeding trig (the
+  mode setters are live; formatting is not).
+- **Model-adapter formalization** `src/lib/models/` — the print→id seam (`normalize.ts`) is
+  live; formalize `(physical_key, prefix)` → engine-op resolution against
+  `hp/mapping/mapping.json` (imported at build time) and per-model exposure from
+  `hp/functions/` so coverage is checkable per model rather than per authored legend.
+- **History recording in `EngineState`** — the paper-tape display and hook-side `{op, value}`
+  recording are already live for RPN models; move recording into the engine state and add
+  **recall into X** — the substrate for the native-mode history/expression library (Phase 23).
 - **State persistence foundation** (architecture §9) — a single serializable `EngineState` tree
-  (`shared` + `perModel`) with a tagged **value codec** (numbers/BigNumber now; later phases
-  extend it) and a schema `version`; a `StorageAdapter` doing **localStorage autosave/restore**
-  of the session (stack/memory/modes/history/active model); and a first **export/import to a
+  (`shared` + `perModel`) with a tagged **value codec** (BigNumber now; later phases extend it)
+  and a schema `version`; a `StorageAdapter` doing **localStorage autosave/restore** of the
+  session (stack/memory/modes/history/active model); and a first **export/import to a
   versioned JSON file** (download/upload) so state survives a cleared browser.
+
+*(The responsive layout framework, integrated machine, paper components, typing layer and
+prefix promotion shipped ahead of this plan — see responsive-layout Steps 0–9 + revisions.
+Phase 1 consumes that shell as-is.)*
 
 ## PRD requirements covered
 - **FR-NUM-1/2** — BigNumber default numeric type; IEEE mode selectable.
 - **FR-NUM-6/7** — DEG/RAD angle mode; FIX/SCI display formats with digits.
 - **FR-STK-1** — classic 4-level `X/Y/Z/T` + `LAST X` with exact lift/drop/no-lift semantics.
-- **FR-MODEL-1/2/3/5** — faithful HP-35 keyboard; key+prefix dispatch via `mapping.json`;
+- **FR-MODEL-1/2/3/5** — faithful HP-35 keyboard (live); key+prefix dispatch via `mapping.json`;
   only HP-35 functions exposed; LED-style display/annunciators.
 - **FR-EXP-5** — history stack of prior entries/results, shown in the display and recallable.
-- **FR-UI-1/2/3/5** — large display showing the RPN stack **and computation history**; physical-keyboard input; responsive; design tokens.
-- **FR-UI-7/8/9/10/11** — keyboard aspect fidelity + independent LCD placement per
-  [docs/responsive-layout.md](../docs/responsive-layout.md); history/stack panels collapse
-  behind sheets on small screens; the LCD collapses between line and mini states.
 - **FR-STATE-1** — persist session state across reloads (localStorage autosave/restore).
 - **FR-STATE-4** — export/import state as a versioned file (durable backup; foundation laid here).
 - **NFR-5/8** — precision correctness (HP reference tests); pure-TS framework-agnostic engine.
+- (FR-UI-1/2/3/5/7–14 shipped with the UI foundation; each phase keeps them green.)
 
 ## Key tasks
-- **Engine:** `src/lib/engine/config.ts` (BigNumber math.js instance); refactor `rpn.ts` to the
-  BigNumber tower with LAST X + lift-flag; `format.ts` (FIX/SCI); scientific + stack ops registry;
+- **Engine:** `src/lib/engine/config.ts` (BigNumber math.js instance); port `rpn.ts` to the
+  BigNumber tower keeping the existing lift/drop tests; `format.ts` (FIX/SCI); memory register;
   `src/lib/engine/persistence.ts` — the `EngineState` tree, value codec, `version`/migration,
   `StorageAdapter` (localStorage + in-memory), and file export/import helpers.
 - **Model adapter / data:** `src/lib/models/adapter.ts` consuming `hp/mapping/mapping.json`;
-  regen path via `hp/mapping/build_mapping.py`; HP-35 exposure from `hp/functions/HP-35.md`.
-- **Faceplate / UI:** re-base `Faceplate`/`Keyboard`/`Display`/`CalcKey` on generated data; HP-35
-  faceplate from `hp/layouts/HP-35.md`; a **History display** component (`src/components/calculator/HistoryDisplay.tsx`)
-  showing prior entries/results beside/under the stack; the **responsive scaling framework**
-  (fluid/container-query sizing so the faceplate fits any viewport) and collapsible history/stack
-  panels + collapsible-LCD toggle; `src/hooks/useCalculator.ts` + localStorage persistence.
-- **Tests:** engine unit tests (stack lift/drop/no-lift, format, trig); HP-35 faceplate e2e.
+  regen path via `hp/mapping/build_mapping.py`; HP-35 exposure check from `hp/functions/HP-35.md`.
+- **Wiring / UI:** re-point `useRpnCalculator` / `useRplCalculator` at the BigNumber engine and
+  `format.ts` (formatted values flow through the existing glass/tape/notes unchanged); history
+  recall into X from the tape; wire the nav's **Import / Export / Reset state** entries
+  (currently "soon") to `persistence.ts`; STO/RCL memory surfaced on the HP-35.
+- **Tests:** engine unit tests (stack lift/drop/no-lift, format, trig — extend the existing
+  suites onto BigNumber); persistence round-trip tests; HP-35 function-coverage e2e.
 
 ## New dependencies
 None — `mathjs` and `decimal.js` are already installed (architecture §5, eager core).
@@ -84,17 +81,19 @@ None — `mathjs` and `decimal.js` are already installed (architecture §5, eage
 ## Tests & acceptance (DoD)
 - Engine unit tests incl. HP reference examples: `2 ENTER↑ 3 ×` → `6`; `1 ENTER↑ 0 ÷` behavior;
   `30 sin` (DEG) → `0.5`; verify `0.1 ENTER↑ 0.2 +` → exact `0.3` under BigNumber.
-- Faceplate e2e: HP-35 key sequence `2 ENTER↑ 3 +` shows `5`; `arc` `sin` inverse path; the
-  history display shows the prior result(s) after successive operations.
+- E2e on the live faceplate: HP-35 sequence `2 ENTER↑ 3 +` shows `5`; `arc sin` inverse path;
+  `STO`/`RCL` round-trip; EEX entry; history recall pulls a prior result into X.
+- **No HP-35 key remains inert** — every function in `hp/functions/HP-35.md` resolves to an
+  engine op.
 - Persistence round-trips: engine state save→restore is identical (incl. BigNumber exactness),
   and export→file→re-import reproduces the state; `version` migration + graceful-degrade tested.
-- Responsive e2e at mobile / tablet / desktop viewports: the faceplate fits within the viewport
-  (no clipping, no scroll to reach a key) and every key is tappable; on mobile the history/stack
-  panels are collapsed behind a control and the compact-LCD ↔ full-display toggle works.
-- `pnpm lint` / `pnpm test` / `pnpm build` / `pnpm test:e2e` green; faceplate fidelity vs
-  `hp/layouts/HP-35.md` (no shift keys, `arc` prefix, single memory).
+- The existing UI suites stay green (geometry/aspect guards, typing, promotion, templates —
+  159 unit / 14 e2e at time of writing).
+- `pnpm lint` / `pnpm test` / `pnpm build` / `pnpm test:e2e` green.
 
 ## Notes / risks
 - The prototype uses JS-number engines; the main risk is BigNumber formatting parity (auto SCI
   outside 10⁻²…10¹⁰, all-9s overflow) — cover in `format.ts` tests.
 - Establish the mapping-import build seam cleanly now; every later phase depends on it.
+- Porting `rpn.ts` must not regress the live behavior of the other 20 faceplates that share it —
+  the existing op tests are the safety net; extend, don't replace.

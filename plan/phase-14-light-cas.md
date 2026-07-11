@@ -1,20 +1,22 @@
 # Phase 14 — Light symbolic CAS
 
-**Delivers:** capability retrofit (HP-28C onward) · `CasProvider` seam + lazy Nerdamer/Algebrite · KaTeX rendering pipeline · **Era:** 1986–88 · **Builds on:** Phases 12 (RPL objects) & 13 (units) — retrofits the 28C algebra/calculus commands, carried forward by every later CAS model
+**Delivers:** capability retrofit (HP-28C onward) · `CasProvider` seam + lazy Nerdamer/Algebrite · KaTeX rendering pipeline · **Era:** 1986–88 · **Builds on:** the live faceplate fleet + Phases 12 (RPL objects) & 13 (units) — retrofits the 28C algebra/calculus commands, carried forward by every later CAS model
 
 ## Goal
 Give the engine its **light symbolic CAS tier** behind the stable `CasProvider` interface
 (architecture §3, §4.3) and stand up the **KaTeX rendering pipeline** so results and expressions
 are always typeset (never raw strings). This is a **capability retrofit, not a new model**: it
 lights up the HP-28C's algebra/calculus commands (`COLCT`, `EXPAN`, `ISOL`, `QUAD`, `TAYLR`, the
-`d/dx` and `∫` keys, `ROOT`, `→NUM`) delivered as faceplate keys in Phase 12, and every later CAS
-model (28S, 42S output, 48/49/50g, Prime) reuses the same provider seam and renderer.
+`d/dx` and `∫` keys, `ROOT`, `→NUM`) whose keys already render — inert — on the live 28C
+clamshell, and every later CAS model (28S, 42S output, 48/49/50g, Prime) reuses the same
+provider seam and renderer.
 
-## Models delivered
-- **None (retrofit).** No new faceplate. The capability activates the 28C **ALGEBRA** menu
-  (`COLCT`/`EXPAN`/`ISOL`/`QUAD`/`TAYLR`/`SHOW`…) and the `d/dx` (shift-6) and `∫` (shift-5) keys
-  per `hp/functions/HP-28C.md`, plus `→NUM` (shift-EVAL) and `ROOT`. Later models — HP-28S
-  (Phase 15), HP-42S numeric output (Phase 16), HP-48SX/48G/49G/50g, HP Prime — inherit it.
+## Models wired live
+- **None new (retrofit).** The capability retrofits INTO the live **HP-28C** faceplate: it
+  activates the 28C **ALGEBRA** menu (`COLCT`/`EXPAN`/`ISOL`/`QUAD`/`TAYLR`/`SHOW`…) and the
+  `d/dx` (shift-6) and `∫` (shift-5) keys per `hp/functions/HP-28C.md`, plus `→NUM` (shift-EVAL)
+  and `ROOT`. Later models — HP-28S (Phase 15), HP-42S numeric output (Phase 16),
+  HP-48SX/48G/49G/50g, HP Prime — inherit it.
 
 ## Engine capabilities added
 Built on the Phase-12 **algebraic object** type and the math.js parser (architecture §4.2/§4.3):
@@ -47,8 +49,9 @@ Built on the Phase-12 **algebraic object** type and the math.js parser (architec
   Algebrite); algebraic-object symbolic/numeric eval path; `render/tex.ts` unified `toLatex`.
 - **Model adapter / data:** map 28C ALGEBRA/`d/dx`/`∫`/`→NUM`/`ROOT` from `hp/functions/HP-28C.md`
   via `hp/mapping/mapping.json` to provider ops; guard so the provider `import()`s on first use.
-- **Faceplate / UI:** `react-katex` display component for the stack/result rows; ALGEBRA menu wired;
-  explicit loading state on first CAS invocation (NFR-4); LaTeX copy action.
+- **Wiring / UI:** `react-katex` display component for the stack/result rows; ALGEBRA menu wired
+  via the P12 softkey system; explicit loading state on first CAS invocation (NFR-4); LaTeX copy
+  action.
 - **Tests:** provider unit tests with the lazy import **mocked** (deterministic, no network);
   KaTeX-render component tests; 28C ALGEBRA/`d/dx` e2e.
 
@@ -63,10 +66,13 @@ Per architecture §5: heavy CAS (Pyodide+SymPy) is **not** added here — it arr
   - `diff('x^2', 'x')` → `2·x`; `integrate('2*x', 'x')` → `x^2` (+C convention documented).
   - `solve('x^2-4=0','x')` → `{2, -2}`; `expand('(x+1)^2')` → `x^2+2·x+1`.
   - `toLatex('x^2+1')` → `x^{2}+1` and renders in KaTeX without throwing.
-- Faceplate/UI e2e on the 28C: enter `'X^2'`, press `d/dx` with `X`, verify KaTeX shows `2\,X`;
+- E2e on the live 28C faceplate: enter `'X^2'`, press `d/dx` with `X`, verify KaTeX shows `2\,X`;
   `→NUM` on a symbolic result yields a typeset numeric value.
+- **No 28C ALGEBRA/calculus key remains inert** — every algebra/calculus function in
+  `hp/functions/HP-28C.md` resolves to an engine command.
 - `pnpm lint` / `pnpm test` / `pnpm build` (verify the lazy CAS chunk is code-split out of the
-  initial bundle) / `pnpm test:e2e` green.
+  initial bundle) / `pnpm test:e2e` green; the existing UI suites (geometry, promotion, typing)
+  stay green.
 
 ## Notes / risks
 - Nerdamer vs Algebrite disagree on form/normalization; pick one canonical provider per op and pin

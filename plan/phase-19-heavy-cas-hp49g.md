@@ -3,20 +3,22 @@
 **Delivers:** HP-49G · heavy CAS tier (lazy Pyodide + SymPy/mpmath) behind CasProvider · **Era:** 1999 · **Builds on:** Phase 18 (48G RPL/apps) (+ Phase 14 CasProvider seam)
 
 ## Goal
-Deliver the **HP-49G**, the first HP with a **built-in symbolic CAS** — and the model that
+Complete the **HP-49G**, the first HP with a **built-in symbolic CAS** — and the model that
 justifies hellocalc's **heavy CAS tier**. This phase adds a **third `CasProvider`
 implementation** backed by **lazy-loaded Pyodide + SymPy/mpmath** (architecture §4.3, §4.12)
 for exact/rational arithmetic and robust symbolic integrate / factor / solve / limits /
-series — capabilities beyond the Phase-14 light tier (Nerdamer/Algebrite). It is gated behind
-an explicit **"advanced CAS"** affordance, the WASM is cached, and nothing lands in the
-initial bundle. The 49G also introduces the **flash-ROM** application model.
+series — capabilities beyond the Phase-14 light tier (Nerdamer/Algebrite) — all wired into the
+live HP-49G faceplate. It is gated behind an explicit **"advanced CAS"** affordance, the WASM
+is cached, and nothing lands in the initial bundle. The 49G also introduces the **flash-ROM**
+application model.
 
-## Models delivered
+## Models wired live
 - **HP-49G** (1999) — 131×64 LCD; dual **algebraic + RPN** entry; built-in CAS with Exact/Approx
-  and Real/Complex flags; command catalog (CAT) and EquationWriter. Faceplate per
-  `hp/layouts/HP-49G.md`, functions per `hp/functions/HP-49G.md` (shares the 48G/50g RPL core;
-  the genuinely new families are CAS, number theory, modular, calculus, ODE/transforms, and
-  expanded linear algebra).
+  and Real/Complex flags; command catalog (CAT) and EquationWriter. The faceplate is **already
+  playable** (green/red shifts, 10-row CAS board); this phase completes its function coverage
+  per `hp/functions/HP-49G.md` (fidelity reference: `hp/layouts/HP-49G.md`; shares the 48G/50g
+  RPL core — the genuinely new families are CAS, number theory, modular, calculus,
+  ODE/transforms, and expanded linear algebra).
 
 ## Engine capabilities added
 - **Heavy `CasProvider` (Pyodide+SymPy):** `diff`, `integrate`, `factor`, `simplify`, `solve`,
@@ -48,8 +50,9 @@ initial bundle. The 49G also introduces the **flash-ROM** application model.
 - **Model adapter / data:** consume `hp/mapping/mapping.json` for the 49G keyboard (CAT, EQW,
   SYMB, dual-entry); route the new CAS/number-theory/calculus tokens to the heavy provider,
   falling back to the light tier where sufficient. Expose `hp/functions/HP-49G.md`.
-- **Faceplate / UI:** 49G faceplate; an explicit **"advanced CAS"** gate that triggers the
-  Pyodide load with a visible loading state; cache the WASM across sessions.
+- **Wiring / UI:** an explicit **"advanced CAS"** gate that triggers the Pyodide load with a
+  visible loading state; cache the WASM across sessions. (The 49G faceplate — green/red shifts,
+  cursor-diamond cluster, bottom-right ENTER — is already live.)
 - **Tests:** provider unit tests with **Pyodide mocked** (deterministic, no network per §6);
   one opt-in integration test behind a flag; e2e for the advanced-CAS gate + loading state.
 
@@ -63,10 +66,13 @@ initial bundle. The 49G also introduces the **flash-ROM** application model.
   - `'∫(1/(X^2-1),X)' INTVX` → `(1/2)·LN((X-1)/(X+1))` (a case the light tier handles poorly).
   - `120 FACTORS` → `{2 3 3 1 5 1}` (2³·3·5); `'X^4-1' FACTOR` → `(X-1)(X+1)(X²+1)`;
     `1/3 + 1/6 XQ` → `1/2` (exact).
-- Faceplate e2e: invoke an advanced integral → advanced-CAS gate shows a loading state, then
-  the KaTeX-rendered symbolic result appears; verify the WASM is fetched only once (cached).
+- E2e on the live faceplate: invoke an advanced integral → advanced-CAS gate shows a loading
+  state, then the KaTeX-rendered symbolic result appears; verify the WASM is fetched only once
+  (cached).
+- **No HP-49G key remains inert** — every function in `hp/functions/HP-49G.md` resolves to an
+  engine command.
 - `pnpm lint`/`test`/`build`/`test:e2e` green; **Pyodide confirmed absent from the initial
-  bundle**. Fidelity vs `hp/layouts/HP-49G.md` (SM-1).
+  bundle**; the existing UI suites (geometry, promotion, typing) stay green.
 
 ## Notes / risks
 - Pyodide cold-start is multi-MB and seconds-long (open question §8.4) — always behind an

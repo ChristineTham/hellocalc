@@ -6,13 +6,16 @@
 Deliver the HP-41CX by extending the Phase-6 HP-41 subsystem — not the value tower — with the
 CX's three built-in modules: **Extended Functions/Extended Memory** (a register-backed file
 system), the **Time module** (clock, calendar, alarms, stopwatch), and the extra register/flag
-utility functions. The physical faceplate is identical to the HP-41C/CV, so almost everything is
-reached by `XEQ` name or the CATALOG/Alarm/Stopwatch/Text-editor keyboards.
+utility functions. The 41CX faceplate is already live (keyplate identical to the HP-41C/CV,
+ALPHA promotion included), so almost everything is reached by `XEQ` name or the
+CATALOG/Alarm/Stopwatch/Text-editor keyboards.
 
-## Models delivered
+## Models wired live
 - **HP-41CX** (1983) — top HP-41; adds Time module, Extended Functions/Memory, alarms, stopwatch,
-  text editor over the 41CV. Faceplate identical to HP-41C/CV per `hp/layouts/HP-41CX.md`;
-  functions per `hp/functions/HP-41CX.md` (full 41C/CV set plus ~90 CX additions).
+  text editor over the 41CV. The faceplate is **already playable** (keyplate identical to the
+  41C/CV, ALPHA promotion live) on the prototype engine; this phase completes its function set
+  per `hp/functions/HP-41CX.md` (full 41C/CV set plus ~90 CX additions) so no key or XEQ name
+  remains inert (fidelity reference: `hp/layouts/HP-41CX.md`).
 
 ## Engine capabilities added
 Extends the HP-41 subsystem (P6) and adds a persistence-backed file layer:
@@ -49,8 +52,9 @@ Extends the HP-41 subsystem (P6) and adds a persistence-backed file layer:
 - **Model adapter / data:** expose the full 41CX set (41C/CV base + CX additions) from
   `hp/functions/HP-41CX.md`; the faceplate mapping is the 41C/CV one (P6) — CX functions resolve
   by ALPHA name, not new keys.
-- **Faceplate / UI:** reuse the P6 HP-41 faceplate (`hp/layouts/HP-41CX.md`); add CATALOG views for
-  Extended Memory (CAT), the Alarm catalog (`ALMCAT`), stopwatch display, and the `ED` text editor.
+- **Wiring / UI:** cover `hp/functions/HP-41CX.md` end-to-end on the live 41CX faceplate (CX
+  functions resolve by ALPHA name — no new keys); new capability UI: CATALOG views for Extended
+  Memory (CAT), the Alarm catalog (`ALMCAT`), stopwatch display, and the `ED` text editor.
 - **Tests:** file create/write/read/seek/purge round-trips; `DDAYS`/`DOW`/`DATE+` date math;
   alarm set/recall/clear; register-block `REGMOVE`/`REGSWAP`; stopwatch split registers.
 
@@ -62,10 +66,13 @@ time source (no new package).
 - Engine unit tests incl. HP reference examples: `CRFLAS` a file, `SAVEAS` "HELLO", `SEEKPT 0`,
   `GETAS` → "HELLO"; `DDAYS` between `4.152023` and `4.202023` (MDY) → `5`; `DOW` of a known date;
   `REGSWAP` two register blocks; alarm `XYZALM` then `RCLALM` round-trip.
-- Faceplate e2e: `XEQ "EMDIR"` lists a created file; `XEQ "TIME"` pushes the (mocked) clock into X;
-  `XEQ "SW"` / `RUNSW` / `STOPSW` shows a stopwatch value; USER-key assignment via `ASN` fires.
-- `pnpm lint` / `pnpm test` / `pnpm build` / `pnpm test:e2e` green; fidelity vs `hp/layouts/HP-41CX.md`
-  (faceplate identical to 41C/CV; CX functions by name).
+- E2e on the live faceplate: `XEQ "EMDIR"` lists a created file; `XEQ "TIME"` pushes the (mocked)
+  clock into X; `XEQ "SW"` / `RUNSW` / `STOPSW` shows a stopwatch value; USER-key assignment via
+  `ASN` fires.
+- **No HP-41CX key remains inert** — every function in `hp/functions/HP-41CX.md` resolves to an
+  engine op (on-key or by ALPHA name).
+- The existing UI suites (geometry, promotion, typing) stay green.
+- `pnpm lint` / `pnpm test` / `pnpm build` / `pnpm test:e2e` green.
 
 ## Notes / risks
 - The CX faceplate is physically identical to the 41C/CV — fidelity is about the *function set*

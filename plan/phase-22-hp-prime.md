@@ -1,22 +1,24 @@
 # Phase 22 — HP Prime
 
-**Delivers:** HP Prime · color touchscreen faceplate + Home/CAS split + Apps framework + textbook/algebraic/RPN entry + HP PPL + distributions & hypothesis tests + spreadsheet · **Era:** 2013 · **Builds on:** Phase 21 (HP-35s, RPN⇄ALG entry) — HP-48G enhanced graphing + input forms (P18), heavy CAS Pyodide+SymPy (P19), light CAS (P14), units (P13), finance (P7), matrices (P9), regression/curve-fit + distributions (P16), programmability sandbox (P3).
+**Delivers:** HP Prime · touch softkey menu row on the live faceplate + Home/CAS split + Apps framework + textbook/algebraic/RPN entry + HP PPL + distributions & hypothesis tests + spreadsheet · **Era:** 2013 · **Builds on:** Phase 21 (HP-35s, RPN⇄ALG entry) — HP-48G enhanced graphing + input forms (P18), heavy CAS Pyodide+SymPy (P19), light CAS (P14), units (P13), finance (P7), matrices (P9), regression/curve-fit + distributions (P16), programmability sandbox (P3).
 
 ## Goal
-Deliver the HP Prime — the modern flagship — as the most feature-complete faceplate before native
-mode. It introduces a **color 320×240 touchscreen** with a context-sensitive softkey row, a formal
-**Home (numeric) ⇄ CAS (symbolic)** split over the two engine tiers already built, an **Apps
-framework** (Function/Statistics/Solve/Finance/… as selectable app contexts), three entry modes
-(algebraic/textbook/RPN), the **HP PPL** programming language on the P3 sandbox, and probability
-**distributions + hypothesis tests**. Almost every computation reuses an existing engine module;
-this phase is chiefly the Home/CAS routing, the app/PPL frameworks, the touchscreen UI, and the
-statistics-inference additions.
+Complete the HP Prime — the modern flagship — as the most feature-complete model before native
+mode. It introduces a context-sensitive **touch softkey menu row** (the one new UI surface), a
+formal **Home (numeric) ⇄ CAS (symbolic)** split over the two engine tiers already built, an
+**Apps framework** (Function/Statistics/Solve/Finance/… as selectable app contexts), three entry
+modes (algebraic/textbook/RPN), the **HP PPL** programming language on the P3 sandbox, and
+probability **distributions + hypothesis tests** — all wired into the live HP Prime faceplate.
+Almost every computation reuses an existing engine module; this phase is chiefly the Home/CAS
+routing, the app/PPL frameworks, the touch softkey/view UI, and the statistics-inference
+additions.
 
-## Models delivered
+## Models wired live
 - **HP Prime** (2013) — single blue Shift + orange ALPHA; color touchscreen with a bottom softkey
   menu, rocker wheel, and app/view keys (Apps, Symb, Plot, Num, Home, CAS). Configurable algebraic
-  (default) / textbook / RPN entry. Faceplate per `hp/layouts/HP-Prime.md`, functions per
-  `hp/functions/HP-Prime.md`.
+  (default) / textbook / RPN entry. The faceplate is **already playable** (two view-key rows stand
+  in for the rocker wheel); this phase completes its function coverage per
+  `hp/functions/HP-Prime.md` (fidelity reference: `hp/layouts/HP-Prime.md`).
 
 ## Engine capabilities added
 Extends architecture §3 (CAS tiers, value tower) and §4 feature modules:
@@ -53,8 +55,8 @@ Extends architecture §3 (CAS tiers, value tower) and §4 feature modules:
 - **FR-UI-1** — large display showing history, stack, and KaTeX; **FR-UI-6** — light/dark themes.
 - **FR-FIN-1/2/3/4/5** — Finance app TVM/cashflow/bond/Black-Scholes/depreciation (reuses P7).
 - **FR-PRG-1/2/3/4** — PPL programs recorded/edited/run in the sandbox; app variables/directories.
-- **FR-MODEL-1/2/3/4/5** — touchscreen faceplate; key+Shift/ALPHA dispatch; per-app exposure;
-  runtime switching; annunciators/softkey labels.
+- **FR-MODEL-1/2/3/4/5** — touchscreen faceplate (live); key+Shift/ALPHA dispatch; per-app
+  exposure; runtime switching; annunciators/softkey labels.
 
 ## Key tasks
 - **Engine:** `context/homeCas.ts` (numeric/symbolic routing + `CAS.`/`evalf`/`exact` bridges),
@@ -63,9 +65,10 @@ Extends architecture §3 (CAS tiers, value tower) and §4 feature modules:
 - **Model adapter / data:** expose the HP-Prime set from `hp/functions/HP-Prime.md`; map primary +
   blue Shift + orange ALPHA and the app/view keys via `mapping.json`; route Toolbox menus
   (Math/CAS/App/User/Catlg) to the correct context.
-- **Faceplate / UI:** color-touchscreen faceplate from `hp/layouts/HP-Prime.md` (three functions/
-  key, rocker wheel, bottom softkey row); tabbed Home/CAS/Plot/Num/Symb views; on-screen touch
-  softkeys; Apps launcher; textbook (2-D math) entry via KaTeX; a minimal spreadsheet grid.
+- **Wiring / UI:** the context-sensitive on-screen **touch softkey menu row**; tabbed
+  Home/CAS/Plot/Num/Symb views; Apps launcher; textbook (2-D math) entry via KaTeX; a minimal
+  spreadsheet grid. (The Prime faceplate — blue Shift/orange ALPHA, view-key rows standing in
+  for the rocker wheel — is already live.)
 - **Tests:** Home vs CAS results; each app's headline function; distributions/inference values;
   a small PPL program; spreadsheet range functions.
 
@@ -79,10 +82,13 @@ for distribution tails/erf, per architecture §4; keep any heavy tier lazy-loade
   `1/3`; CAS `factor(x^2-1)` → `(x-1)(x+1)`, `diff(sin(x),x)` → `cos(x)`; `NORMALD_CDF(0,1,1.96)`
   ≈ `0.975`; `HypT1mean` returns a t-statistic/p-value matching the guide; Finance `TvmFV` on a
   known loan matches P7; a PPL `EXPORT sq(x) BEGIN RETURN x*x; END;` returns `9` for `sq(3)`.
-- e2e: switching Home⇄CAS gives decimal vs exact for the same input; Apps launcher opens the
-  Statistics app and computes 1-var stats; a textbook-mode fraction renders via KaTeX; a softkey
-  menu tap invokes a Math-menu function; dark theme toggles (FR-UI-6).
-- `pnpm lint` / `pnpm test` / `pnpm build` / `pnpm test:e2e` green; fidelity vs `hp/layouts/HP-Prime.md`.
+- E2e on the live faceplate: switching Home⇄CAS gives decimal vs exact for the same input; Apps
+  launcher opens the Statistics app and computes 1-var stats; a textbook-mode fraction renders
+  via KaTeX; a softkey menu tap invokes a Math-menu function; dark theme toggles (FR-UI-6).
+- **No HP Prime key remains inert** — every function in `hp/functions/HP-Prime.md` resolves to an
+  engine command.
+- `pnpm lint` / `pnpm test` / `pnpm build` / `pnpm test:e2e` green; the existing UI suites
+  (geometry, promotion, typing) stay green.
 
 ## Notes / risks
 - Home/CAS is the central seam — variables and history are per-context; be explicit about which
@@ -91,7 +97,8 @@ for distribution tails/erf, per architecture §4; keep any heavy tier lazy-loade
 - PPL is a real language — scope to the documented core (structure/flow/I-O/strings); defer the
   full drawing/GROB command set and mark it in the notebook. Reuse the P3 sandbox; do not add a
   second interpreter.
-- Touchscreen fidelity: the softkey row and rocker wheel are load-bearing to the Prime's feel —
-  render the bottom context menu from app state, not hardcoded labels (SM-1).
+- Touch fidelity: the softkey row is load-bearing to the Prime's feel — render the bottom context
+  menu from app state, not hardcoded labels (SM-1); the live faceplate's two view-key rows already
+  stand in for the rocker wheel.
 - Heavy CAS (Pyodide) must stay lazy — the Prime faceplate must not pull SymPy into the initial
   bundle; show a loading state on first CAS-heavy use (NFR-3/NFR-4).

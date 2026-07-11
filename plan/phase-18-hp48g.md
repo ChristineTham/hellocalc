@@ -4,17 +4,18 @@
 
 ## Goal
 Grow the RPL graphing line to the **HP-48G**: same physical keyplate as the 48SX (purple/green
-shifts instead of orange/blue) but a much larger built-in ROM. This phase adds **3D and
-richer statistical plotting via lazy Plotly.js**, the **input-form / dialog** command family
-(INFORM / CHOOSE / MSGBOX), the built-in **applications** (SOLVE, PLOT, SYMBOLIC, STAT, TIME,
-I/O launched from the keyboard), and the many commands the 48G added over the 48SX —
+shifts instead of orange/blue — both already live) but a much larger built-in ROM. This phase
+adds **3D and richer statistical plotting via lazy Plotly.js**, the **input-form / dialog**
+command family (INFORM / CHOOSE / MSGBOX), the built-in **applications** (SOLVE, PLOT, SYMBOLIC,
+STAT, TIME, I/O launched from the keyboard), and the many commands the 48G added over the 48SX —
 enhanced list processing, advanced linear algebra, curve-fit models, the multiple-equation
-solver, and built-in TVM finance.
+solver, and built-in TVM finance — all wired into the live HP-48G faceplate.
 
-## Models delivered
+## Models wired live
 - **HP-48G** (1993) — identical 131×64 keyplate to the 48SX; left-shift **purple**, right-shift
-  **green**, white ALPHA; right-shift keys launch the built-in applications. Faceplate per
-  `hp/layouts/HP-48G.md`, functions per `hp/functions/HP-48G.md`.
+  **green**, white ALPHA; right-shift keys launch the built-in applications. The faceplate is
+  **already playable**; this phase completes its function coverage per `hp/functions/HP-48G.md`
+  (fidelity reference: `hp/layouts/HP-48G.md`).
 
 ## Engine capabilities added
 - **3D / statistical plotting** (lazy Plotly): `WIREFRAME`, `PARSURFACE`, `PCONTOUR`,
@@ -44,9 +45,9 @@ solver, and built-in TVM finance.
   Phase-7 finance module. Pure-TS; engine emits serializable specs only.
 - **Model adapter / data:** consume `hp/mapping/mapping.json` for the 48G keyplate (purple/green
   shifts, app launchers); expose the full `hp/functions/HP-48G.md` set (superset of 48SX).
-- **Faceplate / UI:** 48G faceplate (purple/green shifts); 3D/stat plot panel wrapping a
-  **lazily-imported** Plotly bundle; INFORM/CHOOSE/MSGBOX dialog components bridged to the
-  Web-Worker interpreter.
+- **Wiring / UI:** 3D/stat plot panel wrapping a **lazily-imported** Plotly bundle;
+  INFORM/CHOOSE/MSGBOX dialog components bridged to the Web-Worker interpreter. (The 48G
+  faceplate and its purple/green shift palette are already live — no keyboard work.)
 - **Tests:** engine unit tests; Playwright e2e for a 3D surface, a curve-fit, and an INFORM form.
 
 ## New dependencies
@@ -60,15 +61,18 @@ solver, and built-in TVM finance.
     `PREDY` at x=4 → 8.
   - TVM `n=360 i=0.5 PV=100000 FV=0` → `PMT` ≈ −599.55 (matches Phase-7 finance, currency
     precision); `PROOT`/surface sampling of `Z=X²+Y²` yields the expected grid extents.
-- Faceplate e2e: right-shift launch PLOT, choose WIREFRAME, DRAW → Plotly 3D panel renders;
-  STAT curve-fit flow; INFORM dialog returns entered fields to the stack.
+- E2e on the live faceplate: right-shift launch PLOT, choose WIREFRAME, DRAW → Plotly 3D panel
+  renders; STAT curve-fit flow; INFORM dialog returns entered fields to the stack.
+- **No HP-48G key remains inert** — every function in `hp/functions/HP-48G.md` resolves to an
+  engine command.
 - `pnpm lint`/`test`/`build`/`test:e2e` green; **Plotly confirmed absent from the initial
-  chunk** (verify the build output). Fidelity vs `hp/layouts/HP-48G.md` (SM-1).
+  chunk** (verify the build output); the existing UI suites (geometry, promotion, typing)
+  stay green.
 
 ## Notes / risks
 - Plotly is large and DOM-bound — one dynamic `import()` behind the 3D/stat panel; never in a
   shared/eager module. Measure cold-start against the NFR-3 budget (open question §8.4).
-- The 48G and 48SX share a keyplate; drive the difference (shift colours, added functions)
-  purely from `hp/layouts` + `hp/functions`, not a forked faceplate component.
+- The 48G and 48SX already share one live faceplate component (shift colours differ via
+  `ModelBase.shift`); keep the added-function delta in `hp/functions` + mapping data only.
 - Dialog commands block the interpreter awaiting UI input — model as an async suspend/resume
   on the Web-Worker interpreter (Phase 3), with the same step/time-limit safeguards.

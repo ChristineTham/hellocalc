@@ -1,19 +1,21 @@
 # Phase 6 — Alphanumeric & named programs — HP-41C/CV
 
-**Delivers:** HP-41C, HP-41CV · alphanumeric display, ALPHA mode/strings, XEQ named programs, USER key assignment, function catalog, expansion ports · **Era:** 1979–80 · **Builds on:** Phase 5 (+ Phase 3 program subsystem)
+**Delivers:** HP-41C, HP-41CV · alphanumeric display, ALPHA mode/strings, XEQ named programs, USER key assignment, function catalog, expansion ports · **Era:** 1979–80 · **Builds on:** Phase 5 (+ Phase 3 program subsystem) + the live faceplate fleet
 
 ## Goal
-Introduce the HP-41 subsystem: the first HP handheld with an **alphanumeric LCD** and
-**named**, rather than purely positional, programs. This phase adds a **12-character display
-model**, an **ALPHA register + string handling**, **name-addressed execution (`XEQ`)**,
-**USER-mode key assignment (`ASN`)**, a browsable **function CATALOG**, and an
-**expansion-port / module abstraction**. The 41CV is the 41C with more memory — same code,
+Introduce the HP-41 subsystem on the live HP-41C/CV faceplate: the first HP handheld with an
+**alphanumeric LCD** and **named**, rather than purely positional, programs. This phase adds a
+**12-character display model**, an **ALPHA register + string handling**, **name-addressed
+execution (`XEQ`)**, **USER-mode key assignment (`ASN`)**, a browsable **function CATALOG**, and
+an **expansion-port / module abstraction**. The 41CV is the 41C with more memory — same code,
 larger default `SIZE`.
 
-## Models delivered
+## Models wired live
 - **HP-41C** (1979) — 12-char 14-segment alphanumeric LCD; ALPHA/USER/PRGM toggles; four I/O
-  ports; ~64 registers by default. Faceplate per `hp/layouts/HP-41C-CV.md`, functions per
-  `hp/functions/HP-41C-CV.md`.
+  ports; ~64 registers by default. Its faceplate is already live and playable on the prototype
+  engine — ALPHA letters promote, but entry is inert (fidelity reference:
+  `hp/layouts/HP-41C-CV.md`); this phase completes the function set per
+  `hp/functions/HP-41C-CV.md` so no key remains inert.
 - **HP-41CV** (1980) — identical faceplate and function set; five-times the built-in memory
   (~319 registers), no add-on quad module needed. Same adapter, larger memory config.
 
@@ -22,8 +24,9 @@ larger default `SIZE`.
   display; annunciators (USER, ALPHA, PRGM, RAD/GRAD, flags). Numeric values still render via
   the existing FIX/SCI/ENG formatter.
 - **ALPHA register + strings (`AON`/`AOFF`, `CLA`, `ASTO`, `ARCL`, `AVIEW`, `ASHF`, `APPEND`):**
-  a string value type usable by the engine; `ASTO`/`ARCL` bridge strings ↔ registers;
-  `AVIEW` drives the display buffer.
+  a string value type usable by the engine; `ASTO`/`ARCL` bridge strings ↔ registers; `AVIEW`
+  drives the display buffer (ALPHA letter promotion is live UI-wide; this phase adds the entry
+  and engine semantics).
 - **Named programs / labels:** alpha labels (`LBL "NAME"`) and **`XEQ "NAME"`** name lookup
   layered over the Phase-3 program store; global `END`, `GTO "NAME"`, indirect `GTO IND`.
 - **USER-mode key assignment (`ASN`):** a per-model keymap overlay stored in state; USER mode
@@ -49,8 +52,10 @@ larger default `SIZE`.
 - **Model adapter / data:** consume `hp/mapping/mapping.json` for HP-41 keyboard + gold shift;
   implement the USER-assignment overlay and CATALOG enumeration from `hp/functions/HP-41C-CV.md`;
   ALPHA keyboard mode maps each key to its ALPHA character (per layout's ALPHA column).
-- **Faceplate / UI:** 12-char starburst LCD; ALPHA/USER/PRGM toggle row; ALPHA-mode keyboard
-  overlay; ASN flow; CATALOG browser; four port slots (visual + module attach).
+- **Wiring / UI:** resolve every `hp/functions/HP-41C-CV.md` function to an engine op
+  (`mapping.json` / `normalize.ts` coverage); 12-char starburst LCD driven by the display buffer;
+  ALPHA/USER/PRGM toggle behavior (letter promotion is live — this phase wires the entry);
+  ASN flow; CATALOG browser; four port slots (visual + module attach).
 - **Tests:** engine unit tests + Playwright e2e (ALPHA entry, XEQ by name, ASN then USER key).
 
 ## New dependencies
@@ -62,10 +67,12 @@ plain TS.
   - `AON` type `HELLO` `ASTO 00` `CLA` `ARCL 00` `AVIEW` → display shows `HELLO`.
   - Program `LBL "SQ"` `X↑2` `RTN`; `XEQ "SQ"` on `7` → `49`.
   - `5 STO 00` `ISG 00` skips per counter-field semantics; `DSE` decrements/skips at equal.
-- Faceplate e2e: enter ALPHA text; `ASN` a function to a key, toggle USER, press key → runs it;
-  CATALOG 1 lists stored programs.
-- Fidelity: keys/annunciators/ALPHA chars match `hp/layouts/HP-41C-CV.md` (SM-1).
-- `pnpm lint`/`test`/`build`/`test:e2e` green.
+- E2e on the live faceplate: enter ALPHA text; `ASN` a function to a key, toggle USER, press key
+  → runs it; CATALOG 1 lists stored programs.
+- **No HP-41C/CV key remains inert** — every function in `hp/functions/HP-41C-CV.md` resolves
+  to an engine op.
+- `pnpm lint`/`test`/`build`/`test:e2e` green; the existing UI suites (geometry, promotion,
+  typing) stay green.
 
 ## Notes / risks
 - `GTO.`/`GTO..` are keyboard sequences (edit-pointer / new-program), not runnable functions —

@@ -1,20 +1,22 @@
 # Phase 17 — RPL graphing & plotting — HP-48SX
 
-**Delivers:** HP-48SX · 2D plotting (function-plot) + EquationWriter + expanded RPL command set · **Era:** 1990 · **Builds on:** Phase 15 (28S RPL/units/CAS) (+ Phase 12 RPL stack, Phase 13 units, Phase 14 light CAS)
+**Delivers:** HP-48SX · 2D plotting (function-plot) + EquationWriter + expanded RPL command set · **Era:** 1990 · **Builds on:** the live faceplate fleet + Phase 15 (28S RPL/units/CAS) (+ Phase 12 RPL stack, Phase 13 units, Phase 14 light CAS)
 
 ## Goal
-Deliver the first **graphing** HP: the HP-48SX. This phase adds a **lazy 2D plotting
-subsystem** (function-plot) driven by an RPL plot-parameter model (`PPAR`, `DRAW`, `DRAX`),
-an **EquationWriter** for 2D textbook-style math entry, the 48-series **three-shift keyboard**
-(left orange / right blue / white ALPHA), a substantially **expanded RPL command set** over
-the 28S (graphics, polynomial roots, upper-tail distributions), the math.js-backed **units
-library**, and a **plug-in card / port** abstraction. It is the RPL-line counterpart to the
-menu-RPN HP-42S of Phase 16.
+Deliver the first **graphing** HP: the HP-48SX. Its faceplate already renders and is playable —
+the 48-series three-shift keyboard (left orange / right blue / white ALPHA) is live, prefix
+arming included. This phase adds a **lazy 2D plotting subsystem** (function-plot) driven by an
+RPL plot-parameter model (`PPAR`, `DRAW`, `DRAX`), an **EquationWriter** for 2D textbook-style
+math entry, a substantially **expanded RPL command set** over the 28S (graphics, polynomial
+roots, upper-tail distributions), the math.js-backed **units library**, and a **plug-in card /
+port** abstraction — and wires the softkey menus + NXT/PREV paging so the machine behaves like
+a 48SX. It is the RPL-line counterpart to the menu-RPN HP-42S of Phase 16.
 
-## Models delivered
+## Models wired live
 - **HP-48SX** (1990) — 131×64 dot-matrix LCD; 6 softkeys + NXT/PREV menu paging; three shifts
-  (left orange, right blue, white α); two plug-in card ports. Faceplate per
-  `hp/layouts/HP-48SX.md`, functions per `hp/functions/HP-48SX.md`.
+  (left orange, right blue, white α); two plug-in card ports. The faceplate is already playable
+  (`hp/layouts/HP-48SX.md` stays the fidelity reference); this phase completes function coverage
+  per `hp/functions/HP-48SX.md`.
 
 ## Engine capabilities added
 - **2D plotting module** (pure-TS plot spec + lazy `function-plot` renderer in the UI):
@@ -46,8 +48,9 @@ menu-RPN HP-42S of Phase 16.
 - **Model adapter / data:** consume `hp/mapping/mapping.json` for the 48SX 3-shift keyboard
   and softkey menus; expose only `hp/functions/HP-48SX.md` (exclude 48G-added families noted
   there — INFORM/CHOOSE, DOLIST/STREAM, SVD/EGV, RKF, MSOLVR, curve-fit models, TVM).
-- **Faceplate / UI:** 48SX faceplate (orange/blue/white shifts, 6 softkeys + NXT/PREV, two
-  card ports); plot panel wrapping **lazily-imported** function-plot; EquationWriter editor.
+- **Wiring / UI:** the softkey MENU system on the 48SX glass — populate the reserved menu-label
+  row, make the 6 soft keys context-sensitive, wire NXT/PREV paging; plot panel wrapping
+  **lazily-imported** function-plot; EquationWriter editor. (Board and shift palette already live.)
 - **Tests:** engine unit tests; Playwright e2e for a plotted function and the EquationWriter.
 
 ## New dependencies
@@ -59,10 +62,12 @@ menu-RPN HP-42S of Phase 16.
   - `'X^2-3' STEQ` then `DRAW` samples a parabola crossing y=0 near x≈±1.732; `PROOT` of
     `[1 0 -3]` → roots ≈ ±1.7320508.
   - `1.5 UTPN` (mean 0, sd 1 upper tail) ≈ 0.0668; `→V2`/`R→C` and `CONVERT` unit round-trip.
-- Faceplate e2e: key `'`, enter `SIN(X)`, select POLAR/FUNCTION menu, press DRAW → plot panel
-  renders; open EquationWriter, build `X²+1`, ENTER → algebraic object on the stack.
+- E2e on the live faceplate: key `'`, enter `SIN(X)`, select POLAR/FUNCTION menu, press DRAW →
+  plot panel renders; open EquationWriter, build `X²+1`, ENTER → algebraic object on the stack.
+- **No HP-48SX key remains inert** — every function in `hp/functions/HP-48SX.md` resolves to an
+  engine command (48G-added families stay excluded per that doc).
 - `pnpm lint`/`test`/`build`/`test:e2e` green; function-plot confirmed absent from the initial
-  chunk. Fidelity vs `hp/layouts/HP-48SX.md` (SM-1): keys, shift colours, softkeys, ports.
+  chunk; the existing UI suites (geometry, promotion, typing) stay green.
 
 ## Notes / risks
 - function-plot is D3/DOM — keep it strictly in the UI layer; the engine emits only a

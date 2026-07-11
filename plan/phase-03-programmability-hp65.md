@@ -1,15 +1,19 @@
 # Phase 3 — Keystroke programmability & HP-65
 
-**Delivers:** HP-65 · program subsystem (record/edit/run, LBL/GTO/RTN, tests, flags, subroutines) in a sandboxed Web-Worker interpreter · **Era:** 1974 · **Builds on:** Phase 2 (registers, conversions, stats) + Phase 1 (stack machine)
+**Delivers:** HP-65 · program subsystem (record/edit/run, LBL/GTO/RTN, tests, flags, subroutines) in a sandboxed Web-Worker interpreter · **Era:** 1974 · **Builds on:** Phase 2 (registers, conversions, stats) + Phase 1 (stack machine) + the live faceplate fleet
 
 ## Goal
 Add the keystroke-programmability subsystem — record, edit, single-step, and run keystroke
 programs in a sandboxed Web-Worker interpreter with step/time limits (architecture §4.11) — and
-deliver it on the HP-65, the first programmable pocket calculator with magnetic-card storage.
+wire it into the live HP-65 faceplate, the first programmable pocket calculator with
+magnetic-card storage.
 
-## Models delivered
+## Models wired live
 - **HP-65** (1974) — first magnetic-card programmable; `f`/`f⁻¹`/`g` prefixes, W/PRGM–RUN switch,
-  user keys A–E. Faceplate per `hp/layouts/HP-65.md`, functions per `hp/functions/HP-65.md`.
+  user keys A–E. Its faceplate is already live and playable on the prototype engine, `f⁻¹` math
+  inverses included (fidelity reference: `hp/layouts/HP-65.md`); this phase completes the function
+  set per `hp/functions/HP-65.md` — the program subsystem, W/PRGM–RUN semantics, and user keys
+  A–E — so no key remains inert.
 
 ## Engine capabilities added
 New "programmability" tier alongside the engine (architecture §3 feature modules, §4.11 sandbox):
@@ -23,7 +27,8 @@ New "programmability" tier alongside the engine (architecture §3 feature module
 - **Conditional tests** `x≤y` / `x=y` / `x>y` / `x≠y` — skip-two-steps-unless-true semantics.
 - **Flags** — `SF 1/2` set (via `f⁻¹` lower) and `TF 1/2` test-and-skip.
 - **`DSZ`** — decrement R8 index register and skip when it reaches zero (loop counter).
-- **Three-prefix dispatch** `f` / `f⁻¹` (inverse of the gold function) / `g` in the model adapter.
+- **Three-prefix dispatch** `f` / `f⁻¹` (inverse of the gold function) / `g` — arming/promotion
+  and the `INVERSE_OF` math dispatch are live UI-wide; this phase records prefixed steps in programs.
 - **Magnetic-card model** — save/load the current program to `localStorage` as a named "card"
   (`src/lib/engine/program/card.ts`); a bad/blank card surfaces the blinking error state.
 - Reuses Phase-2 registers/conversions/stats and Phase-1 stack machine unchanged.
@@ -40,10 +45,11 @@ New "programmability" tier alongside the engine (architecture §3 feature module
   worker (serialize stack/registers/flags in and out).
 - **Model adapter / data:** `f`/`f⁻¹`/`g` prefix resolution and W/PRGM–RUN mode in
   `src/lib/models/adapter.ts`; HP-65 exposure + A–E user-key redefinition from `hp/functions/HP-65.md`.
-- **Faceplate / UI:** HP-65 faceplate from `hp/layouts/HP-65.md` (three prefix colors, W/PRGM–RUN
-  slider, card slot affordance); program-listing/step view; SST stepping UI; run/stop indicator.
+- **Wiring / UI:** resolve every `hp/functions/HP-65.md` function to an engine op (`mapping.json`
+  / `normalize.ts` coverage); W/PRGM–RUN mode UI + semantics; program-listing/step editor panel;
+  SST stepping UI; run/stop indicator; card save/load affordance.
 - **Tests:** interpreter unit tests (labels, GTO loop, tests, flags, DSZ, step-limit abort);
-  card save/load; HP-65 faceplate e2e.
+  card save/load; e2e on the live HP-65 faceplate.
 
 ## New dependencies
 None — the interpreter is custom TypeScript in a Web Worker (architecture §4.11); no new packages.
@@ -52,9 +58,12 @@ None — the interpreter is custom TypeScript in a Web Worker (architecture §4.
 - Engine unit tests incl. HP reference examples: a `LBL A … RTN` program that squares X returns
   `5² = 25`; a `DSZ`-controlled loop summing `1..5` → `15`; a runaway `GTO`-self loop hits the
   step limit and aborts cleanly (NFR-9).
-- Faceplate e2e: HP-65 record in W/PRGM (`LBL A`, `x²`, `RTN`), switch to RUN, `5 A` → `25`;
+- E2e on the live faceplate: record in W/PRGM (`LBL A`, `x²`, `RTN`), switch to RUN, `5 A` → `25`;
   save to a "card" and reload restores the program.
-- `pnpm lint` / `pnpm test` / `pnpm build` / `pnpm test:e2e` green; fidelity vs `hp/layouts/HP-65.md`.
+- **No HP-65 key remains inert** — every function in `hp/functions/HP-65.md` resolves to an
+  engine op.
+- `pnpm lint` / `pnpm test` / `pnpm build` / `pnpm test:e2e` green; the existing UI suites
+  (geometry, promotion, typing) stay green.
 
 ## Notes / risks
 - Sandbox design is an open question (architecture §8.3) — validate the worker step/time-limit

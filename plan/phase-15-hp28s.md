@@ -1,20 +1,22 @@
 # Phase 15 — HP-28S
 
-**Delivers:** HP-28S · directory/variable structure, expanded RPL/CAS/units/memory · **Era:** 1988 · **Builds on:** Phases 12 (RPL foundation), 13 (units), 14 (light CAS)
+**Delivers:** HP-28S · directory/variable structure, expanded RPL/CAS/units/memory · **Era:** 1988 · **Builds on:** the live faceplate fleet + Phases 12 (RPL foundation), 13 (units), 14 (light CAS)
 
 ## Goal
-Ship the **HP-28S** — the memory-expanded successor to the 28C — as a second RPL clamshell
-faceplate over the same engine. The headline new subsystem is the **directory / variable
+Make the **HP-28S** — the memory-expanded successor to the 28C — behave like a 28S. Its clamshell
+already renders and is playable (merged rows, `docs/responsive-layout.md` §14.5); the work is
+engine + wiring over the same RPL core. The headline new subsystem is the **directory / variable
 structure** (`HOME`, subdirectories, `PATH`, `VARS`) that the 28S adds via its **MEMORY** menu,
 replacing the 28C's tiny USER menu. Everything else is delta: a few added commands
 (`STAT` gains `COMB`/`PERM`; `STRING` gains `→LCD`/`LCD→`; `LIST` gains `POS`; `PLOT` swaps
 `DISP`→`DGTIZ`) and the MODE/PRINT **single-toggle** commands that replace the 28C's paired
 enable/disable pairs. The RPL stack, units, and CAS come straight from Phases 12–14.
 
-## Models delivered
+## Models wired live
 - **HP-28S** (1988) — RPL clamshell with 32 KB RAM, directories, and the fuller command set.
-  Faceplate per `hp/layouts/HP-28S.md`, functions per `hp/functions/HP-28S.md`. Same dual-keypad
-  clamshell + single red shift as the 28C; the delta is the MEMORY menu and the toggled modes.
+  The faceplate is already playable (same merged clamshell + single red shift as the 28C;
+  `hp/layouts/HP-28S.md` stays the fidelity reference); this phase completes function coverage
+  per `hp/functions/HP-28S.md` — the delta is the MEMORY menu and the toggled modes.
 
 ## Engine capabilities added
 Built on the Phase-12–14 engine; mostly a directory subsystem plus small command deltas:
@@ -45,10 +47,10 @@ Built on the Phase-12–14 engine; mostly a directory subsystem plus small comma
 - **Model adapter / data:** HP-28S exposure from `hp/functions/HP-28S.md` via
   `hp/mapping/mapping.json`; MEMORY menu + single-toggle mode commands; reuse the 28C dispatch
   path (both are RPL/red-shift). No hand-authored maps.
-- **Faceplate / UI:** HP-28S clamshell faceplate from `hp/layouts/HP-28S.md` (share the 28C
-  faceplate framework); MEMORY/VARS menu, `PATH` display, custom-menu row (`MENU`/`CUSTOM`);
-  `→LCD`/`LCD→` display-bitmap affordance.
-- **Tests:** directory/variable unit tests; workspace round-trip; HP-28S faceplate e2e.
+- **Wiring / UI:** MEMORY/VARS menu, `PATH` display, custom-menu row (`MENU`/`CUSTOM`) on the P12
+  softkey system; `→LCD`/`LCD→` display-bitmap affordance. (The clamshell board itself is already
+  live — no faceplate work beyond the menus.)
+- **Tests:** directory/variable unit tests; workspace round-trip; e2e on the live HP-28S faceplate.
 
 ## New dependencies
 None — reuses the Phase-12 RPL engine, Phase-13 units, Phase-14 CAS + KaTeX, and local-storage
@@ -59,10 +61,13 @@ persistence. `COMB`/`PERM` reuse the Phase-8 probability core.
   - `CRDIR` a subdir, `STO` a variable inside it, `HOME` then `PATH` → `{HOME SUB}`; `VARS` lists it.
   - `PURGE` removes a name; resolution falls through the path to a parent-directory variable.
   - `5 3 COMB` → `10`; `5 3 PERM` → `60` (reuse Phase-8 core; verify on the 28S faceplate).
-- Faceplate/UI e2e: create a directory, store `'X^2'` in it, switch to another model and back, and
-  confirm the variable survives (FR-STATE-2); reload and confirm the workspace persists (FR-STATE-3).
-- `pnpm lint` / `pnpm test` / `pnpm build` / `pnpm test:e2e` green; fidelity vs `hp/layouts/HP-28S.md`
-  (MEMORY menu present, single-toggle modes, `DGTIZ` in PLOT).
+- E2e on the live faceplate: create a directory, store `'X^2'` in it, switch to another model and
+  back, and confirm the variable survives (FR-STATE-2); reload and confirm the workspace persists
+  (FR-STATE-3).
+- **No HP-28S key remains inert** — every function in `hp/functions/HP-28S.md` resolves to an
+  engine command (MEMORY menu, single-toggle modes, and `DGTIZ` in PLOT included).
+- `pnpm lint` / `pnpm test` / `pnpm build` / `pnpm test:e2e` green; the existing UI suites
+  (geometry, promotion, typing) stay green.
 
 ## Notes / risks
 - Path-resolved name lookup (current dir → up to HOME) must be exact — it changes what `RCL`/`EVAL`

@@ -278,8 +278,9 @@ architecture:
 
 1. **Core engine + algebraic eval.** math.js scope, value tower, history, variables. Pure
    TS, no UI. Unit-tested.
-2. **RPN/RPL stack machine + model adapter.** Implement both stack modes; wire
-   `hp/mapping` dispatch; build first faceplate (HP-15C or HP-12C) + native mode.
+2. **RPN/RPL stack machine + model adapter.** Formalize both stack modes (the prototype
+   machines exist); wire `hp/mapping` dispatch so per-model function coverage is
+   checkable — the faceplates themselves are already live.
 3. **Precision, units, matrices.** decimal.js finance path; math.js units; ml-matrix
    decompositions; vector/unit/matrix entry.
 4. **Light CAS tier.** `CasProvider` + Nerdamer/Algebrite (lazy); Equation Solver; KaTeX
@@ -296,9 +297,11 @@ architecture:
 > reflowing bezel), aspect-faithful keyboard geometry (`src/lib/layout/`), per-family LCD
 > glass (seven-segment vs dot-matrix), paper history/stack/variables components,
 > physical-keyboard input and trademark-safe HELLO·CALC branding — see
-> [`responsive-layout.md`](responsive-layout.md). The live HP-35/12C/15C/48G faceplates run
-> real RPN/RPL stack semantics on a prototype scope (plain JS numbers); step 1's math.js
-> value tower and step 2's adapter formalization are the next engine work.
+> [`responsive-layout.md`](responsive-layout.md). ALL 21 faceplates are live, running real
+> RPN/RPL stack semantics on a prototype scope (plain JS numbers) with unimplemented keys
+> inert-but-safe; the [`plan/`](../plan/) phases are accordingly scoped as ENGINE
+> capability + wiring (no key left inert per model), starting with step 1's math.js value
+> tower and step 2's adapter formalization.
 
 ---
 
