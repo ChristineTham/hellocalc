@@ -9,7 +9,7 @@ import { asReal, bn, math, num, PI, type Value } from "./config";
 import { DEFAULT_FORMAT, type DisplayFormat } from "./format";
 import { appendDigit, backspace, parseEntry, startExponent, toggleSign } from "./entry";
 import { bestFit, fit as cfit, forecastX, forecastY } from "./stats-fit";
-import { ALPHA_PAGES, DYNAMIC_MENUS, MENUS42 } from "./menu42";
+import { ALPHA_PAGES, CONST_VALUES, DYNAMIC_MENUS, MENUS42 } from "./menu42";
 import { determinant as det, inverse, Matrix } from "ml-matrix";
 import {
   digitOk,
@@ -1631,6 +1631,83 @@ export function applyFunction(s: RpnEngine, fn: string): boolean {
     case "BEEP":
     case "ON":
       return true;
+    // ---- HP-35s commands (P21) -------------------------------------------------
+    case "→cm":
+      unary(s, (x) => x.times("2.54"));
+      return true;
+    case "→in":
+      unary(s, (x) => x.div("2.54"));
+      return true;
+    case "→KM":
+      unary(s, (x) => x.times("1.609344"));
+      return true;
+    case "→MILE":
+      unary(s, (x) => x.div("1.609344"));
+      return true;
+    case "→kg":
+      unary(s, (x) => x.times("0.45359237"));
+      return true;
+    case "→lb":
+      unary(s, (x) => x.div("0.45359237"));
+      return true;
+    case "→l":
+      unary(s, (x) => x.times("3.785411784"));
+      return true;
+    case "→gal":
+      unary(s, (x) => x.div("3.785411784"));
+      return true;
+    case "→°C":
+      unary(s, (x) => x.minus(32).times(5).div(9));
+      return true;
+    case "→°F":
+      unary(s, (x) => x.times(9).div(5).plus(32));
+      return true;
+    case ",": // the 35s complex separator ≈ stack separation (documented)
+      return applyFunction(s, "ENTER");
+    case "ARG": {
+      // argument of the complex X (P9 pair model); real X → 0 or 180°
+      commit(s);
+      const re = s.x;
+      const im = s.cpx ? s.imag.x : bn(0);
+      const th = bigAtan2(im, re) ?? bn(0); // atan2(0,0) — the 35s shows 0
+      s.lastX = s.x;
+      s.x = s.angle === "DEG" ? th.times(180).div(PI) : s.angle === "GRD" ? th.times(200).div(PI) : th;
+      s.lift = true;
+      return true;
+    }
+    case "x̄,ȳ": {
+      // both means: ȳ to Y, x̄ to X (the 35s pair push)
+      if (s.sum.n.isZero()) {
+        s.error = "Error";
+        return true;
+      }
+      commit(s);
+      liftIfEnabled(s);
+      liftIfEnabled(s);
+      s.y = s.sum.y.div(s.sum.n);
+      s.x = s.sum.x.div(s.sum.n);
+      return true;
+    }
+    case "S,σ":
+      return applyFunction(s, "s");
+    case "Σx":
+      pushX(s, s.sum.x);
+      return true;
+    case "Σy":
+      pushX(s, s.sum.y);
+      return true;
+    case "Σx²":
+      pushX(s, s.sum.x2);
+      return true;
+    case "Σy²":
+      pushX(s, s.sum.y2);
+      return true;
+    case "Σxy":
+      pushX(s, s.sum.xy);
+      return true;
+    case "nΣ":
+      pushX(s, s.sum.n);
+      return true;
     // ---- HP-42S menu commands (P16) -------------------------------------------
     case "SUM":
       commit(s);
@@ -2524,6 +2601,10 @@ export function pressSoft42(s: RpnEngine, i: number): void {
     s.alpha += label === "␣" ? " " : label;
     return;
   }
+  if (s.menu?.name === "CONST") {
+    pushX(s, bn(CONST_VALUES[label] ?? "0"));
+    return;
+  }
   if (s.menu?.name === "SOLVER") {
     dispatch(s, "SOLVE");
     dispatch(s, label);
@@ -2537,7 +2618,25 @@ export function pressSoft42(s: RpnEngine, i: number): void {
   dispatch(s, label);
 }
 
+/** Pioneer/35s mapping prints → canonical engine ids (P21). */
+const RPN_PRINTS: Record<string, string> = {
+  "∫ (integral)": "∫ˣy", "E (exponent)": "E", ", (comma)": ",", ". (decimal)": ".",
+  "▲ (up)": "▲", "▼ (down)": "▼", "◄ (left)": "◄", "► (right)": "►",
+  "x↔y": "x⇄y", "HMS→": "D.MS→", "→HMS": "→D.MS", nCr: "Cy,x", nPr: "Py,x",
+  RAND: "RAN#", "!": "x!", "L.R": "L.R.", "→RAD": "D→R", "→DEG": "R→D",
+  "%CHG": "Δ%", LASTx: "LSTx", INTG: "INT", "x√y": "ˣ√y",
+};
+
+/** 35s affordances tied to EQUATION mode / fraction display — accepted, with
+ * the capability documented as arriving with the native phase (P23 notes). */
+const ACCEPTED_35S = new Set([
+  "EQN", "FN=", "INPUT", "UNDO", "←ENG", "ENG→", "( )", "[ ]", "=", "θ",
+  "/c", "FDISP", "SPACE", "◄", "►", "PSE",
+]);
+
 export function dispatch(s: RpnEngine, fn: string): boolean {
+  fn = RPN_PRINTS[fn] ?? fn;
+  if (ACCEPTED_35S.has(fn)) return true;
   // ---- the 42S RPN menu layer (P16) — navigation never records as steps ----
   if (fn === "EXIT") {
     s.assignPend = false;
@@ -2560,6 +2659,11 @@ export function dispatch(s: RpnEngine, fn: string): boolean {
     if (!MENUS42[fn] && !DYNAMIC_MENUS.has(fn) && fn !== "CLEARM") {
       s.custom42 = [...s.custom42.slice(0, 17), fn];
     }
+    return true;
+  }
+  const menu35 = { MODE: "MODES", DISPLAY: "DISP", "x?y": "TESTXY", "x?0": "TESTX0", "x≤?": "TESTXY" }[fn];
+  if (menu35) {
+    openMenu42(s, menu35);
     return true;
   }
   if (MENUS42[fn] || DYNAMIC_MENUS.has(fn) || fn === "CLEARM") {

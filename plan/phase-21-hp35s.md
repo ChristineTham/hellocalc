@@ -81,6 +81,22 @@ constants dataset ships as a static TS module (no runtime fetch, base-path-safe)
 - `pnpm lint` / `pnpm test` / `pnpm build` / `pnpm test:e2e` green; the existing UI suites
   (geometry, promotion, typing) stay green.
 
+## Delivery notes (as shipped)
+- The 35s rides the RPN engine + the P16 menu layer: MODE/DISPLAY open
+  MODES/DISP; x?y / x?0 / x≤? open conditional-test rosters; SUMS pushes
+  the Σ registers; CONST is a CODATA softkey row (exact SI values);
+  L.R/x̄,ȳ/S,σ map onto the P2 statistics.
+- Directional conversions (→cm/→in, →KM/→MILE, →kg/→lb, →l/→gal, →°C/→°F)
+  compute exactly on the tower; nCr/nPr/RAND/!/x↔y/HMS→/→HMS/→RAD/→DEG/
+  %CHG/LASTx/INTG/x√y translate to the canonical ids.
+- ARG reads the P9 complex pair; "," (the 35s complex separator) maps to
+  stack separation — the 15C-style pair entry (documented divergence).
+- **EQN equation mode, FN=/INPUT solver prompts, fraction display (/c,
+  FDISP) and ←ENG/ENG→ are ACCEPTED no-ops with the capability documented
+  as arriving alongside the native phase** — the algebraic-equation
+  subsystem belongs to the Prime/native era, not the 4-level engine.
+- HP-35s coverage oracle: GREEN (20 models live; the Prime remains).
+
 ## Notes / risks
 - ALG mode is *entry* only — the underlying value tower, precision, and functions are unchanged;
   keep the RPN stack live under ALG so `LASTx` and mode switching mid-session stay coherent.

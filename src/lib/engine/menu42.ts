@@ -22,7 +22,24 @@ export const MENUS42: Record<string, string[]> = {
   "PGM.FCN": ["LBL", "RTN", "GTO", "XEQ", "MVAR", "@VARMENU"],
   "TOP.FCN": ["Σ+", "1/x", "√x", "LOG", "LN", "XEQ"],
   PRINT: ["PRX", "PRSTK", "PRΣ", "PRP"],
+  // the 35s menus (P21)
+  TESTXY: ["x<y", "x≤y", "x=y", "x≠y", "x>y", "x≥y"],
+  TESTX0: ["x<0", "x≤0", "x=0", "x≠0", "x>0", "x≥0"],
+  SUMS: ["nΣ", "Σx", "Σy", "Σx²", "Σy²", "Σxy"],
+  CONST: ["c", "g", "G", "NA", "k", "h", "e", "me"],
   // SOLVER / ∫f(x) / CATALOG / CUSTOM / ALPHA / VARMENU resolve dynamically
+};
+
+/** CODATA values behind the 35s CONST softkeys (SI). */
+export const CONST_VALUES: Record<string, string> = {
+  c: "299792458",
+  g: "9.80665",
+  G: "6.67430e-11",
+  NA: "6.02214076e23",
+  k: "1.380649e-23",
+  h: "6.62607015e-34",
+  e: "1.602176634e-19",
+  me: "9.1093837015e-31",
 };
 
 /** The ALPHA menu types into the alpha register — letter pages. */

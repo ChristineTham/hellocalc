@@ -202,7 +202,7 @@ const HP42S_ROWS: ClassicKey[][] = [
 // The 4-way pad (rows 1–3 top-right on the real unit) compacts to ▲▼ then ◄►
 // in the two rightmost columns [judgment].
 const HP35S_ROWS: ClassicKey[][] = [
-  [ck("R/S","R/S","black",{f:"FN=",g:"PRGM",al:"A"}),ck("GTO","GTO","black",{f:"ISG",g:"DSE",al:"B"}),ck("XEQ","XEQ","black",{f:"RTN",g:"LBL",al:"C"}),ck("MODE","MODE","black",{f:"x?y",g:"x?0",al:"D"}),ck("▲","▲","black",{f:"FLAGS"}),ck("▼","▼","black",{f:"MEM"})],
+  [ck("R/S","R/S","black",{f:"FN=",g:"PRGM",gFn:"W/PRGM",al:"A"}),ck("GTO","GTO","black",{f:"ISG",g:"DSE",al:"B"}),ck("XEQ","XEQ","black",{f:"RTN",g:"LBL",al:"C"}),ck("MODE","MODE","black",{f:"x?y",g:"x?0",al:"D"}),ck("▲","▲","black",{f:"FLAGS"}),ck("▼","▼","black",{f:"MEM"})],
   [ck("RCL","RCL","black",{f:"x≤?",g:"STO"}),ck("R↓","R↓","black",{f:"VIEW",g:"R↑",al:"E"}),ck("x↔y","x⇄y","black",{f:"INPUT",g:"PSE",al:"F"}),ck("i","i","black",{f:"ARG",g:"θ",al:"G"}),ck("◄","◄","black",{f:"DISPLAY"}),ck("►","►","black",{f:"CONST"})],
   [ck("SIN","SIN","black",{f:"HYP",g:"ASIN",al:"H"}),ck("COS","COS","black",{f:"π",g:"ACOS",al:"I"}),ck("TAN","TAN","black",{f:"INTG",g:"ATAN",al:"J"}),ck("√x","√x","black",{f:"x√y",g:"x²",al:"K"}),ck("yˣ","yˣ","black",{f:"LOG",g:"LN",al:"L"}),ck("1/x","1/x","black",{f:"10ˣ",g:"eˣ",al:"M"})],
   [ck("ENTER","ENTER","black",{flex:2,f:"SHOW",g:"LASTx"}),ck("+/−","CHS","black",{f:"=",g:"ABS",al:"N"}),ck("E","EEX","black",{f:"←ENG",g:"RND",al:"O"}),ck("( )","( )","black",{f:"ENG→",g:"[ ]",al:"P"}),ck("←","←","black",{f:"UNDO",g:"CLEAR"})],

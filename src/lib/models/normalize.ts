@@ -137,6 +137,9 @@ export const MODEL_FN_OVERRIDES: Record<string, Record<string, string>> = {
     PRGM: "W/PRGM",
     "LAST x": "LSTx",
   },
+  "HP-35s": {
+    PRGM: "W/PRGM",
+  },
   "HP-25": {
     PRGM: "CLEAR PRGM", // the f-row under the 25's CLEAR bracket
     REG: "CLEAR REG",

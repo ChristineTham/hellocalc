@@ -421,6 +421,30 @@ test.describe("hellocalc — smoke", () => {
     await expect(glass().getByText("3", { exact: true }).first()).toBeVisible();
   });
 
+  test("Phase 21 on the live HP-35s: conversions and the CONST menu", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await selectModel(page, "HP-35s");
+    const key = (name: string) =>
+      page.getByRole("button", { name, exact: true }).click();
+    const glass = () => page.locator('[data-lcd-mode]:visible');
+
+    // 10 →cm (g-shift 6) = 25.40
+    await key("1");
+    await key("0");
+    await key("g");
+    await key("6"); // → →cm
+    await expect(glass().getByText("25.40").first()).toBeVisible();
+
+    // the CONST menu rides f-► ; softkey 1 (R/S position) pushes c
+    await key("f");
+    await key("►");
+    await expect(glass().locator('[data-slot="menu-row"]').first()).toContainText("c");
+    await key("R/S"); // softkey 1 → c
+    await expect(glass().getByText("299792458.00").first()).toBeVisible();
+  });
+
   test("persistence: the session survives a reload (FR-STATE-1)", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "7", exact: true }).click();

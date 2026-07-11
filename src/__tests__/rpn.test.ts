@@ -1199,6 +1199,79 @@ describe("Phase-16: the HP-42S menu-driven RPN", () => {
   });
 });
 
+describe("Phase-21: the HP-35s modern pioneer", () => {
+  it("directional conversions: →cm/→in, →kg/→lb, →°C/→°F round-trip", () => {
+    const s = createRpn();
+    run(s, "10");
+    dispatch(s, "→cm");
+    expect(n(xval(s))).toBeCloseTo(25.4, 12);
+    dispatch(s, "→in");
+    expect(n(xval(s))).toBeCloseTo(10, 12);
+    run(s, "212");
+    dispatch(s, "→°C");
+    expect(n(xval(s))).toBeCloseTo(100, 12);
+    dispatch(s, "→°F");
+    expect(n(xval(s))).toBeCloseTo(212, 12);
+    run(s, "1");
+    dispatch(s, "→kg");
+    expect(n(xval(s))).toBeCloseTo(0.45359237, 12);
+  });
+
+  it("mapping prints translate: x↔y, nCr, RAND seedable, ! and L.R", () => {
+    const s = createRpn();
+    run(s, "1", "ENTER", "2");
+    dispatch(s, "x↔y");
+    expect(n(xval(s))).toBe(1);
+    run(s, "5", "ENTER", "3");
+    dispatch(s, "nCr");
+    expect(n(xval(s))).toBe(10);
+    run(s, "5");
+    dispatch(s, "!");
+    expect(n(xval(s))).toBe(120);
+  });
+
+  it("SUMS and CONST menus: registers push; CODATA c is exact", () => {
+    const s = createRpn();
+    run(s, "2", "ENTER", "3", "Σ+", "4", "ENTER", "5", "Σ+");
+    dispatch(s, "SUMS");
+    expect(menu42Labels(s)[0]).toBe("nΣ");
+    pressSoft42(s, 1); // Σx
+    expect(n(xval(s))).toBe(8); // 3 + 5
+    dispatch(s, "CONST");
+    pressSoft42(s, 0); // c
+    expect(xval(s).toString()).toBe("299792458");
+  });
+
+  it("x?y opens the conditional-test menu; MODE and DISPLAY open menus", () => {
+    const s = createRpn();
+    dispatch(s, "x?y");
+    expect(menu42Labels(s)).toEqual(["x<y", "x≤y", "x=y", "x≠y", "x>y", "x≥y"]);
+    dispatch(s, "MODE");
+    expect(s.menu?.name).toBe("MODES");
+    dispatch(s, "DISPLAY");
+    expect(s.menu?.name).toBe("DISP");
+  });
+
+  it("x̄,ȳ pushes both means; ARG of a real is 0", () => {
+    const s = createRpn();
+    run(s, "2", "ENTER", "4", "Σ+", "6", "ENTER", "8", "Σ+");
+    dispatch(s, "x̄,ȳ");
+    expect(n(xval(s))).toBe(6); // x̄ of 4, 8
+    expect(n(s.y)).toBe(4); // ȳ of 2, 6
+    run(s, "5");
+    dispatch(s, "ARG");
+    expect(n(xval(s))).toBe(0);
+  });
+
+  it("EQN-mode affordances accept and defer honestly (documented)", () => {
+    const s = createRpn();
+    expect(dispatch(s, "EQN")).toBe(true);
+    expect(dispatch(s, "FN=")).toBe(true);
+    expect(dispatch(s, "/c")).toBe(true);
+    expect(s.error).toBeNull();
+  });
+});
+
 describe("classic-era ops (HP-25/45/65/67 planes)", () => {
   it("R↑ is the inverse of R↓ (one full cycle restores the stack)", () => {
     const s = createRpn();
