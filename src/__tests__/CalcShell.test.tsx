@@ -31,7 +31,7 @@ describe("CalcShell", () => {
   it("stamps the static data-aspect and per-model --kbd-* data from geometry", () => {
     const { container } = renderShell("HP-48G");
     const root = shellRoot(container);
-    expect(root.dataset.aspect).toBe("portrait");
+    expect(root.dataset.aspect).toBe("tall");
     expect(root.style.getPropertyValue("--kbd-a")).toBe(
       String(MODELS["HP-48G"].geometry.aspect),
     );

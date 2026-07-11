@@ -27,7 +27,7 @@ export function HistoryTape({
 }) {
   const rows = (hist ?? []).slice().reverse(); // newest at the top — fresh print
   return (
-    <section data-slot="history-tape" className={cn("flex min-h-0 flex-col", className)}>
+    <section data-slot="history-tape" className={cn("min-h-0", className)}>
       <h3 className={CAPTION}>History</h3>
       {/* outer strip owns the perforated ::after; the INNER div scrolls, so
           the zigzag edge is never clipped by the scroll container */}
@@ -91,7 +91,7 @@ export function StackNote({
       }));
 
   return (
-    <section data-slot="stack-note" className={cn("flex flex-col", className)}>
+    <section data-slot="stack-note" className={className}>
       <h3 className={CAPTION}>{isRpl ? "RPL Stack" : "RPN Stack"}</h3>
       <div className={NOTE}>
         {rows.map((row, i) => (
@@ -119,9 +119,34 @@ export function StackNote({
 
 const TVM_KEYS = ["n", "i", "PV", "PMT", "FV"] as const;
 
-export function VarsNote({ state: s, className }: { state: RpnState; className?: string }) {
+/**
+ * The variables note (§14 rev 5): TVM registers for financial models; the
+ * named-variable directory for RPL machines (placeholder rows until the
+ * engine's VAR directory lands — it reserves the bay estate deliberately).
+ */
+export function VarsNote({
+  state: s,
+  family,
+  className,
+}: {
+  state: RpnState;
+  family: Family;
+  className?: string;
+}) {
+  if (family === "rpl") {
+    return (
+      <section data-slot="vars-note" className={className}>
+        <h3 className={CAPTION}>Variables</h3>
+        <div className={NOTE}>
+          <p className="py-1 text-center font-mono text-[11px] text-muted-foreground/70">
+            — none yet —
+          </p>
+        </div>
+      </section>
+    );
+  }
   return (
-    <section data-slot="vars-note" className={cn("flex flex-col", className)}>
+    <section data-slot="vars-note" className={className}>
       <h3 className={CAPTION}>TVM Registers</h3>
       <div data-slot="tvm-strip" className={NOTE}>
         {TVM_KEYS.map((k) => (
@@ -162,21 +187,25 @@ export function AuxColumn({
   className,
 }: AuxColumnProps) {
   // One home for the stack (§14.3 rev 3): the RPL glass IS a stack display,
-  // so RPL models get no paper StackNote — tape (and vars) only.
+  // so RPL models get no paper StackNote — vars + tape only.
   const paperStack = family !== "rpl";
+  const showVars = showRegisters || family === "rpl";
   if (variant === "bay") {
-    // compact paper resting on the machine body
+    // paper resting on the machine body. Both pieces render; CSS picks per
+    // context (§14 rev 5): desktop-tall shows VARS (tape lives on the page),
+    // short viewports show the TAPE (vars would crowd the cramped bay).
     return (
       <div className={cn("aux-flow w-full", className)}>
         {paperStack && <StackNote state={state} family={family} fmt={fmt} />}
-        <HistoryTape hist={state.hist} className="min-h-0 flex-1" />
+        {showVars && <VarsNote state={state} family={family} className="bay-vars" />}
+        <HistoryTape hist={state.hist} className="bay-tape min-h-0 flex-1" />
       </div>
     );
   }
   return (
     <div className={cn("aux-flow size-full", className)}>
       {paperStack && <StackNote state={state} family={family} fmt={fmt} />}
-      {showRegisters && <VarsNote state={state} />}
+      {showVars && <VarsNote state={state} family={family} />}
       <HistoryTape hist={state.hist} className="min-h-0 flex-1" />
     </div>
   );

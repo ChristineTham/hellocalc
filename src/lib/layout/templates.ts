@@ -120,19 +120,13 @@ export function computePlacement(
     return aspectClass === "landscape" ? TEMPLATES.stack : TEMPLATES["machine-side"];
   }
   const t = TEMPLATES[CELLS[aspectClass][tier]];
-  // §14.1 (rev 3): on DESKTOP, portrait/tall machines go side-by-side — the
-  // tall keyboard takes the full height, the LCD gets a proper multi-line
-  // glass beside it (the HP-48G is the classic case), and the paper lives in
-  // the machine's bay BELOW the glass (the right aux column is dropped).
-  // Landscape machines keep stacking: display-above-keys IS the Voyager.
-  // Tablets (md) stay stacked — their portrait orientation has the height.
-  if (t.id === "desktop" && aspectClass !== "landscape") {
-    return {
-      ...t,
-      machine: "side",
-      aux: "in-machine",
-      regionsInline: { aux: false, sidebar: true },
-    };
+  // §14.1 (rev 5): on DESKTOP, only TALL machines go side-by-side — the tall
+  // keyboard takes the full height, the LCD gets a proper multi-line glass,
+  // VARIABLES use the spare bay below the glass, and the history tape keeps
+  // the page's right column (maximum estate). Portrait classics (HP-35) and
+  // landscape Voyagers keep stacking: LCD-above-keys IS the classic look.
+  if (t.id === "desktop" && aspectClass === "tall") {
+    return { ...t, machine: "side" };
   }
   return t;
 }

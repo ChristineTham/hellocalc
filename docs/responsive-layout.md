@@ -1382,6 +1382,22 @@ mini glass takes the real `131 / 64` aspect (`--hp-lcd-aspect-rpl`). That
 raster is also the recorded target for the future dot-grid simulation — plots
 and PICT rendering draw into exactly this grid.
 
+### 14.4d Revision 5 — classics stack, talls go side with a vars bay
+
+- **Desktop side is TALL-only.** The HP-35 (8-row classic) keeps the
+  LCD-above-keys look on desktops — that IS the classic calculator. The 48G's
+  9-row keyboard *behaves* tall, so it is deliberately classed `tall` via the
+  per-model aspectClass override (§11 #4) and goes side-by-side on desktops.
+- **Maximum estate for tall machines:** the machine takes full height inside
+  the STANDARD desktop grid; the history tape keeps the page's right column;
+  the spare bay below the glass shows **VARIABLES** (TVM for financial models,
+  the named-variable directory for RPL — placeholder until the engine's VAR
+  directory lands). One home each: stack on the RPL glass, vars in the bay,
+  tape on the page. Short viewports flip the bay to the tape (cramped).
+- Paper pieces take `display` from the components layer only (like the LCD
+  subtrees) so the per-context CSS swaps can hide them — a `flex` utility
+  would win the cascade otherwise.
+
 ### 14.5 Clamshell note (HP-28, still deferred)
 
 When the 28-series lands: large displays render the two keyboard halves side by side under

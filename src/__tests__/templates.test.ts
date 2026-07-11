@@ -91,21 +91,21 @@ describe("computePlacement — the §14.2 enumeration", () => {
     expect(t.machine).toBe("stack");
   });
 
-  it("desktop portrait/tall machines go side-by-side (§14.1 rev 3 — the 48G case)", () => {
-    const t = computePlacement("portrait", "lg");
-    expect(t.machine).toBe("side");
-    // …with the paper in the bay below the glass, not a right column
-    expect(t.aux).toBe("in-machine");
-    expect(t.regionsInline.aux).toBe(false);
-    expect(t.regionsInline.sidebar).toBe(true);
-    expect(computePlacement("portrait", "2xl").machine).toBe("side");
-    expect(computePlacement("tall", "xl").machine).toBe("side");
+  it("desktop: only TALL machines go side-by-side (§14.1 rev 5 — the 48G case)", () => {
+    const tall = computePlacement("tall", "lg");
+    expect(tall.machine).toBe("side");
+    // …inside the STANDARD desktop grid: tape keeps the right column
+    expect(tall.aux).toBe("right");
+    expect(tall.regionsInline).toEqual({ aux: true, sidebar: true });
+    expect(computePlacement("tall", "2xl").machine).toBe("side");
+    // portrait classics (HP-35) keep the LCD-above-keys look
+    const portrait = computePlacement("portrait", "lg");
+    expect(portrait.machine).toBe("stack");
+    expect(portrait.aux).toBe("right");
     // landscape stays stacked — display-above-keys IS the Voyager
-    const v = computePlacement("landscape", "lg");
-    expect(v.machine).toBe("stack");
-    expect(v.aux).toBe("right");
+    expect(computePlacement("landscape", "lg").machine).toBe("stack");
     // tablets keep stacking: portrait orientation has the height for it
-    expect(computePlacement("portrait", "md").machine).toBe("stack");
+    expect(computePlacement("tall", "md").machine).toBe("stack");
   });
 });
 

@@ -90,11 +90,30 @@ test.describe("hellocalc — smoke", () => {
     k = await boxOf(kbd());
     expect(lcd.x + lcd.width).toBeLessThanOrEqual(k.x + 1); // glass beside the keys
     expect(k.x + k.width).toBeLessThanOrEqual(m.x + m.width + 1); // same bezel
-    // paper lives in the bay BELOW the glass; the right aux column is gone
+    // §14 rev 5 — one home each: VARIABLES in the bay below the glass, the
+    // history tape in the page's right column (machine takes full height)
+    await expect(
+      page.locator('[data-slot="machine-aux"] [data-slot="vars-note"]'),
+    ).toBeVisible();
     await expect(
       page.locator('[data-slot="machine-aux"] [data-slot="history-tape"]'),
+    ).toBeHidden();
+    const tallAux = await boxOf(page.locator('[data-region="aux"]'));
+    expect(tallAux.x).toBeGreaterThanOrEqual(m.x + m.width - 1); // tape right of machine
+    await expect(
+      page.locator('[data-region="aux"] [data-slot="history-tape"]'),
     ).toBeVisible();
-    await expect(page.locator('[data-region="aux"]')).toBeHidden();
+    await expect(
+      page.locator('[data-region="aux"] [data-slot="vars-note"]'),
+    ).toBeHidden();
+
+    // portrait classic (HP-35): keeps the LCD-above-keys look on desktop
+    await selectModel(page, "HP-35");
+    await expect(page.locator("main.calc-shell")).toHaveAttribute("data-machine", "stack");
+    m = await boxOf(machine());
+    lcd = await boxOf(lcdSlot());
+    k = await boxOf(kbd());
+    expect(lcd.y + lcd.height).toBeLessThanOrEqual(k.y + 1); // classic anatomy
 
     // same viewport, landscape model (12C): the classic anatomy — LCD above
     // keys, paper column to the machine's RIGHT

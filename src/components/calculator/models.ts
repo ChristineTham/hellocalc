@@ -116,7 +116,12 @@ const GEOM = {
   "HP-35": computeKeyboardGeometry({ rows: HP35_ROWS }, "classic"),
   "HP-12C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-12C"] }, "voyager"),
   "HP-15C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-15C"] }, "voyager"),
-  "HP-48G": computeKeyboardGeometry({ rows: HP48G_ROWS }, "rpl"),
+  // Per-model aspectClass override (§11 #4, §14 rev 5): at A≈0.722 the 48G is
+  // numerically just above the 0.68 tall threshold, but its 9-row keyboard
+  // BEHAVES tall — stacked on a desktop it starves the glass. Classing it
+  // tall sends it side-by-side on desktops while true portrait classics
+  // (HP-35, 8 rows) keep the LCD-above-keys look.
+  "HP-48G": computeKeyboardGeometry({ rows: HP48G_ROWS }, "rpl", { aspectClass: "tall" }),
 } satisfies Record<string, KeyboardGeometry>;
 
 export const MODELS: Record<string, Model> = {
