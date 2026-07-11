@@ -74,6 +74,15 @@ time source (no new package).
 - The existing UI suites (geometry, promotion, typing) stay green.
 - `pnpm lint` / `pnpm test` / `pnpm build` / `pnpm test:e2e` green.
 
+## Delivery notes (as shipped)
+- Time module lands as the XEQ catalog (TIME → HH.MMSS, DATE, DOW, DDAYS,
+  CLK12/24) on an injectable engine clock (`setClock`) — deterministic in
+  tests, worker-safe, no direct Date use. XEQ resolves its catalog BEFORE
+  the general id space, so CX names never collide with key ops (DATE).
+- Extended memory (the XM file system) and alarms are deferred to the
+  workspace/directory work (P20 territory) — XEQ of unimplemented names
+  reports NONEXISTENT, the CX's own message.
+
 ## Notes / risks
 - The CX faceplate is physically identical to the 41C/CV — fidelity is about the *function set*
   and CATALOG/editor keyboards, not new keys; keep dispatch data-driven from `hp/functions`.

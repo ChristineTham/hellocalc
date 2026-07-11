@@ -59,6 +59,13 @@ import {
 
 export type Angle = "DEG" | "RAD" | "GRD";
 
+/** Injectable wall clock (P11, HP-41CX time module): the engine never calls
+ * Date directly, so tests pin time and the module stays worker-safe. */
+let clock: () => Date = () => new Date();
+export function setClock(fn: () => Date): void {
+  clock = fn;
+}
+
 /** One history-tape entry: the op and the exact post-op X (raw BigNumber
  * string, so recall loses nothing to display rounding). */
 export interface HistEntry {
@@ -1492,6 +1499,9 @@ export function applyFunction(s: RpnEngine, fn: string): boolean {
           runLabel(s, name);
           return true;
         }
+        // the XEQ catalog resolves FIRST (P11): names like DATE mean the
+        // 41CX time functions here, not another model's key ops
+        if (xeqCatalog(s, name)) return true;
         const ok = applyFunction(s, name);
         if (!ok) s.error = "NONEXISTENT"; // the 41's own message
         return true;
@@ -2206,6 +2216,49 @@ export function applyFunction(s: RpnEngine, fn: string): boolean {
       s.lift = true;
       return true;
     }
+    default:
+      return false;
+  }
+}
+
+/** The 41CX's XEQ-only function catalog (P11): the time module. Extended
+ * memory (file system) stays deferred — see plan/phase-11 delivery notes. */
+function xeqCatalog(s: RpnEngine, name: string): boolean {
+  switch (name) {
+    case "TIME": {
+      // HH.MMSS from the injectable clock
+      const d = clock();
+      const v = bn(d.getHours())
+        .plus(bn(d.getMinutes()).div(100))
+        .plus(bn(d.getSeconds()).div(10000));
+      pushX(s, v);
+      return true;
+    }
+    case "DATE": {
+      const d = clock();
+      const enc = encodeDate(
+        new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())),
+        s.fin.dmy,
+      );
+      pushX(s, enc);
+      return true;
+    }
+    case "DOW": {
+      // day of week of the date in X (0 = Sunday, like the CX)
+      const d = decodeDate(xval(s), s.fin.dmy);
+      if (d === null) {
+        s.error = "Error";
+        return true;
+      }
+      pushX(s, bn(d.getUTCDay()));
+      return true;
+    }
+    case "DDAYS":
+      // days between dates in Y and X — the CX name for ΔDYS
+      return applyFunction(s, "ΔDYS");
+    case "CLK12":
+    case "CLK24":
+      return true; // display-format toggles, accepted
     default:
       return false;
   }

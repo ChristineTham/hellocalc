@@ -1006,6 +1006,40 @@ describe("Phase-10: the 16C integer universe", () => {
   });
 });
 
+describe("Phase-11: the 41CX time module (XEQ catalog)", () => {
+  it("XEQ TIME / DATE / DOW use the injectable clock (pinned in tests)", async () => {
+    const { setClock } = await import("@/lib/engine/rpn");
+    setClock(() => new Date(2026, 6, 11, 14, 30, 45)); // Jul 11 2026 14:30:45
+    const s = createRpn();
+    s.alpha = "TIME";
+    applyFunction(s, "XEQ");
+    expect(xval(s).toString()).toBe("14.3045");
+    s.alpha = "DATE";
+    applyFunction(s, "XEQ"); // M.DY default
+    expect(xval(s).toString()).toBe("7.112026");
+    s.alpha = "DOW";
+    applyFunction(s, "XEQ"); // Jul 11 2026 is a Saturday
+    expect(xval(s).toString()).toBe("6");
+    setClock(() => new Date());
+  });
+
+  it("XEQ DDAYS is the CX name for date differences", () => {
+    const s = createRpn();
+    run(s, "6.031984", "ENTER", "6.151984");
+    s.alpha = "DDAYS";
+    applyFunction(s, "XEQ");
+    expect(n(xval(s))).toBe(12);
+  });
+
+  it("the catalog wins over key ids: XEQ DATE pushes today, never date-adds", () => {
+    const s = createRpn();
+    run(s, "1", "ENTER", "2"); // would be date-add operands for the 12C key
+    s.alpha = "DATE";
+    applyFunction(s, "XEQ");
+    expect(s.error).toBeNull(); // pushed a date instead of erroring on decode
+  });
+});
+
 describe("classic-era ops (HP-25/45/65/67 planes)", () => {
   it("R↑ is the inverse of R↓ (one full cycle restores the stack)", () => {
     const s = createRpn();
