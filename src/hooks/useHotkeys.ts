@@ -23,7 +23,7 @@ export interface HotkeysOptions {
 const PRESS_ECHO_MS = 130;
 
 function findButton(target: HotkeyTarget): HTMLElement | null {
-  const root = document.querySelector('[data-region="keyboard"]');
+  const root = document.querySelector('[data-slot="machine-kbd"]');
   if (!root) return null;
   if (target.type === "kind") {
     return root.querySelector<HTMLElement>(`[data-kind="${target.kind}"]`);

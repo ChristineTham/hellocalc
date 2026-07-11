@@ -1,7 +1,8 @@
-// Width-tier + template-placement oracle (docs/responsive-layout.md §9 Step 0,
+// Width-tier + template-placement oracle (docs/responsive-layout.md §14.2,
 // §10 "no-drift guarantee"): BREAKPOINTS is the single source both the CSS
 // media queries and the JS tiers derive from; computePlacement mirrors the
-// §3.3 enumeration table exactly.
+// v2 enumeration exactly. v2 invariant: the machine (nameplate + LCD +
+// keyboard) is ONE region — no template separates them.
 import { describe, expect, it } from "vitest";
 import { BREAKPOINTS, TIER_ORDER, widthTierOf } from "@/lib/layout/breakpoints";
 import type { WidthTier } from "@/lib/layout/breakpoints";
@@ -10,7 +11,7 @@ import type { TemplateId } from "@/lib/layout/templates";
 import type { KeyboardAspectClass } from "@/lib/layout/keyboardGeometry";
 
 describe("BREAKPOINTS — single shared source (§10)", () => {
-  it("matches the documented §3.3 rem values at 16px/rem", () => {
+  it("matches the documented rem values at 16px/rem", () => {
     expect(BREAKPOINTS).toEqual({
       sm: 40 * 16, // 640
       md: 48 * 16, // 768
@@ -24,7 +25,7 @@ describe("BREAKPOINTS — single shared source (§10)", () => {
     [320, "phone"],
     [639, "phone"],
     [640, "sm"],
-    [700, "sm"], // the §11 #2 large-phone band, explicit
+    [700, "sm"], // the large-phone band, explicit
     [767, "sm"],
     [768, "md"],
     [1023, "md"],
@@ -39,31 +40,31 @@ describe("BREAKPOINTS — single shared source (§10)", () => {
   });
 });
 
-describe("computePlacement — the §3.3 enumeration table", () => {
+describe("computePlacement — the §14.2 enumeration", () => {
   const EXPECTED: Record<KeyboardAspectClass, Record<WidthTier, TemplateId>> = {
     landscape: {
       phone: "stack",
       sm: "stack",
-      md: "tablet-portrait-wide",
-      lg: "desktop-landscape",
-      xl: "desktop-landscape",
-      "2xl": "desktop-landscape",
+      md: "tablet-wide",
+      lg: "desktop",
+      xl: "desktop",
+      "2xl": "desktop",
     },
     portrait: {
       phone: "stack",
       sm: "stack",
-      md: "tablet-portrait-corner",
-      lg: "desktop-wide",
-      xl: "desktop-wide",
-      "2xl": "desktop-wide",
+      md: "tablet",
+      lg: "desktop",
+      xl: "desktop",
+      "2xl": "desktop",
     },
     tall: {
       phone: "stack",
       sm: "stack",
-      md: "tablet-portrait-corner",
-      lg: "desktop-wide", // tall@lg reuses desktop-wide
-      xl: "desktop-tall",
-      "2xl": "desktop-tall",
+      md: "tablet",
+      lg: "desktop",
+      xl: "desktop",
+      "2xl": "desktop",
     },
   };
 
@@ -77,23 +78,28 @@ describe("computePlacement — the §3.3 enumeration table", () => {
     }
   }
 
-  it("the 700px large-phone case: sm reuses the phone stack template (§11 #2)", () => {
-    const t = computePlacement("portrait", widthTierOf(700));
-    expect(t.id).toBe("stack");
-    expect(t.chrome).toBe("drawer");
-    expect(t.kbdPlacement).toBe("bottom-full");
+  it("short viewports flip portrait/tall machines to the side variant (§14.1)", () => {
+    const t = computePlacement("portrait", "lg", { shortViewport: true });
+    expect(t.id).toBe("machine-side");
+    expect(t.machine).toBe("side");
+    expect(t.aux).toBe("in-machine");
   });
 
-  it("the short-landscape override supersedes the width tier (§3.3)", () => {
-    const t = computePlacement("landscape", "2xl", { shortLandscape: true });
-    expect(t.id).toBe("phone-landscape");
-    expect(t.kbdPlacement).toBe("right-side");
-    expect(t.chrome).toBe("drawer");
+  it("landscape machines keep stacking on short viewports (pitch stays large)", () => {
+    const t = computePlacement("landscape", "lg", { shortViewport: true });
+    expect(t.id).toBe("stack");
+    expect(t.machine).toBe("stack");
   });
 });
 
-describe("template invariants (§3.3)", () => {
-  it("drawer templates host aux/sidebar in Sheets; sidebar templates inline both", () => {
+describe("template invariants (§14.2)", () => {
+  it("every template has an integrated machine (stack or side) — never split", () => {
+    for (const t of Object.values(TEMPLATES)) {
+      expect(["stack", "side"]).toContain(t.machine);
+    }
+  });
+
+  it("sidebar chrome only on desktop; drawer templates host panels in sheets", () => {
     for (const t of Object.values(TEMPLATES)) {
       if (t.chrome === "sidebar") {
         expect(t.regionsInline).toEqual({ aux: true, sidebar: true });
@@ -103,11 +109,14 @@ describe("template invariants (§3.3)", () => {
     }
   });
 
-  it("keyboard anchors bottom or right in every template (§12.1 diagonal)", () => {
+  it("aux placement is coherent with its inline flag", () => {
     for (const t of Object.values(TEMPLATES)) {
-      expect(["bottom-full", "bottom-band", "bottom-right", "right-side", "right-edge"]).toContain(
-        t.kbdPlacement,
-      );
+      const inline = t.regionsInline.aux;
+      if (t.aux === "sheets" || t.aux === "in-machine") {
+        expect(inline).toBe(false);
+      } else {
+        expect(inline).toBe(true);
+      }
     }
   });
 });

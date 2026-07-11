@@ -1,5 +1,5 @@
-// Step-2 shell tests (docs/responsive-layout.md §9): CalcShell stamps the
-// static data-aspect + per-model --kbd-* data (layout inputs, SSR-known) and,
+// Shell tests (docs/responsive-layout.md §14.2): CalcShell stamps the static
+// data-aspect + per-model --kbd-* data (layout inputs, SSR-known) and,
 // post-mount, the diagnostic labels from computePlacement. Geometry-driven
 // placement itself is asserted in Playwright — jsdom has no layout engine.
 import { describe, expect, it } from "vitest";
@@ -15,8 +15,7 @@ function renderShell(modelId: string) {
     <CalcShell
       model={model}
       topbar={<span>topbar</span>}
-      lcd={<span>lcd</span>}
-      keyboard={<span>kbd</span>}
+      machine={<span>machine</span>}
       aux={<span>aux</span>}
     />,
   );
@@ -40,19 +39,22 @@ describe("CalcShell", () => {
     expect(root.style.getPropertyValue("--kbd-rows")).toBe("9");
   });
 
-  it("renders all five region slots", () => {
+  it("renders the four v2 region slots (machine is ONE region)", () => {
     const { container } = renderShell("HP-12C");
-    for (const region of ["topbar", "sidebar", "lcd", "aux", "keyboard"]) {
+    for (const region of ["topbar", "sidebar", "machine", "aux"]) {
       expect(
         container.querySelector(`[data-region="${region}"]`),
         region,
       ).not.toBeNull();
     }
+    // the v1 split regions are gone
+    expect(container.querySelector('[data-region="lcd"]')).toBeNull();
+    expect(container.querySelector('[data-region="keyboard"]')).toBeNull();
   });
 
   it("stamps post-mount labels from the SAME oracle the tests use (no drift)", () => {
-    // jsdom mounts with a real innerWidth (default 1024) — whatever it is,
-    // the stamped label must equal computePlacement over that width.
+    // jsdom mounts with a real innerWidth — whatever it is, the stamped label
+    // must equal computePlacement over that width (matchMedia stub ⇒ not short).
     const { container } = renderShell("HP-12C");
     const root = shellRoot(container);
     const expected = computePlacement(
@@ -61,6 +63,6 @@ describe("CalcShell", () => {
     );
     expect(root.dataset.template).toBe(expected.id);
     expect(root.dataset.chrome).toBe(expected.chrome);
-    expect(root.dataset.kbdPlacement).toBe(expected.kbdPlacement);
+    expect(root.dataset.machine).toBe(expected.machine);
   });
 });

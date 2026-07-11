@@ -2,9 +2,7 @@
 
 import { useState } from "react";
 import { CalcShell } from "@/components/calculator/CalcShell";
-import { KeyboardFitter } from "@/components/calculator/KeyboardFitter";
-import { KeyboardZone } from "@/components/calculator/KeyboardZone";
-import { LcdRegion } from "@/components/calculator/LcdRegion";
+import { MachineUnit } from "@/components/calculator/MachineUnit";
 import { Display } from "@/components/calculator/Display";
 import { AuxPanel } from "@/components/calculator/AuxPanel";
 import { Topbar } from "@/components/calculator/Topbar";
@@ -37,6 +35,9 @@ export default function Home() {
     openCheatsheet: () => setCheatOpen(true),
   });
 
+  // Paper aux (§14.3) — rendered in the page's aux region AND in the machine's
+  // side-variant bay; CSS shows exactly one per template (like the LCD's
+  // line/mini dual render).
   const aux = (
     <AuxPanel
       state={active.state}
@@ -48,48 +49,48 @@ export default function Home() {
 
   return (
     <>
-    <CalcShell
-      model={model}
-      topbar={
-        <Topbar
-          activeModel={modelId}
-          onSelectModel={setModelId}
-          nav={<CalcNav />}
-          aux={aux}
-        />
-      }
-      sidebar={
-        // persistent desk-panel nav at lg+ (§12.4; --calc-sidebar-w sizes the track)
-        <div className="flex size-full flex-col border-r border-border bg-card/50">
-          <CalcNav />
-        </div>
-      }
-      lcd={
-        <LcdRegion>
-          <Display
-            state={active.state}
-            family={model.family}
-            showAngle={model.angle}
-            showRegisters={model.id === "HP-12C"}
-            renderLatex={active.renderLatex}
-            fmt={active.fmt}
+      <CalcShell
+        model={model}
+        topbar={
+          <Topbar
+            activeModel={modelId}
+            onSelectModel={setModelId}
+            nav={<CalcNav />}
+            aux={aux}
           />
-        </LcdRegion>
-      }
-      keyboard={
-        <KeyboardFitter>
-          <KeyboardZone model={model} rpn={rpn} rpl={rpl} />
-        </KeyboardFitter>
-      }
-      aux={aux}
-    />
-    <CheatSheet
-      family={model.family}
-      modelName={model.name}
-      open={cheatOpen}
-      onOpenChange={setCheatOpen}
-    />
+        }
+        sidebar={
+          // persistent desk-panel nav at lg+ (§12.4; --calc-sidebar-w sizes the track)
+          <div className="flex size-full flex-col border-r border-border bg-card/50">
+            <CalcNav />
+          </div>
+        }
+        machine={
+          <MachineUnit
+            model={model}
+            rpn={rpn}
+            rpl={rpl}
+            lcd={
+              <Display
+                state={active.state}
+                family={model.family}
+                showAngle={model.angle}
+                showRegisters={model.id === "HP-12C"}
+                renderLatex={active.renderLatex}
+                fmt={active.fmt}
+              />
+            }
+            paper={aux}
+          />
+        }
+        aux={aux}
+      />
+      <CheatSheet
+        family={model.family}
+        modelName={model.name}
+        open={cheatOpen}
+        onOpenChange={setCheatOpen}
+      />
     </>
   );
 }
-

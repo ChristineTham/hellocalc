@@ -110,12 +110,19 @@
   --calc-region-gap: 0.75rem;
   --calc-panel-min-w: 16.25rem;
   --calc-panel-max-w: 26.25rem;
-  /* Machine-module chrome above/around the key grid (nameplate + bezel pads):
-     the fitter and the §3.3 band formulas subtract this so nameplate + A-ratio
-     grid always fit their slot exactly. */
+  /* Machine chrome (§14.1): the integrated bezel's fixed vertical overhead —
+     nameplate + bezel pads + internal gaps + the LCD's line-state floor. The
+     stacked-variant width formula subtracts this so nameplate + LCD(line) +
+     A-ratio keyboard always fit the slot exactly. */
   --calc-nameplate-h: 2.5rem;
   --calc-bezel-pad: 0.875rem;
-  --calc-kbd-chrome-h: calc(var(--calc-nameplate-h) + 2 * var(--calc-bezel-pad));
+  --calc-machine-gap: 0.625rem;
+  --calc-machine-overhead: calc(
+    var(--calc-nameplate-h) + 2 * var(--calc-bezel-pad) + 2 * var(--calc-machine-gap) +
+      var(--calc-lcd-line-h)
+  );
+  --calc-machine-lcd-cap: 19rem; /* LCD contribution to the machine's natural height */
+  --calc-lcd-side-h: 11rem; /* side-variant LCD slot (< mini threshold ⇒ line state) */
   /* Key-legend type scale (§13.5, pulled forward): proportional to the machine
      module's width (cqi against the .kbd-module inline-size container) with
      floors/caps, so key min-content can never outgrow the aspect box — fixed
@@ -308,15 +315,10 @@
   .calc-shell > [data-region="topbar"] {
     grid-area: topbar;
   }
-  .calc-shell > [data-region="keyboard"] {
-    grid-area: keyboard;
-    container: kbd / size;
-    display: grid; /* so .kbd-module's margin:auto centres on both axes */
-  }
-  .calc-shell > [data-region="lcd"] {
-    grid-area: lcd;
-    container: lcd / size;
-    display: flex;
+  .calc-shell > [data-region="machine"] {
+    grid-area: machine;
+    container: machine / size;
+    display: grid; /* so .machine's margin:auto centres on both axes */
   }
   .calc-shell > [data-region="aux"] {
     grid-area: aux;
@@ -330,19 +332,56 @@
     display: none;
   }
 
-  /* Machine module — the aspect-locked fitter (§4.3). The contain formula
-     sizes the module so bezel chrome + the A-ratio key grid fit the slot on
-     BOTH axes; margin:auto centres it; --calc-kbd-max-w is Priority 2's
-     "never comically large". */
-  .kbd-module {
+  /* ── The integrated machine (§14.1) ──────────────────────────────────────
+     ONE bezel, four internal areas (np / lcd / aux / kbd) reflowed by CSS
+     between the stack and side variants — same DOM, no JS. The stacked width
+     is the §4.3 contain formula lifted to the whole machine: subtract the
+     fixed overhead (nameplate + pads + gaps + line-LCD floor), multiply by
+     the keyboard aspect, cap at the per-model key-pitch limit. The LCD row
+     is the flexible remainder (line ↔ mini via @container/lcd). */
+  .machine {
+    margin: auto;
+    display: grid;
+    gap: var(--calc-machine-gap);
+    padding: var(--calc-bezel-pad);
+    grid-template-areas: "np" "lcd" "kbd";
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(var(--calc-lcd-line-h), 1fr) auto;
     inline-size: min(
       100cqi,
-      calc((100cqb - var(--calc-kbd-chrome-h)) * var(--kbd-a)),
+      calc((100cqb - var(--calc-machine-overhead)) * var(--kbd-a)),
       calc(var(--kbd-cols) * var(--calc-key-max-pitch))
     );
-    margin: auto;
-    /* inline-size container so key-legend cq tokens (§13.5) track the MODULE
-       width (the slot can be much wider than the capped module). */
+    /* natural height uses the ACTUAL keyboard height — width-bound (100cqi)
+       on phones, pitch-bound on desks — so the bezel never inflates */
+    block-size: min(
+      100cqb,
+      calc(
+        min(100cqi, var(--kbd-cols) * var(--calc-key-max-pitch)) / var(--kbd-a) +
+          var(--calc-machine-overhead) + var(--calc-machine-lcd-cap) -
+          var(--calc-lcd-line-h)
+      )
+    );
+  }
+  .machine-np {
+    grid-area: np;
+  }
+  .machine-lcd {
+    grid-area: lcd;
+    container: lcd / size;
+    display: flex;
+    min-inline-size: 0;
+    min-block-size: 0;
+  }
+  .machine-aux {
+    grid-area: aux;
+    display: none;
+    min-block-size: 0;
+  }
+  .machine-kbd {
+    grid-area: kbd;
+    /* inline-size container so key-legend cq tokens (§13.5) track the key
+       column's width in BOTH variants. */
     container: kbdmod / inline-size;
   }
 
@@ -350,17 +389,17 @@
      data-pressed mirrors the pointer :active press so a PHYSICAL keystroke
      visibly depresses the on-screen key. The ::after halo grows each key's
      tap target ~4px beyond its visual face without touching fidelity. */
-  [data-region="keyboard"] button[data-pressed] {
+  .machine-kbd button[data-pressed] {
     transform: translateY(2px);
     filter: brightness(0.96);
   }
-  [data-region="keyboard"] button::after {
+  .machine-kbd button::after {
     content: "";
     position: absolute;
     inset: -0.125rem;
   }
   @media (prefers-reduced-motion: reduce) {
-    [data-region="keyboard"] button {
+    .machine-kbd button {
       transition: none;
     }
   }
@@ -424,168 +463,120 @@
     display: flex;
   }
 
-  /* ── TEMPLATE `stack` — phone + sm (<48rem), ALL aspect classes ──────────── */
+  /* ══ Page templates v2 (§14.2) — topbar / sidebar / MACHINE / aux ══════════
+     The machine is one integrated region; no template separates the LCD from
+     the keyboard. Media values stay in lock-step with breakpoints.ts (§10). */
+
+  /* ── TEMPLATE `stack` — phone + sm (<48rem): the machine IS the app ──────── */
   @media (width < 48rem) {
     .calc-shell {
-      grid-template-areas: "topbar" "lcd" "keyboard";
+      grid-template-areas: "topbar" "machine";
       grid-template-columns: minmax(0, 1fr);
-      grid-template-rows:
-        minmax(var(--calc-topbar-h), auto)
-        minmax(0, 1fr)
-        min(
-          var(--calc-kbd-max-h),
-          calc(100dvw / var(--kbd-a) + var(--calc-kbd-chrome-h)),
-          calc(
-            var(--kbd-cols) * var(--calc-key-max-pitch) / var(--kbd-a) +
-              var(--calc-kbd-chrome-h)
-          )
-        );
+      grid-template-rows: minmax(var(--calc-topbar-h), auto) minmax(0, 1fr);
     }
   }
 
   /* ── md (48rem–64rem) ────────────────────────────────────────────────────── */
   @media (48rem <= width < 64rem) {
-    /* TEMPLATE `tablet-portrait-wide` — aspect=landscape (12C/15C). */
-    .calc-shell[data-aspect="landscape"] {
-      grid-template-areas:
-        "topbar   topbar"
-        "lcd      aux"
-        "keyboard keyboard";
-      grid-template-columns: minmax(0, 1fr) minmax(var(--calc-panel-min-w), var(--calc-panel-max-w));
-      grid-template-rows:
-        minmax(var(--calc-topbar-h), auto)
-        minmax(0, 1fr)
-        min(
-          var(--calc-kbd-max-h),
-          calc(100dvw / var(--kbd-a) + var(--calc-kbd-chrome-h)),
-          calc(
-            var(--kbd-cols) * var(--calc-key-max-pitch) / var(--kbd-a) +
-              var(--calc-kbd-chrome-h)
-          )
-        );
-    }
-    .calc-shell[data-aspect="landscape"] > [data-region="aux"] {
-      display: flex;
-    }
-
-    /* TEMPLATE `tablet-portrait-corner` — aspect=portrait|tall.
-       LCD across the top; keyboard bottom-RIGHT; aux bottom-LEFT (§12.1). */
+    /* TEMPLATE `tablet` — portrait/tall: paper column LEFT, machine right */
     .calc-shell[data-aspect="portrait"],
     .calc-shell[data-aspect="tall"] {
       grid-template-areas:
         "topbar topbar"
-        "lcd    lcd"
-        "aux    keyboard";
-      grid-template-columns:
-        minmax(0, 1fr)
-        min(
-          calc(var(--kbd-cols) * var(--calc-key-max-pitch)),
-          calc((100dvh - var(--calc-topbar-h)) / 2 * var(--kbd-a))
-        );
-      grid-template-rows:
-        minmax(var(--calc-topbar-h), auto)
-        minmax(0, 1fr)
-        minmax(0, 1fr);
+        "aux    machine";
+      grid-template-columns: minmax(14rem, 19rem) minmax(0, 1fr);
+      grid-template-rows: minmax(var(--calc-topbar-h), auto) minmax(0, 1fr);
     }
     .calc-shell[data-aspect="portrait"] > [data-region="aux"],
     .calc-shell[data-aspect="tall"] > [data-region="aux"] {
       display: flex;
     }
+
+    /* TEMPLATE `tablet-wide` — landscape: machine stacked, paper row below */
+    .calc-shell[data-aspect="landscape"] {
+      grid-template-areas: "topbar" "machine" "aux";
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows:
+        minmax(var(--calc-topbar-h), auto)
+        minmax(0, 1fr)
+        minmax(0, 16rem);
+    }
+    .calc-shell[data-aspect="landscape"] > [data-region="aux"] {
+      display: flex;
+    }
   }
 
-  /* ── lg+ (≥64rem): persistent-sidebar chrome; inline aux + sidebar ───────── */
+  /* ── TEMPLATE `desktop` — lg+: sidebar | machine | paper column right ─────── */
   @media (width >= 64rem) {
+    .calc-shell {
+      grid-template-areas:
+        "sidebar topbar  topbar"
+        "sidebar machine aux";
+      grid-template-columns:
+        var(--calc-sidebar-w)
+        minmax(0, 1fr)
+        minmax(17rem, 22rem);
+      grid-template-rows: minmax(var(--calc-topbar-h), auto) minmax(0, 1fr);
+    }
     .calc-shell > [data-region="aux"],
     .calc-shell > [data-region="sidebar"] {
       display: flex;
     }
-
-    /* TEMPLATE `desktop-landscape` — aspect=landscape (lg == xl == 2xl). */
-    .calc-shell[data-aspect="landscape"] {
-      grid-template-areas:
-        "sidebar topbar   topbar"
-        "sidebar lcd      aux"
-        "sidebar keyboard keyboard";
-      grid-template-columns:
-        var(--calc-sidebar-w)
-        minmax(0, 1fr)
-        minmax(var(--calc-panel-min-w), var(--calc-panel-max-w));
-      grid-template-rows:
-        minmax(var(--calc-topbar-h), auto)
-        minmax(0, 1fr)
-        min(
-          var(--calc-kbd-max-h),
-          calc((100dvw - var(--calc-sidebar-w)) / var(--kbd-a) + var(--calc-kbd-chrome-h)),
-          calc(
-            var(--kbd-cols) * var(--calc-key-max-pitch) / var(--kbd-a) +
-              var(--calc-kbd-chrome-h)
-          )
-        );
-    }
-
-    /* TEMPLATE `desktop-wide` — aspect=portrait (lg == xl == 2xl) and tall@lg.
-       Keyboard right column, height-bound below the topbar. */
-    .calc-shell[data-aspect="portrait"],
-    .calc-shell[data-aspect="tall"] {
-      grid-template-areas:
-        "sidebar topbar topbar"
-        "sidebar lcd    keyboard"
-        "sidebar aux    keyboard";
-      grid-template-columns:
-        var(--calc-sidebar-w)
-        minmax(0, 1fr)
-        min(
-          calc(var(--kbd-cols) * var(--calc-key-max-pitch)),
-          calc((100dvh - var(--calc-topbar-h) - var(--calc-kbd-chrome-h)) * var(--kbd-a))
-        );
-      grid-template-rows:
-        minmax(var(--calc-topbar-h), auto)
-        minmax(0, 1fr)
-        minmax(0, 1fr);
-    }
   }
 
-  /* TEMPLATE `desktop-tall` — aspect=tall at xl+ (overrides desktop-wide by
-     source order): keyboard takes the ENTIRE height of the right edge. */
-  @media (width >= 80rem) {
-    .calc-shell[data-aspect="tall"] {
-      grid-template-areas:
-        "sidebar topbar keyboard"
-        "sidebar lcd    keyboard"
-        "sidebar aux    keyboard";
-      grid-template-columns:
-        var(--calc-sidebar-w)
-        minmax(0, 1fr)
-        min(
-          calc(var(--kbd-cols) * var(--calc-key-max-pitch)),
-          calc((100dvh - var(--calc-kbd-chrome-h)) * var(--kbd-a))
-        );
-      grid-template-rows:
-        minmax(var(--calc-topbar-h), auto)
-        minmax(0, 1fr)
-        minmax(0, 1fr);
-    }
-  }
-
-  /* ── TEMPLATE `phone-landscape` — short-viewport OVERRIDE (any width ≥ sm).
-     Same specificity (0,2,0) as the aspect rules above; wins by source order.
-     Keyboard height-bound on the right; LCD to its left; aux drawer-hosted. */
-  @media (min-width: 40rem) and (max-height: 34rem) and (orientation: landscape) {
+  /* ── Short-viewport override (≤34rem tall, §14.1): the machine takes
+        everything; portrait/tall machines flip to the SIDE variant — one
+        bezel, nameplate+LCD left (paper bay below), keyboard right. Landscape
+        machines keep stacking (their pitch stays large). ─────────────────── */
+  @media (max-height: 34rem) {
     .calc-shell[data-aspect] {
-      grid-template-areas:
-        "topbar topbar"
-        "lcd    keyboard";
-      grid-template-columns:
-        minmax(0, 1fr)
-        min(
-          calc(var(--kbd-cols) * var(--calc-key-max-pitch)),
-          calc((100dvh - var(--calc-topbar-h) - var(--calc-kbd-chrome-h)) * var(--kbd-a))
-        );
+      grid-template-areas: "topbar" "machine";
+      grid-template-columns: minmax(0, 1fr);
       grid-template-rows: minmax(var(--calc-topbar-h), auto) minmax(0, 1fr);
     }
     .calc-shell[data-aspect] > [data-region="aux"],
     .calc-shell[data-aspect] > [data-region="sidebar"] {
       display: none;
+    }
+
+    .calc-shell[data-aspect="portrait"] .machine,
+    .calc-shell[data-aspect="tall"] .machine {
+      grid-template-areas:
+        "np  kbd"
+        "lcd kbd"
+        "aux kbd";
+      grid-template-columns: minmax(13rem, 1fr) auto;
+      grid-template-rows: auto var(--calc-lcd-side-h) minmax(0, 1fr);
+      inline-size: fit-content;
+      max-inline-size: 100cqi;
+      block-size: min(
+        100cqb,
+        calc(
+          var(--kbd-cols) * var(--calc-key-max-pitch) / var(--kbd-a) +
+            2 * var(--calc-bezel-pad)
+        )
+      );
+    }
+    .calc-shell[data-aspect="portrait"] .machine .machine-kbd,
+    .calc-shell[data-aspect="tall"] .machine .machine-kbd {
+      inline-size: min(
+        calc((100cqb - 2 * var(--calc-bezel-pad)) * var(--kbd-a)),
+        calc(var(--kbd-cols) * var(--calc-key-max-pitch))
+      );
+    }
+    .calc-shell[data-aspect="portrait"] .machine .machine-aux,
+    .calc-shell[data-aspect="tall"] .machine .machine-aux {
+      display: flex;
+      min-inline-size: 0;
+      overflow: hidden;
+    }
+    /* the side column is narrow — badge stacks over the model number */
+    .calc-shell[data-aspect="portrait"] .machine .machine-np,
+    .calc-shell[data-aspect="tall"] .machine .machine-np {
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: flex-end;
+      block-size: auto;
     }
   }
 }

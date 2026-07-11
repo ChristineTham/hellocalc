@@ -1,36 +1,35 @@
 // src/lib/layout/templates.ts
-// The seven §3.3 layout templates, enumerated in TS so the shell can stamp
-// data-template / data-chrome / data-kbd-placement from the SAME source the
-// tests assert (docs/responsive-layout.md §10 — labels never drift from an
-// independent CSS guess; geometry remains the primary e2e assertion).
-// Pure TS — no React/DOM. The actual layout is CSS (§3.3 grid templates);
-// this module is the oracle + label source.
+// The §14.2 v2 layout templates, enumerated in TS so the shell can stamp
+// data-template / data-chrome / data-machine from the SAME source the tests
+// assert (labels never drift from an independent CSS guess; geometry remains
+// the primary e2e assertion). v2: the machine (nameplate + LCD + keyboard) is
+// ONE integrated region — no template ever separates the LCD from the keys.
+// Pure TS — no React/DOM. The actual layout is CSS (globals.css @layer
+// components); this module is the oracle + label source.
 
 import type { WidthTier } from "./breakpoints";
 import type { KeyboardAspectClass } from "./keyboardGeometry";
 
 export type TemplateId =
-  | "stack"
-  | "phone-landscape"
-  | "tablet-portrait-wide"
-  | "tablet-portrait-corner"
-  | "desktop-landscape"
-  | "desktop-wide"
-  | "desktop-tall";
+  | "stack" // < md: topbar / machine; aux via sheets
+  | "machine-side" // short viewports: side-variant machine, aux in its left column
+  | "tablet" // md, portrait/tall: paper column LEFT, machine right
+  | "tablet-wide" // md, landscape: machine stacked, paper row below
+  | "desktop"; // lg+: sidebar | machine | paper column RIGHT
 
 export type ChromeMode = "drawer" | "sidebar";
 
-export type KbdPlacement =
-  | "bottom-full" // phone/sm: entire bottom band, toolstrip beneath
-  | "bottom-band" // full-width band with inline panels beside the LCD
-  | "bottom-right" // tablet-portrait corner (aux bottom-left)
-  | "right-side" // height-bound right column
-  | "right-edge"; // tall models: full-height right edge
+/** The machine bezel's internal arrangement (§14.1). */
+export type MachineVariant = "stack" | "side";
+
+/** Where the paper aux (tape + notes) lives in this template (§14.3). */
+export type AuxPlacement = "sheets" | "left" | "below" | "right" | "in-machine";
 
 export interface LayoutTemplate {
   id: TemplateId;
   chrome: ChromeMode;
-  kbdPlacement: KbdPlacement;
+  machine: MachineVariant;
+  aux: AuxPlacement;
   /** false ⇒ that region is Sheet-hosted rather than an inline grid area. */
   regionsInline: Record<"aux" | "sidebar", boolean>;
 }
@@ -39,81 +38,76 @@ export const TEMPLATES: Record<TemplateId, LayoutTemplate> = {
   stack: {
     id: "stack",
     chrome: "drawer",
-    kbdPlacement: "bottom-full",
+    machine: "stack",
+    aux: "sheets",
     regionsInline: { aux: false, sidebar: false },
   },
-  "phone-landscape": {
-    id: "phone-landscape",
+  "machine-side": {
+    id: "machine-side",
     chrome: "drawer",
-    kbdPlacement: "right-side",
+    machine: "side",
+    aux: "in-machine",
     regionsInline: { aux: false, sidebar: false },
   },
-  "tablet-portrait-wide": {
-    id: "tablet-portrait-wide",
+  tablet: {
+    id: "tablet",
     chrome: "drawer",
-    kbdPlacement: "bottom-band",
+    machine: "stack",
+    aux: "left",
     regionsInline: { aux: true, sidebar: false },
   },
-  "tablet-portrait-corner": {
-    id: "tablet-portrait-corner",
+  "tablet-wide": {
+    id: "tablet-wide",
     chrome: "drawer",
-    kbdPlacement: "bottom-right",
+    machine: "stack",
+    aux: "below",
     regionsInline: { aux: true, sidebar: false },
   },
-  "desktop-landscape": {
-    id: "desktop-landscape",
+  desktop: {
+    id: "desktop",
     chrome: "sidebar",
-    kbdPlacement: "bottom-band",
-    regionsInline: { aux: true, sidebar: true },
-  },
-  "desktop-wide": {
-    id: "desktop-wide",
-    chrome: "sidebar",
-    kbdPlacement: "right-side",
-    regionsInline: { aux: true, sidebar: true },
-  },
-  "desktop-tall": {
-    id: "desktop-tall",
-    chrome: "sidebar",
-    kbdPlacement: "right-edge",
+    machine: "stack",
+    aux: "right",
     regionsInline: { aux: true, sidebar: true },
   },
 };
 
-/** The §3.3 enumeration table: every (aspectClass × tier) cell, duplicates collapsed. */
+/** The §14.2 enumeration: every (aspectClass × tier) cell. */
 const CELLS: Record<KeyboardAspectClass, Record<WidthTier, TemplateId>> = {
   landscape: {
     phone: "stack",
     sm: "stack",
-    md: "tablet-portrait-wide",
-    lg: "desktop-landscape",
-    xl: "desktop-landscape",
-    "2xl": "desktop-landscape",
+    md: "tablet-wide",
+    lg: "desktop",
+    xl: "desktop",
+    "2xl": "desktop",
   },
   portrait: {
     phone: "stack",
     sm: "stack",
-    md: "tablet-portrait-corner",
-    lg: "desktop-wide",
-    xl: "desktop-wide",
-    "2xl": "desktop-wide",
+    md: "tablet",
+    lg: "desktop",
+    xl: "desktop",
+    "2xl": "desktop",
   },
   tall: {
     phone: "stack",
     sm: "stack",
-    md: "tablet-portrait-corner",
-    lg: "desktop-wide", // tall@lg reuses desktop-wide (§3.3)
-    xl: "desktop-tall",
-    "2xl": "desktop-tall",
+    md: "tablet",
+    lg: "desktop",
+    xl: "desktop",
+    "2xl": "desktop",
   },
 };
 
 export interface PlacementOptions {
   /**
-   * The §3.3 short-viewport override (`orientation:landscape` + `max-height:34rem`):
-   * orthogonal to the width tier — supersedes whatever the tier would pick.
+   * The §14.1 short-viewport condition (`max-height: 34rem`): stacked would
+   * crush portrait/tall keyboards, so their machine goes side-by-side.
+   * Landscape models keep stacking even here (their stacked pitch stays
+   * large) — they just drop to the simple stack template (aux via sheets).
    */
-  shortLandscape?: boolean;
+  shortViewport?: boolean;
 }
 
 /** Which template serves a model of this aspect class at this width tier. */
@@ -122,6 +116,8 @@ export function computePlacement(
   tier: WidthTier,
   opts: PlacementOptions = {},
 ): LayoutTemplate {
-  if (opts.shortLandscape) return TEMPLATES["phone-landscape"];
+  if (opts.shortViewport) {
+    return aspectClass === "landscape" ? TEMPLATES.stack : TEMPLATES["machine-side"];
+  }
   return TEMPLATES[CELLS[aspectClass][tier]];
 }

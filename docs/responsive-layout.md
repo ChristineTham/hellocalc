@@ -1291,3 +1291,85 @@ construction — never per-breakpoint font juggling:
 | `--shadow-key` / `--shadow-key-active` | Key cap-step + warm drop; collapsed press state (§13.4). |
 | `--shadow-machine` | The single elevation treatment for the two machine modules (§13.1). |
 | `--text-key-primary` / `--text-key-shift` / `--text-nameplate` | cqi-proportional legend scale with floors (§13.5). |
+
+---
+
+## 14. v2 — The integrated machine (design review 2, deployed-app feedback)
+
+**User verdict on v1 (2026-07-11, deployed):** buttons good, LCD good — but *"the LCD
+display and the keyboard are often disconnected, breaking the illusion that this is a
+calculator."* v2 re-integrates nameplate + LCD + keyboard into ONE machine bezel, and turns
+the aux content into honest paper. This section supersedes §3.3's template set and the
+diagonal-split reading of §12.1 (information and action still cluster coherently — but the
+machine is one object, never split across the screen).
+
+### 14.1 The MachineUnit **[fixed]**
+
+One component, one bezel, four internal grid areas (`nameplate / lcd / aux / keyboard`)
+reflowed purely by CSS between two variants — same DOM, no JS branching:
+
+- **`stack`** (the default, everywhere it keeps keys usable): nameplate → LCD → keyboard,
+  top to bottom — the real calculator anatomy. The LCD row is the flexible remainder
+  (line ↔ mini via the existing container query); the keyboard keeps its aspect. Unit
+  width = `min(100cqi, (100cqb − overhead) × A, cols × pitch-cap)` — the §4.3 contain
+  formula lifted from the keyboard to the whole machine.
+- **`side`** (only when stacked would crush the keys — portrait/tall models on SHORT
+  viewports, `max-height: 34rem`): left column = nameplate over LCD (aux paper tucked
+  below, §14.3), right column = keyboard at full height. Still one bezel — a desktop
+  machine (HP-97 posture), not two panels.
+
+Variant selection is per aspect-class × height media query — SSR-known, no flash. The
+landscape Voyagers stack at every size (their stacked pitch never drops below ~60px);
+this is also simply *what a real 12C looks like*: display above keys.
+
+### 14.2 Page templates v2 (supersede §3.3's seven) **[fixed]**
+
+| Template | Where | Areas |
+|---|---|---|
+| `stack` | `< md` | `topbar / machine` — aux via individual sheets (§14.3) |
+| `machine-side` | any width, `max-height: 34rem` landscape | `topbar / machine(side)` — aux inside the machine's left column |
+| `tablet` | `md`, aspect portrait/tall | `topbar / aux ∣ machine` — paper column LEFT, machine right |
+| `tablet-wide` | `md`, aspect landscape | `topbar / machine / aux-row` — machine stacked, tape ∣ notes below |
+| `desktop` | `≥ lg` | `sidebar ∣ topbar / sidebar ∣ machine ∣ aux` — machine right of the sidebar, paper column RIGHT |
+
+No template ever separates the LCD from the keyboard. `data-kbd-placement` labels retire in
+favour of `data-machine="stack∣side"`.
+
+### 14.3 Paper, not glass — the aux components **[fixed]**
+
+History, stack, and variables become three SEPARATE components with individual toggles when
+hidden (three topbar chips below `md`, each opening its own bottom sheet):
+
+- **`HistoryTape`** — a printing-calculator paper trail: narrow near-white strip, mono
+  figures right-aligned, faint row rules, a perforated bottom edge; newest at top, older
+  entries scrolling away like spooled tape. Clean, not skeuomorphic.
+- **`StackNote` / `VarsNote`** — notebook note cards: warm paper card, ruled hairlines,
+  small tracked caption, mono values. Explicitly NOT LCD-styled — no glass green, no
+  segment font.
+
+Arrangement: desktop → right column (notes on top, tape below, printing downward); tablet →
+left column; tablet-wide → a row beneath the machine; side machine → tucked below the LCD in
+the machine's left column (paper resting on the machine body).
+
+### 14.4 Rhythm & cosiness pass **[fixed]**
+
+One spacing rhythm across chrome and machine (`--calc-region-gap` everywhere, consistent
+panel padding/radius), aux columns top-aligned with the machine, no orphaned dead zones at
+any (model × viewport) cell. Cozy, not tight; professional with Italian whitespace.
+
+### 14.5 Clamshell note (HP-28, still deferred)
+
+When the 28-series lands: large displays render the two keyboard halves side by side under
+one lid (the real posture); phones stack the halves vertically. The MachineUnit grid gains a
+second keyboard area then — no new machinery needed.
+
+### 14.6 Rollout — Steps 7–9
+
+- **Step 7 — MachineUnit.** Build the integrated bezel (both variants, pure-CSS reflow);
+  rewrite the page templates to `topbar/sidebar/machine/aux`; retire the split lcd/keyboard
+  regions; update templates.ts + placement e2e (machine-box assertions: nameplate, LCD and
+  keyboard inside ONE bezel rect). Gate: full DoD.
+- **Step 8 — Paper aux.** HistoryTape + StackNote + VarsNote (+ per-component toggles and
+  sheets below md); TVM chips move into VarsNote; wire the four arrangements. Gate: full DoD.
+- **Step 9 — Rhythm.** Spacing/alignment audit across all 4 live models × 6 viewport
+  classes (screenshot sweep), whitespace fixes, final tuning. Gate: full DoD + visual matrix.

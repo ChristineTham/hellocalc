@@ -1,10 +1,13 @@
 // src/components/calculator/CalcShell.tsx
-// The responsive shell (docs/responsive-layout.md §3): one CSS grid whose
-// template is selected by width media tier × the static per-model aspect
-// class. Layout is pure CSS (globals.css @layer components) — this component
-// stamps the selection inputs (data-aspect + the per-model --kbd-* data) and,
-// post-mount, the §10 diagnostic labels from the SAME oracle the tests assert
-// (computePlacement), so labels can never drift from an independent guess.
+// The responsive shell (docs/responsive-layout.md §14.2): one CSS grid over
+// four regions — topbar / sidebar / MACHINE / aux — whose template is
+// selected by width media tier × the static per-model aspect class. The
+// machine (nameplate + LCD + keyboard) is one integrated region; no template
+// separates the display from the keys. Layout is pure CSS (globals.css
+// @layer components) — this component stamps the selection inputs
+// (data-aspect + per-model --kbd-* data) and, post-mount, the §10 diagnostic
+// labels from the SAME oracle the tests assert (computePlacement), so labels
+// can never drift from an independent guess.
 "use client";
 
 import { useViewportTier } from "@/hooks/useViewportTier";
@@ -14,8 +17,7 @@ import type { Model } from "./models";
 export interface CalcShellProps {
   model: Model;
   topbar: React.ReactNode;
-  lcd: React.ReactNode;
-  keyboard: React.ReactNode;
+  machine: React.ReactNode;
   aux?: React.ReactNode;
   sidebar?: React.ReactNode;
 }
@@ -27,10 +29,10 @@ type ShellStyle = React.CSSProperties & {
   "--kbd-rows": string;
 };
 
-export function CalcShell({ model, topbar, lcd, keyboard, aux, sidebar }: CalcShellProps) {
-  const { tier, shortLandscape } = useViewportTier();
+export function CalcShell({ model, topbar, machine, aux, sidebar }: CalcShellProps) {
+  const { tier, shortViewport } = useViewportTier();
   const g = model.geometry;
-  const placement = tier ? computePlacement(g.aspectClass, tier, { shortLandscape }) : null;
+  const placement = tier ? computePlacement(g.aspectClass, tier, { shortViewport }) : null;
   const style: ShellStyle = {
     "--kbd-a": String(g.aspect),
     "--kbd-cols": String(g.cols),
@@ -43,16 +45,15 @@ export function CalcShell({ model, topbar, lcd, keyboard, aux, sidebar }: CalcSh
       data-aspect={g.aspectClass}
       data-template={placement?.id}
       data-chrome={placement?.chrome}
-      data-kbd-placement={placement?.kbdPlacement}
+      data-machine={placement?.machine}
       style={style}
     >
       <div data-region="topbar">{topbar}</div>
       <aside data-region="sidebar" aria-label="Navigation">
         {sidebar}
       </aside>
-      <div data-region="lcd">{lcd}</div>
+      <div data-region="machine">{machine}</div>
       <div data-region="aux">{aux}</div>
-      <div data-region="keyboard">{keyboard}</div>
     </main>
   );
 }

@@ -21,7 +21,9 @@ test.describe("hellocalc — smoke", () => {
     await page.getByRole("button", { name: "3", exact: true }).click();
     await page.getByRole("button", { name: "+", exact: true }).click();
     // scope to the visible mini subtree — the hidden line subtree echoes values too
-    await expect(page.locator('[data-lcd-mode="mini"]').getByText("5.00").first()).toBeVisible();
+    await expect(
+      page.locator('[data-lcd-mode]:visible').getByText("5.00").first(),
+    ).toBeVisible();
   });
 
   test("model picker groups models, searches, and disables unimplemented ones", async ({ page }) => {
@@ -48,88 +50,90 @@ test.describe("hellocalc — smoke", () => {
     await expect(page.locator("main.calc-shell")).toHaveAttribute("data-aspect", "landscape");
   });
 
-  test("device matrix: keyboard placement per template (§3.3, geometry-first)", async ({
-    page,
-  }) => {
+  test("device matrix: the machine is ONE integrated unit (§14)", async ({ page }) => {
+    const machine = () => page.locator('[data-slot="machine"]');
+    const lcdSlot = () => page.locator('[data-slot="machine-lcd"]');
     const kbd = () => page.locator('[data-slot="keyboard"]');
+    const boxOf = async (loc: ReturnType<typeof machine>) => {
+      const b = await loc.boundingBox();
+      if (!b) throw new Error("missing box");
+      return b;
+    };
 
-    // phone 393×852 — `stack`: keyboard owns the full-width bottom band
+    // phone 393×852 — `stack`: nameplate → LCD → keys inside one bezel
     await page.setViewportSize({ width: 393, height: 852 });
     await page.goto("/");
-    let box = await kbd().boundingBox();
-    if (!box) throw new Error("no keyboard box (phone)");
-    expect(box.width).toBeGreaterThan(340); // fills the width (minus bezel chrome)
-    expect(box.y + box.height).toBeGreaterThan(852 - 80); // anchored at the bottom
-    // …and NOT clipped: key min-content must never outgrow the band (§13.5 —
-    // fixed-px legends once pushed the Voyager grid past the viewport)
-    expect(box.y + box.height).toBeLessThanOrEqual(852 + 1);
     await expect(page.locator("main.calc-shell")).toHaveAttribute("data-template", "stack");
+    await expect(page.locator("main.calc-shell")).toHaveAttribute("data-machine", "stack");
+    let m = await boxOf(machine());
+    let lcd = await boxOf(lcdSlot());
+    let k = await boxOf(kbd());
+    expect(m.width).toBeGreaterThan(340); // machine fills the phone width
+    // LCD and keyboard both INSIDE the bezel; LCD above the keys; no clipping
+    expect(lcd.x).toBeGreaterThanOrEqual(m.x - 1);
+    expect(lcd.x + lcd.width).toBeLessThanOrEqual(m.x + m.width + 1);
+    expect(k.y + k.height).toBeLessThanOrEqual(m.y + m.height + 1);
+    expect(m.y + m.height).toBeLessThanOrEqual(852 + 1);
+    expect(lcd.y + lcd.height).toBeLessThanOrEqual(k.y + 1);
 
-    // desktop 1366×800, portrait model (HP-48G) — `desktop-wide`: right column
+    // desktop 1366×800, portrait model (48G) — `desktop`: machine right of the
+    // sidebar, paper column to the machine's RIGHT, machine still stacked
     await page.setViewportSize({ width: 1366, height: 800 });
     await selectModel(page, "HP-48G");
-    await expect(page.locator("main.calc-shell")).toHaveAttribute(
-      "data-template",
-      "desktop-wide",
-    );
-    box = await kbd().boundingBox();
-    if (!box) throw new Error("no keyboard box (desktop 48G)");
-    expect(box.x).toBeGreaterThan(1366 / 2); // keyboard on the right side
-    // LCD sits left of the keyboard (§12.1 diagonal: read left, act right)
-    const lcd = await page.locator('[data-region="lcd"]').boundingBox();
-    if (!lcd) throw new Error("no lcd box");
-    expect(lcd.x + lcd.width).toBeLessThanOrEqual(box.x + 1);
+    await expect(page.locator("main.calc-shell")).toHaveAttribute("data-template", "desktop");
+    await expect(page.locator("main.calc-shell")).toHaveAttribute("data-machine", "stack");
+    m = await boxOf(machine());
+    const sidebar = await boxOf(page.locator('[data-region="sidebar"]'));
+    const aux = await boxOf(page.locator('[data-region="aux"]'));
+    expect(m.x).toBeGreaterThanOrEqual(sidebar.x + sidebar.width - 1);
+    expect(aux.x).toBeGreaterThanOrEqual(m.x + m.width - 1);
 
-    // same viewport, landscape model (HP-12C) — `desktop-landscape`: bottom band
+    // same viewport, landscape model (12C): the classic anatomy — LCD above keys
     await selectModel(page, "HP-12C");
-    await expect(page.locator("main.calc-shell")).toHaveAttribute(
-      "data-template",
-      "desktop-landscape",
-    );
-    box = await kbd().boundingBox();
-    if (!box) throw new Error("no keyboard box (desktop 12C)");
-    expect(box.y + box.height).toBeGreaterThan(800 - 80); // anchored at the bottom
+    await expect(page.locator("main.calc-shell")).toHaveAttribute("data-template", "desktop");
+    m = await boxOf(machine());
+    lcd = await boxOf(lcdSlot());
+    k = await boxOf(kbd());
+    expect(lcd.y + lcd.height).toBeLessThanOrEqual(k.y + 1);
+    expect(k.y + k.height).toBeLessThanOrEqual(m.y + m.height + 1);
   });
 
-  test("device matrix extended: tablet corner, phone landscape, large desktop (§10)", async ({
+  test("device matrix extended: tablet paper-left, side machine, large desktop (§14)", async ({
     page,
   }) => {
-    const kbd = () => page.locator('[data-slot="keyboard"]');
+    const machine = () => page.locator('[data-slot="machine"]');
 
-    // tablet-portrait 834×1112, portrait model (48G) — `tablet-portrait-corner`:
-    // LCD top, aux bottom-LEFT, keyboard bottom-RIGHT (§12.1 diagonal)
+    // tablet-portrait 834×1112, portrait model (48G) — `tablet`: paper LEFT
     await page.setViewportSize({ width: 834, height: 1112 });
     await page.goto("/");
     await selectModel(page, "HP-48G");
-    await expect(page.locator("main.calc-shell")).toHaveAttribute(
-      "data-template",
-      "tablet-portrait-corner",
-    );
-    const kbdBox = await kbd().boundingBox();
-    if (!kbdBox) throw new Error("no keyboard box (tablet corner)");
-    expect(kbdBox.x).toBeGreaterThan(834 / 2); // bottom-right corner
-    expect(kbdBox.y).toBeGreaterThan(1112 / 3);
+    await expect(page.locator("main.calc-shell")).toHaveAttribute("data-template", "tablet");
+    const mBox = await machine().boundingBox();
     const aux = await page.locator('[data-region="aux"]').boundingBox();
-    if (!aux) throw new Error("no aux box (tablet corner)");
-    expect(aux.x + aux.width).toBeLessThanOrEqual(kbdBox.x + 1); // aux left of keyboard
+    if (!mBox || !aux) throw new Error("missing tablet boxes");
+    expect(aux.x + aux.width).toBeLessThanOrEqual(mBox.x + 1); // paper column left of machine
 
-    // phone-landscape 852×393 — the short-viewport override: keyboard right-side
+    // short viewport 852×393 — `machine-side`: ONE bezel, LCD left of keys
     await page.setViewportSize({ width: 852, height: 393 });
     await expect(page.locator("main.calc-shell")).toHaveAttribute(
       "data-template",
-      "phone-landscape",
+      "machine-side",
     );
-    const plBox = await kbd().boundingBox();
-    if (!plBox) throw new Error("no keyboard box (phone landscape)");
-    expect(plBox.x).toBeGreaterThan(852 / 2);
+    await expect(page.locator("main.calc-shell")).toHaveAttribute("data-machine", "side");
+    const sideM = await machine().boundingBox();
+    const lcd = await page.locator('[data-slot="machine-lcd"]').boundingBox();
+    const k = await page.locator('[data-slot="keyboard"]').boundingBox();
+    if (!sideM || !lcd || !k) throw new Error("missing side boxes");
+    expect(lcd.x + lcd.width).toBeLessThanOrEqual(k.x + 1); // side by side
+    expect(k.x + k.width).toBeLessThanOrEqual(sideM.x + sideM.width + 1); // same bezel
 
     // large desktop 1680×950, HP-12C — TVM register strip pinned in aux (§12.5)
     await page.setViewportSize({ width: 1680, height: 950 });
     await selectModel(page, "HP-12C");
-    const strip = page.locator('[data-slot="tvm-strip"]');
+    const strip = page.locator('[data-region="aux"] [data-slot="tvm-strip"]');
     await expect(strip).toBeVisible();
-    for (const k of ["PV", "PMT", "FV"]) {
-      await expect(strip.getByText(k, { exact: true })).toBeVisible();
+    for (const key of ["PV", "PMT", "FV"]) {
+      await expect(strip.getByText(key, { exact: true })).toBeVisible();
     }
   });
 
@@ -139,18 +143,18 @@ test.describe("hellocalc — smoke", () => {
     await page.goto("/"); // HP-12C (landscape) active
     const cases: ReadonlyArray<readonly [number, string]> = [
       [639, "stack"],
-      [640, "stack"], // sm reuses stack (§11 #2)
+      [640, "stack"],
       [767, "stack"],
-      [768, "tablet-portrait-wide"],
-      [1023, "tablet-portrait-wide"],
-      [1024, "desktop-landscape"],
-      [1279, "desktop-landscape"],
-      [1280, "desktop-landscape"],
-      [1535, "desktop-landscape"],
-      [1536, "desktop-landscape"],
+      [768, "tablet-wide"],
+      [1023, "tablet-wide"],
+      [1024, "desktop"],
+      [1279, "desktop"],
+      [1280, "desktop"],
+      [1535, "desktop"],
+      [1536, "desktop"],
     ];
     for (const [width, id] of cases) {
-      await page.setViewportSize({ width, height: 900 }); // tall: no short-landscape override
+      await page.setViewportSize({ width, height: 900 }); // tall: no short override
       await expect(page.locator("main.calc-shell")).toHaveAttribute("data-template", id);
       // geometry cross-check at the stack↔md boundary: inline aux appears at 768
       if (width === 767) {
@@ -169,7 +173,9 @@ test.describe("hellocalc — smoke", () => {
     await page.getByRole("button", { name: "ENTER↑", exact: true }).click();
     await page.getByRole("button", { name: "3", exact: true }).click();
     await page.getByRole("button", { name: "+", exact: true }).click();
-    await expect(page.locator('[data-lcd-mode="mini"]').getByText("5.00").first()).toBeVisible();
+    await expect(
+      page.locator('[data-lcd-mode]:visible').getByText("5.00").first(),
+    ).toBeVisible();
   });
 
   test("HP-48G RPL faceplate pushes and adds on the dynamic stack", async ({ page }) => {
@@ -179,7 +185,9 @@ test.describe("hellocalc — smoke", () => {
     await page.getByRole("button", { name: "ENTER", exact: true }).click();
     await page.getByRole("button", { name: "3", exact: true }).click();
     await page.getByRole("button", { name: "+", exact: true }).click();
-    await expect(page.locator('[data-lcd-mode="mini"]').getByText("5.00").first()).toBeVisible();
+    await expect(
+      page.locator('[data-lcd-mode]:visible').getByText("5.00").first(),
+    ).toBeVisible();
   });
 
   test("typing & polish: physical keyboard, prefix plane, cheat-sheet (§12.2/§12.3)", async ({
@@ -195,12 +203,12 @@ test.describe("hellocalc — smoke", () => {
     await page.keyboard.type("3");
     await page.keyboard.press("+");
     await expect(
-      page.locator('[data-lcd-mode="mini"]').getByText("5.00").first(),
+      page.locator('[data-lcd-mode]:visible').getByText("5.00").first(),
     ).toBeVisible();
 
     // typing `f` arms the gold prefix and DIMS the primary plane (§12.3)
     const primary7 = page
-      .locator('[data-region="keyboard"] button[aria-label="7"] span')
+      .locator('[data-slot="machine-kbd"] button[aria-label="7"] span')
       .nth(1);
     await page.keyboard.press("f");
     await expect
