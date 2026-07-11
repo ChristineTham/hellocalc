@@ -78,6 +78,9 @@
   --color-terracotta: var(--terracotta);
   --color-salvia: var(--salvia);
   --color-shadow-warm: var(--shadow-warm);
+  /* Paper plane (§14.3) */
+  --color-paper: var(--paper);
+  --color-paper-line: var(--paper-line);
 
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
@@ -168,6 +171,10 @@
   --terracotta: #bd5d47;
   --salvia: #6d7d52;
   --shadow-warm: rgb(58 48 35 / 0.35); /* warm brown-black — sunlight, not fluorescent */
+  /* Paper plane (§14.3): the printing-calculator tape + notebook notes.
+     Warmer and lighter than the desk so it reads as paper resting on it. */
+  --paper: #faf7ee;
+  --paper-line: #e5dfcf;
   --ring: #bd5d47;
   --chart-1: #a9832f;
   --chart-2: #35619e;
@@ -227,6 +234,8 @@
   --terracotta: #e08a7a;
   --salvia: #9aab7e;
   --shadow-warm: rgb(0 0 0 / 0.55);
+  --paper: #24221c;
+  --paper-line: #3a372e;
   --ring: #e08a7a;
   --chart-1: #d3a441;
   --chart-2: #5b8fd6;
@@ -383,6 +392,45 @@
     /* inline-size container so key-legend cq tokens (§13.5) track the key
        column's width in BOTH variants. */
     container: kbdmod / inline-size;
+  }
+
+  /* ── Paper aux (§14.3) ───────────────────────────────────────────────────
+     History is a printing-calculator tape: straight top, perforated bottom
+     (the zigzag gradient), figures in mono. Notes are ruled cards. The aux
+     flow runs as a column by default; the tablet-wide template lays the
+     pieces side by side under the machine. */
+  .paper-tape {
+    position: relative;
+    background: var(--color-paper);
+    box-shadow: 0 10px 22px -12px var(--color-shadow-warm);
+  }
+  .paper-tape::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    inset-block-end: -7px;
+    block-size: 7px;
+    background:
+      linear-gradient(-45deg, transparent 75%, var(--color-paper) 0) 0 0 / 10px 10px,
+      linear-gradient(45deg, transparent 75%, var(--color-paper) 0) 5px 0 / 10px 10px;
+    background-repeat: repeat-x;
+  }
+  .aux-flow {
+    display: flex;
+    flex-direction: column;
+    gap: var(--calc-region-gap);
+    min-block-size: 0;
+    min-inline-size: 0;
+  }
+  @media (48rem <= width < 64rem) {
+    .calc-shell[data-aspect="landscape"] [data-region="aux"] .aux-flow {
+      flex-direction: row;
+      align-items: stretch;
+    }
+    .calc-shell[data-aspect="landscape"] [data-region="aux"] .aux-flow > * {
+      flex: 1 1 0;
+      min-inline-size: 0;
+    }
   }
 
   /* ── Key press echo + hit-slop (§12.2, §12.4) ────────────────────────────

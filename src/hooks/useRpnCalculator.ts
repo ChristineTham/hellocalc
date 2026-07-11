@@ -30,10 +30,18 @@ export interface RpnCalculator {
   renderLatex: (tex: string) => { __html: string };
 }
 
+interface CalcState {
+  engine: RpnEngine;
+  hist: { op: string; v: string }[];
+}
+
 export function useRpnCalculator(dec = 2): RpnCalculator {
-  const [engine, setEngine] = useState<RpnEngine>(() => createRpn());
+  // engine + history live in ONE state so the press updater stays pure — a
+  // setState inside another updater double-fires under StrictMode (the tape
+  // printed every operation twice).
+  const [calc, setCalc] = useState<CalcState>(() => ({ engine: createRpn(), hist: [] }));
+  const { engine, hist } = calc;
   const [prefix, setPrefix] = useState<Prefix>("none");
-  const [hist, setHist] = useState<{ op: string; v: string }[]>([]);
 
   const fmt = useCallback(
     (n: number, d = dec) => (Number.isFinite(n) ? n.toFixed(d) : "Error"),
@@ -42,13 +50,14 @@ export function useRpnCalculator(dec = 2): RpnCalculator {
 
   const press = useCallback(
     (fn: string) => {
-      setEngine((prev) => {
-        const next = { ...prev };
-        const handled = applyFunction(next, fn);
-        if (handled && !isValueKey(fn)) {
-          setHist((h) => [...h.slice(-49), { op: fn, v: fmt(xval(next)) }]);
-        }
-        return next;
+      setCalc((prev) => {
+        const engine = { ...prev.engine };
+        const handled = applyFunction(engine, fn);
+        const hist =
+          handled && !isValueKey(fn)
+            ? [...prev.hist.slice(-49), { op: fn, v: fmt(xval(engine)) }]
+            : prev.hist;
+        return { engine, hist };
       });
       setPrefix("none");
     },

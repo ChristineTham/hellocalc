@@ -5,6 +5,7 @@ import { CalcShell } from "@/components/calculator/CalcShell";
 import { MachineUnit } from "@/components/calculator/MachineUnit";
 import { Display } from "@/components/calculator/Display";
 import { AuxPanel } from "@/components/calculator/AuxPanel";
+import { HistoryTape, StackNote, VarsNote } from "@/components/calculator/PaperAux";
 import { Topbar } from "@/components/calculator/Topbar";
 import { CalcNav } from "@/components/calculator/CalcNav";
 import { CheatSheet } from "@/components/calculator/CheatSheet";
@@ -38,12 +39,13 @@ export default function Home() {
   // Paper aux (§14.3) — rendered in the page's aux region AND in the machine's
   // side-variant bay; CSS shows exactly one per template (like the LCD's
   // line/mini dual render).
+  const showRegisters = model.id === "HP-12C";
   const aux = (
     <AuxPanel
       state={active.state}
       family={model.family}
       fmt={active.fmt}
-      showRegisters={model.id === "HP-12C"}
+      showRegisters={showRegisters}
     />
   );
 
@@ -56,7 +58,11 @@ export default function Home() {
             activeModel={modelId}
             onSelectModel={setModelId}
             nav={<CalcNav />}
-            aux={aux}
+            panels={{
+              stack: <StackNote state={active.state} family={model.family} fmt={active.fmt} />,
+              tape: <HistoryTape hist={active.state.hist} />,
+              vars: showRegisters ? <VarsNote state={active.state} /> : undefined,
+            }}
           />
         }
         sidebar={
@@ -80,7 +86,15 @@ export default function Home() {
                 fmt={active.fmt}
               />
             }
-            paper={aux}
+            paper={
+              <AuxPanel
+                state={active.state}
+                family={model.family}
+                fmt={active.fmt}
+                showRegisters={showRegisters}
+                variant="bay"
+              />
+            }
           />
         }
         aux={aux}

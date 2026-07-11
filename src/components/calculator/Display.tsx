@@ -10,7 +10,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronsDownUp, ChevronsUpDown, X } from "lucide-react";
+import { ChevronsDownUp, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Family } from "./models";
 
@@ -295,107 +295,5 @@ function RplStack({
         <span className={cn("flex-1 text-hp-lcd-stack", num)}>{entry ?? ""}</span>
       </div>
     </div>
-  );
-}
-
-// ---- StackPanel (aux: live stack ABOVE history — §12.5) ---------------------
-export interface StackPanelProps {
-  state: RpnState;
-  family: Family;
-  fmt: (n: number, dec?: number) => string;
-  className?: string;
-  /** when provided (mobile drawer), renders a close button */
-  onClose?: () => void;
-  /** equation/variable/TVM strip (§12.5) — pinned between the stack and history */
-  varsRow?: React.ReactNode;
-}
-
-export function StackPanel({ state: s, family, fmt, className, onClose, varsRow }: StackPanelProps) {
-  const isRpl = family === "rpl";
-  const rows = isRpl
-    ? (() => {
-        const st = s.rpl ?? [];
-        const out: { lab: string; val: string; hot: boolean }[] = [];
-        for (let i = st.length - 1; i >= Math.max(0, st.length - 5); i--)
-          out.push({
-            lab: `${st.length - i}:`,
-            val: fmt(st[i], s.dec),
-            hot: i === st.length - 1,
-          });
-        return out.length ? out : [{ lab: "1:", val: "—", hot: true }];
-      })()
-    : (["T", "Z", "Y", "X"] as const).map((k) => ({
-        lab: k,
-        val: fmt(s[k], s.dec),
-        hot: k === "X",
-      }));
-
-  return (
-    <aside
-      className={cn(
-        "flex w-full max-w-[420px] min-w-[260px] flex-col self-stretch rounded-[var(--radius-bezel)] border border-border bg-hp-panel p-5",
-        className,
-      )}
-    >
-      {/* live stack first — glanced at every keystroke, nearest the LCD (§12.5) */}
-      <div className="mb-3.5 flex items-center justify-between">
-        <h2 className="font-mono text-[10.5px] font-semibold tracking-[0.18em] text-muted-foreground uppercase">
-          {isRpl ? "RPL Stack" : "RPN Stack"}
-        </h2>
-        {onClose && (
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close panel"
-            className="text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <X className="size-4" />
-          </button>
-        )}
-      </div>
-      <div>
-        {rows.map((row, i) => (
-          <div key={i} className="flex justify-between py-0.5">
-            <span className="font-mono text-[12px] tracking-[0.1em] text-muted-foreground">
-              {row.lab}
-            </span>
-            <span
-              className={cn(
-                // salvia = informational accent (§13.3) — gold stays reserved
-                // for the brand and f-shift semantics
-                "font-mono text-[14px]",
-                row.hot ? "text-salvia" : "text-foreground",
-              )}
-            >
-              {row.val}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {/* equation/variable/TVM strip — glanceable without opening anything (§12.5) */}
-      {varsRow}
-
-      {/* history — the archive, scrolls away beneath (§12.5) */}
-      <h3 className="mt-3.5 mb-2.5 border-t border-border pt-3.5 font-mono text-[10.5px] font-semibold tracking-[0.18em] text-muted-foreground uppercase">
-        History
-      </h3>
-      <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto">
-        {(s.hist ?? [])
-          .slice()
-          .reverse()
-          .map((e, i) => (
-            <div
-              key={i}
-              className="flex items-baseline justify-between border-b border-border pb-2"
-            >
-              <span className="font-legend text-[13px] font-semibold text-muted-foreground">
-                {e.op}
-              </span>
-              <span className="font-mono text-[14px] text-foreground">{e.v}</span>
-            </div>
-          ))}
-      </div>
-    </aside>
   );
 }

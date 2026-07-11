@@ -1,13 +1,13 @@
 // src/components/calculator/Topbar.tsx
-// The always-present top bar (docs/responsive-layout.md §3.1, §12.4):
+// The always-present top bar (docs/responsive-layout.md §14.2, §12.4):
 // hamburger top-LEFT below lg (mirrors the persistent sidebar's position;
-// opens the nav as a LEFT sheet), brand, then — right — the aux toggle below
-// md (opens history/stack as a BOTTOM sheet, §12.4 thumb reach) and the
-// model picker. Sheets are uncontrolled Base UI dialogs: Escape + backdrop
-// dismiss for free.
+// opens the nav as a LEFT sheet), brand, then — right — INDIVIDUAL toggles
+// for each paper component (§14.3: tape / stack / vars, below md where the
+// aux region is sheet-hosted) and the model picker. Sheets are uncontrolled
+// Base UI dialogs: Escape + backdrop dismiss for free.
 "use client";
 
-import { Menu, PanelBottom } from "lucide-react";
+import { Layers, Menu, Receipt, Sigma } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -21,13 +21,51 @@ export interface TopbarProps {
   onSelectModel: (id: string) => void;
   /** nav content (CalcNav) — hosted in the left sheet below lg */
   nav: React.ReactNode;
-  /** aux content (AuxPanel) — hosted in the bottom sheet below md */
-  aux: React.ReactNode;
+  /** the paper components (§14.3), each behind its own toggle below md */
+  panels: {
+    stack: React.ReactNode;
+    tape: React.ReactNode;
+    vars?: React.ReactNode;
+  };
 }
 
-export function Topbar({ activeModel, onSelectModel, nav, aux }: TopbarProps) {
+const CHIP =
+  "inline-flex items-center rounded-lg border border-border bg-card p-2 text-muted-foreground transition-colors hover:bg-muted md:hidden";
+
+/** A paper panel behind its own bottom-sheet toggle (§14.3). */
+function PanelSheet({
+  label,
+  title,
+  icon,
+  children,
+}: {
+  label: string;
+  title: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
-    <header className="flex h-full items-center gap-3 border-b border-border px-3">
+    <Sheet>
+      <SheetTrigger aria-label={label} className={CHIP}>
+        {icon}
+      </SheetTrigger>
+      <SheetContent
+        side="bottom"
+        showCloseButton={false}
+        className="max-h-[70dvh] rounded-t-2xl bg-background pb-3"
+      >
+        {/* grab handle (§12.4) */}
+        <div className="mx-auto mt-2 h-1 w-8 shrink-0 rounded-full bg-muted-foreground/30" />
+        <SheetTitle className="sr-only">{title}</SheetTitle>
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-1">{children}</div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+export function Topbar({ activeModel, onSelectModel, nav, panels }: TopbarProps) {
+  return (
+    <header className="flex h-full items-center gap-2 border-b border-border px-3">
       {/* nav: hamburger → LEFT sheet (below lg; the sidebar replaces it at lg+) */}
       <Sheet>
         <SheetTrigger
@@ -51,27 +89,26 @@ export function Topbar({ activeModel, onSelectModel, nav, aux }: TopbarProps) {
         Hello Calc
       </h1>
 
-      {/* aux: history/stack → BOTTOM sheet (below md the aux region is not inline) */}
-      <Sheet>
-        <SheetTrigger
-          aria-label="Toggle history and stack"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted md:hidden"
+      {/* individual paper-panel toggles (§14.3) — sheet-hosted below md */}
+      <PanelSheet label="Toggle stack" title="Stack" icon={<Layers className="size-4" />}>
+        {panels.stack}
+      </PanelSheet>
+      {panels.vars && (
+        <PanelSheet
+          label="Toggle variables"
+          title="Variables"
+          icon={<Sigma className="size-4" />}
         >
-          <PanelBottom className="size-4" />
-          Stack
-        </SheetTrigger>
-        <SheetContent
-          side="bottom"
-          aria-label="History and stack"
-          showCloseButton={false}
-          className="max-h-[70dvh] rounded-t-2xl bg-background pb-2"
-        >
-          {/* grab handle (§12.4) */}
-          <div className="mx-auto mt-2 h-1 w-8 shrink-0 rounded-full bg-muted-foreground/30" />
-          <SheetTitle className="sr-only">History and stack</SheetTitle>
-          <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-1">{aux}</div>
-        </SheetContent>
-      </Sheet>
+          {panels.vars}
+        </PanelSheet>
+      )}
+      <PanelSheet
+        label="Toggle history tape"
+        title="History tape"
+        icon={<Receipt className="size-4" />}
+      >
+        {panels.tape}
+      </PanelSheet>
 
       <ModelPicker active={activeModel} onSelect={onSelectModel} />
     </header>

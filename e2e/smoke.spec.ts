@@ -267,11 +267,13 @@ test.describe("hellocalc — smoke", () => {
     await expect(page.locator(".lcd-panel")).toHaveAttribute("data-lcd-force", "line");
     await page.getByRole("button", { name: "Expand display" }).click();
     await expect(page.locator('[data-lcd-mode="mini"]')).toBeVisible();
-    // history/stack is behind a toggle → opens a BOTTOM sheet (§12.4), Escape closes
-    await page.getByRole("button", { name: "Toggle history and stack" }).click();
-    const sheet = page.getByRole("dialog", { name: "History and stack" });
+    // each paper panel has its OWN toggle (§14.3) → bottom sheets, Escape closes
+    await expect(page.getByRole("button", { name: "Toggle history tape" })).toBeVisible();
+    await page.getByRole("button", { name: "Toggle stack" }).click();
+    const sheet = page.getByRole("dialog", { name: "Stack", exact: true });
     await expect(sheet).toBeVisible();
     await expect(sheet).toHaveAttribute("data-side", "bottom");
+    await expect(sheet.locator('[data-slot="stack-note"]')).toBeVisible();
     // toBeVisible ignores opacity — assert the enter transition actually
     // completes (Base UI removes data-starting-style via rAF; a regression
     // here leaves the sheet permanently invisible at opacity 0)
