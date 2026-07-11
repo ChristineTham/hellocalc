@@ -35,6 +35,9 @@ describe("per-model geometry (MODELS registry, derived not hand-tuned)", () => {
     ["HP-67", 5, 8, 0.703, "portrait"],
     ["HP-41C-CV", 5, 9, 0.624, "portrait"], // toggle strip adds a row; deliberate portrait override
     ["HP-41CX", 5, 9, 0.624, "portrait"],
+    ["HP-42S", 6, 7, 0.970, "portrait"], // stubby Pioneer
+    ["HP-35s", 6, 8, 0.847, "portrait"],
+    ["HP-Prime", 6, 9, 0.751, "portrait"], // two view rows + 7 keypad rows
     ["HP-48SX", 6, 9, 0.722, "tall"], // per-model override, same posture as 48G
     ["HP-48G", 6, 9, 0.722, "tall"], // per-model override: 9-row kbd behaves tall (§14 rev 5)
     ["HP-49G", 6, 10, 0.649, "tall"], // 10 rows → tall by derivation

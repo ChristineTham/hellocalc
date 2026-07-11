@@ -277,6 +277,9 @@ test.describe("hellocalc — smoke", () => {
       "HP-48G": 0.722,
       "HP-49G": 0.649,
       "HP-50g": 0.649,
+      "HP-42S": 0.97,
+      "HP-35s": 0.847,
+      "HP Prime": 0.751,
     };
     await page.goto("/");
     for (const [label, aspect] of Object.entries(EXPECTED)) {

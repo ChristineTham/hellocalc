@@ -39,6 +39,17 @@ const ALIAS: Record<string, string> = {
   "n!": "x!",
   "N!": "x!",
   "%CH": "Δ%",
+  "%CHG": "Δ%",
+  // 42S/35s/Prime spellings
+  ASIN: "SIN⁻¹",
+  ACOS: "COS⁻¹",
+  ATAN: "TAN⁻¹",
+  "x√y": "ˣ√y",
+  INTG: "INT",
+  "→RAD": "D→R",
+  "→DEG": "R→D",
+  LASTx: "LSTx",
+  "|x|": "ABS",
 };
 
 /** Canonical engine id for a printed key legend (identity when unmapped). */

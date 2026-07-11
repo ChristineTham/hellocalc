@@ -35,7 +35,7 @@ export function hotkeyTarget(key: string, family: Family): HotkeyTarget | null {
     case "Backspace":
       return family === "rpl"
         ? { type: "kind", kind: "bksp" }
-        : { type: "key", labels: ["CLx", "CLX", "CL X"] }; // era spellings
+        : { type: "key", labels: ["←", "⌫", "CLx", "CLX", "CL X"] }; // era spellings; ← is a true backspace
     case "e":
     case "E":
       return { type: "key", labels: ["EEX"] };

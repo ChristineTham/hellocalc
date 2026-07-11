@@ -13,7 +13,11 @@ import {
   type KeyboardGeometry,
 } from "@/lib/layout/keyboardGeometry";
 
-export type Family = "voyager" | "classic" | "hp41" | "rpl";
+// "pioneer" is the MECHANICAL archetype for the menu-driven RPN machines —
+// HP-42S (1988) and the moderns (HP-35s, HP Prime) ride it: row-authored keys
+// with up to f/g planes + alpha letters, a dot-matrix glass, the RPN engine.
+// (Catalog-facing era grouping lives in modelCatalog.ts, not here.)
+export type Family = "voyager" | "classic" | "hp41" | "pioneer" | "rpl";
 
 /** Voyager (HP-12C / HP-15C): fixed 4x10 grid, gold f / blue g, tall ENTER. */
 export interface VoyagerKey {
@@ -85,6 +89,7 @@ export type Model =
   | (ModelBase & { family: "voyager"; keys: VoyagerKey[] })
   | (ModelBase & { family: "classic"; rows: ClassicKey[][] })
   | (ModelBase & { family: "hp41"; rows: ClassicKey[][] })
+  | (ModelBase & { family: "pioneer"; rows: ClassicKey[][] })
   | (ModelBase & { family: "rpl"; rows: RplKey[][] });
 
 // ---- HP-35 (classic, red LED originally; rendered on the standard LCD) -------
@@ -174,6 +179,46 @@ const HP41_ROWS: ClassicKey[][] = [
   [ck("÷","÷","black",{f:"x=0?",al:":"}),ck("0","0","black",{f:"π",al:"SPC"}),ck("•","•","black",{f:"LASTx",al:","}),ck("R/S","R/S","black",{f:"VIEW"})],
 ];
 
+// ---- HP-42S (Pioneer: single orange shift, 2-line dot glass) -----------------
+const HP42S_ROWS: ClassicKey[][] = [
+  [ck("Σ+","Σ+","black",{f:"Σ−"}),ck("1/x","1/x","black",{f:"yˣ"}),ck("√x","√x","black",{f:"x²"}),ck("LOG","LOG","black",{f:"10ˣ"}),ck("LN","LN","black",{f:"eˣ"}),ck("XEQ","XEQ","black",{f:"GTO"})],
+  [ck("STO","STO","black",{f:"COMPLEX"}),ck("RCL","RCL","black",{f:"%"}),ck("R↓","R↓","black",{f:"π"}),ck("SIN","SIN","black",{f:"ASIN"}),ck("COS","COS","black",{f:"ACOS"}),ck("TAN","TAN","black",{f:"ATAN"})],
+  [ck("ENTER","ENTER","black",{flex:2,f:"ALPHA"}),ck("x⇄y","x⇄y","black",{f:"LAST x"}),ck("+/−","CHS","black",{f:"MODES"}),ck("E","EEX","black",{f:"DISP"}),ck("←","←","black",{f:"CLEAR"})],
+  [ck("▲","▲","black",{f:"BST"}),ck("7","7","black",{f:"SOLVER"}),ck("8","8","black",{f:"∫f(x)"}),ck("9","9","black",{f:"MATRIX"}),ck("÷","÷","black",{f:"STAT"})],
+  [ck("▼","▼","black",{f:"SST"}),ck("4","4","black",{f:"BASE"}),ck("5","5","black",{f:"CONVERT"}),ck("6","6","black",{f:"FLAGS"}),ck("×","×","black",{f:"PROB"})],
+  [ck("","f","gold",{kind:"pf"}),ck("1","1","black",{f:"ASSIGN"}),ck("2","2","black",{f:"CUSTOM"}),ck("3","3","black",{f:"PGM.FCN"}),ck("−","−","black",{f:"PRINT"})],
+  [ck("EXIT","EXIT","black",{f:"OFF"}),ck("0","0","black",{f:"TOP.FCN"}),ck(".",".","black",{f:"SHOW"}),ck("R/S","R/S","black",{f:"PRGM"}),ck("+","+","black",{f:"CATALOG"})],
+];
+
+// ---- HP-35s (modern: yellow ls above / blue rs bottom-left / letters) --------
+// The 4-way pad (rows 1–3 top-right on the real unit) compacts to ▲▼ then ◄►
+// in the two rightmost columns [judgment].
+const HP35S_ROWS: ClassicKey[][] = [
+  [ck("R/S","R/S","black",{f:"FN=",g:"PRGM",al:"A"}),ck("GTO","GTO","black",{f:"ISG",g:"DSE",al:"B"}),ck("XEQ","XEQ","black",{f:"RTN",g:"LBL",al:"C"}),ck("MODE","MODE","black",{f:"x?y",g:"x?0",al:"D"}),ck("▲","▲","black",{f:"FLAGS"}),ck("▼","▼","black",{f:"MEM"})],
+  [ck("RCL","RCL","black",{f:"x≤?",g:"STO"}),ck("R↓","R↓","black",{f:"VIEW",g:"R↑",al:"E"}),ck("x↔y","x⇄y","black",{f:"INPUT",g:"PSE",al:"F"}),ck("i","i","black",{f:"ARG",g:"θ",al:"G"}),ck("◄","◄","black",{f:"DISPLAY"}),ck("►","►","black",{f:"CONST"})],
+  [ck("SIN","SIN","black",{f:"HYP",g:"ASIN",al:"H"}),ck("COS","COS","black",{f:"π",g:"ACOS",al:"I"}),ck("TAN","TAN","black",{f:"INTG",g:"ATAN",al:"J"}),ck("√x","√x","black",{f:"x√y",g:"x²",al:"K"}),ck("yˣ","yˣ","black",{f:"LOG",g:"LN",al:"L"}),ck("1/x","1/x","black",{f:"10ˣ",g:"eˣ",al:"M"})],
+  [ck("ENTER","ENTER","black",{flex:2,f:"SHOW",g:"LASTx"}),ck("+/−","CHS","black",{f:"=",g:"ABS",al:"N"}),ck("E","EEX","black",{f:"←ENG",g:"RND",al:"O"}),ck("( )","( )","black",{f:"ENG→",g:"[ ]",al:"P"}),ck("←","←","black",{f:"UNDO",g:"CLEAR"})],
+  [ck("EQN","EQN","black",{f:"∫",g:"SOLVE",al:"Q"}),ck("7","7","black",{f:"→°F",g:"→°C",al:"R"}),ck("8","8","black",{f:"HMS→",g:"→HMS",al:"S"}),ck("9","9","black",{f:"→RAD",g:"→DEG",al:"T"}),ck("÷","÷","black",{f:"%CHG",g:"%"})],
+  [ck("","f","gold",{kind:"pf"}),ck("4","4","black",{f:"→lb",g:"→kg",al:"U"}),ck("5","5","black",{f:"→MILE",g:"→KM",al:"V"}),ck("6","6","black",{f:"→in",g:"→cm",al:"W"}),ck("×","×","black",{f:"nCr",g:"nPr"})],
+  [ck("","g","blue",{kind:"pg"}),ck("1","1","black",{f:"LOGIC",g:"BASE",al:"X"}),ck("2","2","black",{f:"→gal",g:"→l",al:"Y"}),ck("3","3","black",{f:"SEED",g:"RAND",al:"Z"}),ck("−","−","black",{f:"L.R",g:"SUMS"})],
+  [ck("C","CLx","black",{f:"OFF"}),ck("0","0","black",{f:",",g:"SPACE",al:"I"}),ck(".",".","black",{f:"/c",g:"FDISP",al:"J"}),ck("Σ+","Σ+","black",{f:"Σ−",g:"!"}),ck("+","+","black",{f:"x̄,ȳ",g:"S,σ"})],
+];
+
+// ---- HP Prime (modern touchscreen: blue Shift + orange ALPHA) ----------------
+// Upper view keys flank a rocker wheel on the real unit — modelled as two
+// 5-key rows; the toolbox/template icon keys print as text [judgment].
+const HPPRIME_ROWS: ClassicKey[][] = [
+  [ck("Apps","Apps","black",{g:"Info"}),ck("Symb","Symb","black",{g:"Setup"}),ck("Plot","Plot","black",{g:"Setup"}),ck("Num","Num","black",{g:"Setup"}),ck("Home","Home","black",{g:"Settings"})],
+  [ck("Help","Help","black",{g:"User"}),ck("View","View","black",{g:"Copy"}),ck("Menu","Menu","black",{g:"Paste"}),ck("Esc","Esc","black",{g:"Clear"}),ck("CAS","CAS","black",{g:"Settings"})],
+  [ck("Vars","Vars","black",{g:"Chars",al:"A"}),ck("Tool","Tool","black",{g:"Mem",al:"B"}),ck("Tmpl","Tmpl","black",{g:"Units",al:"C"}),ck("x t θ n","xtθn","black",{g:"Define",al:"D"}),ck("a b/c","ab/c","black",{g:"e i π",al:"E"}),ck("⌫","←","black",{g:"Del"})],
+  [ck("xʸ","yˣ","black",{g:"√",al:"F"}),ck("SIN","SIN","black",{g:"ASIN",al:"G"}),ck("COS","COS","black",{g:"ACOS",al:"H"}),ck("TAN","TAN","black",{g:"ATAN",al:"I"}),ck("LN","LN","black",{g:"eˣ",al:"J"}),ck("LOG","LOG","black",{g:"10ˣ",al:"K"})],
+  [ck("x²","x²","black",{g:"√",al:"L"}),ck("+/−","CHS","black",{g:"|x|",al:"M"}),ck("( )","( )","black",{al:"N"}),ck(",",",","black",{g:"Eval",al:"O"}),ck("Enter","ENTER","black",{flex:2,g:"≈"})],
+  [ck("EEX","EEX","black",{g:"Sto▸",al:"P"}),ck("7","7","black",{g:"List",al:"Q"}),ck("8","8","black",{g:"[ ]",al:"R"}),ck("9","9","black",{g:"! ≠ →",al:"S"}),ck("÷","÷","black",{g:"x⁻¹",al:"T"})],
+  [ck("ALPHA","ALPHA","black",{kind:"alpha"}),ck("4","4","black",{g:"Matrix",al:"U"}),ck("5","5","black",{g:"[ ]",al:"V"}),ck("6","6","black",{g:"≤ ≥ ≠",al:"W"}),ck("×","×","black",{g:"∡",al:"X"})],
+  [ck("Shift","Shift","blue",{kind:"pg"}),ck("1","1","black",{g:"Program",al:"Y"}),ck("2","2","black",{g:"i",al:"Z"}),ck("3","3","black",{g:"π",al:"#"}),ck("−","−","black",{g:"Base",al:":"})],
+  [ck("On","On","black",{g:"Off"}),ck("0","0","black",{g:"Notes",al:"\" \""}),ck(".",".","black",{g:"="}),ck("␣","SPC","black",{g:"_"}),ck("+","+","black",{g:"Ans",al:";"})],
+];
+
 // ---- HP-48G (RPL, graphing) --------------------------------------------------
 const r = (
   p: string,
@@ -249,6 +294,9 @@ const GEOM = {
   // is a classic handheld — half-height toggles inflate the computed height.
   // Deliberate portrait override keeps the LCD-above-keys posture (§11 #4).
   "HP-41": computeKeyboardGeometry({ rows: HP41_ROWS }, "hp41", { aspectClass: "portrait" }),
+  "HP-42S": computeKeyboardGeometry({ rows: HP42S_ROWS }, "pioneer"),
+  "HP-35s": computeKeyboardGeometry({ rows: HP35S_ROWS }, "pioneer"),
+  "HP-Prime": computeKeyboardGeometry({ rows: HPPRIME_ROWS }, "pioneer"),
   "HP-11C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-11C"] }, "voyager"),
   "HP-12C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-12C"] }, "voyager"),
   "HP-15C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-15C"] }, "voyager"),
@@ -277,6 +325,9 @@ export const MODELS: Record<string, Model> = {
   "HP-12C": { id: "HP-12C", name: "HP-12C", family: "voyager", sub: "RPN · FINANCIAL",  angle: false, geometry: GEOM["HP-12C"], keys: GENERATED_VOYAGER["HP-12C"] },
   "HP-15C": { id: "HP-15C", name: "HP-15C", family: "voyager", sub: "RPN · SCIENTIFIC", angle: true,  geometry: GEOM["HP-15C"], keys: GENERATED_VOYAGER["HP-15C"] },
   "HP-16C": { id: "HP-16C", name: "HP-16C", family: "voyager", sub: "RPN · PROGRAMMER", angle: false, geometry: GEOM["HP-16C"], keys: GENERATED_VOYAGER["HP-16C"] },
+  "HP-42S":  { id: "HP-42S",  name: "HP-42S",  family: "pioneer", sub: "RPN · MENU",       angle: true, geometry: GEOM["HP-42S"],  rows: HP42S_ROWS },
+  "HP-35s":  { id: "HP-35s",  name: "HP-35s",  family: "pioneer", sub: "RPN · SCIENTIFIC", angle: true, geometry: GEOM["HP-35s"],  rows: HP35S_ROWS },
+  "HP-Prime":{ id: "HP-Prime",name: "HP Prime",family: "pioneer", sub: "CAS · TOUCH",      angle: true, geometry: GEOM["HP-Prime"],rows: HPPRIME_ROWS },
   "HP-48SX": { id: "HP-48SX", name: "HP-48SX", family: "rpl", sub: "RPL · GRAPHING", angle: true, geometry: GEOM["HP-48SX"], rows: HP48SX_ROWS,
     shift: { ls: "var(--hp-shift-ls-sx)", rs: "var(--hp-shift-rs-sx)" } },
   "HP-48G": { id: "HP-48G", name: "HP-48G", family: "rpl",     sub: "RPL · GRAPHING",   angle: true,  geometry: GEOM["HP-48G"], rows: HP48G_ROWS },
@@ -290,5 +341,7 @@ export const MODEL_ORDER = [
   "HP-35", "HP-45", "HP-65", "HP-25", "HP-67",
   "HP-41C-CV", "HP-41CX",
   "HP-11C", "HP-12C", "HP-15C", "HP-16C",
+  "HP-42S",
   "HP-48SX", "HP-48G", "HP-49G", "HP-50g",
+  "HP-35s", "HP-Prime",
 ] as const;

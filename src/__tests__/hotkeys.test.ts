@@ -17,14 +17,14 @@ describe("hotkeyTarget", () => {
     }
   });
 
-  it("Backspace is CLx (any era spelling) on RPN families and DROP (by kind) on RPL", () => {
+  it("Backspace is ←/CLx (era spellings, backspace first) on RPN families and DROP on RPL", () => {
     expect(hotkeyTarget("Backspace", "voyager")).toEqual({
       type: "key",
-      labels: ["CLx", "CLX", "CL X"],
+      labels: ["←", "⌫", "CLx", "CLX", "CL X"],
     });
     expect(hotkeyTarget("Backspace", "classic")).toEqual({
       type: "key",
-      labels: ["CLx", "CLX", "CL X"],
+      labels: ["←", "⌫", "CLx", "CLX", "CL X"],
     });
     expect(hotkeyTarget("Backspace", "rpl")).toEqual({ type: "kind", kind: "bksp" });
   });

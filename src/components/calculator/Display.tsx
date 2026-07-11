@@ -126,7 +126,9 @@ export function Display({
   // vice versa) — user intent, later persisted (§12.6).
   const [userForce, setUserForce] = useState<LcdMode | null>(null);
   const force = userForce ?? defaultMode ?? null;
-  const num = isRpl ? dotNum : segNum;
+  // dot-matrix glass: the RPL machines AND the menu-driven/modern RPN line
+  // (42S/35s/Prime) — segment digits belong to the LED/LCD-digit eras
+  const num = isRpl || family === "pioneer" ? dotNum : segNum;
 
   const lineValue =
     s.entry != null

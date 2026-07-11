@@ -559,6 +559,12 @@
       display: none;
     }
   }
+  /* pioneer (6 cols) at the same ~3.6rem pitch bound → ≤22rem */
+  @container kbdmod (max-width: 22rem) {
+    .machine[data-family="pioneer"] .key-shift {
+      display: none;
+    }
+  }
   @container kbdmod (max-width: 15rem) {
     .machine[data-family="rpl"] .key-shift,
     .machine[data-family="rpl"] .key-shift-row,

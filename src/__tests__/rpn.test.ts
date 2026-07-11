@@ -152,6 +152,24 @@ describe("classic-era ops (HP-25/45/65/67 planes)", () => {
     expect(xval(s)).toBeCloseTo(180, 12);
   });
 
+  it("← backspaces the in-progress entry digit by digit, then behaves like CLx", () => {
+    const s = createRpn();
+    key(s, "123");
+    applyFunction(s, "←");
+    expect(xval(s)).toBe(12);
+    applyFunction(s, "←");
+    applyFunction(s, "←");
+    expect(xval(s)).toBe(0);
+    expect(s.entry).toBeNull();
+    // no entry: clears X (like CLx), stack intact
+    const s2 = createRpn();
+    run(s2, "7", "ENTER", "9");
+    applyFunction(s2, "ENTER");
+    applyFunction(s2, "←");
+    expect(s2.x).toBe(0);
+    expect(s2.y).toBe(9);
+  });
+
   it("DEG/RAD/GRD set the angle mode used by trig (sin 100 grads = 1)", () => {
     const s = createRpn();
     applyFunction(s, "RAD");

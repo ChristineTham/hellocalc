@@ -188,6 +188,16 @@ export function applyFunction(s: RpnEngine, fn: string): boolean {
     case "CLx":
       clx(s);
       return true;
+    case "←":
+      // true backspace (42S/35s/41/Prime): trim the in-progress entry;
+      // with no entry it clears X like CLx
+      if (s.entry !== null) {
+        s.entry = s.entry.length > 1 ? s.entry.slice(0, -1) : null;
+        if (s.entry === null) s.x = 0;
+      } else {
+        clx(s);
+      }
+      return true;
     case "CLR":
       clearAll(s);
       return true;
