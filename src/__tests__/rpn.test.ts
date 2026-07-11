@@ -340,7 +340,14 @@ describe("Phase-3: keystroke programmability (HP-65)", () => {
     applyFunction(s, "R/S");
     expect(n(s.x)).toBe(8);
     const s2 = createRpn();
-    s2.prgm = { ...s.prgm, steps: [...s.prgm.steps], pc: 0, mode: "RUN", f1: false, f2: false };
+    s2.prgm = {
+      ...s.prgm,
+      steps: [...s.prgm.steps],
+      pc: 0,
+      mode: "RUN",
+      flags: [false, false, false, false],
+      ret: [],
+    };
     run(s2, "4", "ENTER", "5"); // false → skips GTO 1, keys 99, halts at R/S
     applyFunction(s2, "R/S");
     expect(n(xval(s2))).toBe(99);
@@ -423,6 +430,103 @@ describe("Phase-3: keystroke programmability (HP-65)", () => {
     // round-trip through JSON via the persistence test path is covered in
     // persistence.test.ts; here assert the engine fields are plain data
     expect(JSON.parse(JSON.stringify(s.prgm))).toEqual(s.prgm);
+  });
+});
+
+describe("Phase-5: subroutines, indirect I, secondary regs, printing (67/97)", () => {
+  function record(s: RpnEngine, ...keys: string[]) {
+    dispatch(s, "W/PRGM");
+    for (const k of keys) dispatch(s, k);
+    dispatch(s, "W/PRGM");
+  }
+
+  it("GSB calls a subroutine; RTN returns to the caller", () => {
+    const s = createRpn();
+    // main: LBL A → GSB B → +1 → R/S · sub B: ×2 → RTN
+    record(s, "LBL", "A", "GSB", "B", "1", "+", "R/S", "LBL", "B", "2", "×", "RTN");
+    run(s, "5", "ENTER");
+    applyFunction(s, "A");
+    expect(n(s.x)).toBe(11); // (5×2)+1 — RTN came BACK instead of stopping
+  });
+
+  it("keyboard GSB runs a labelled routine directly", () => {
+    const s = createRpn();
+    record(s, "LBL", "3", "9", "×", "RTN");
+    run(s, "2", "ENTER", "GSB", "3");
+    expect(n(s.x)).toBe(18);
+  });
+
+  it("ST I / RC I / x⇄I manage the index register; (i) addresses through it", () => {
+    const s = createRpn();
+    run(s, "4", "ST I", "CLx"); // I = 4
+    run(s, "7", "STO n", "(i)"); // R[I]=R4 ← 7
+    run(s, "RCL n", "4");
+    expect(n(s.x)).toBe(7);
+    run(s, "9", "x⇄I");
+    expect(n(xval(s))).toBe(4); // old I into X…
+    applyFunction(s, "RC I");
+    expect(n(s.x)).toBe(9); // …new I is 9
+  });
+
+  it("DSZ I / ISZ I count on I; DSZ (i) counts the register I points at", () => {
+    const s = createRpn();
+    run(s, "2", "ST I");
+    applyFunction(s, "DSZ I");
+    applyFunction(s, "RC I");
+    expect(n(s.x)).toBe(1);
+    run(s, "3", "ST I", "CLx", "5", "STO n", "3");
+    applyFunction(s, "DSZ (i)"); // R3 -= 1
+    run(s, "RCL n", "3");
+    expect(n(s.x)).toBe(4);
+  });
+
+  it("SF/CF/F? use four flags; F? in a program skips on clear", () => {
+    const s = createRpn();
+    record(s, "F?", "3", "GTO", "1", "0", "R/S", "LBL", "1", "1", "R/S");
+    run(s, "SF", "3");
+    applyFunction(s, "R/S");
+    expect(n(xval(s))).toBe(1);
+    const s2 = createRpn();
+    s2.prgm = { ...s.prgm, steps: [...s.prgm.steps], pc: 0, mode: "RUN", flags: [false, false, false, false], ret: [] };
+    applyFunction(s2, "R/S");
+    expect(n(xval(s2))).toBe(0); // flag clear → skipped the branch
+  });
+
+  it("P⇄S swaps the primary and secondary register files", () => {
+    const s = createRpn();
+    run(s, "7", "STO n", "2", "P⇄S");
+    run(s, "RCL n", "2");
+    expect(n(s.x)).toBe(0); // secondary file is empty
+    applyFunction(s, "P⇄S");
+    run(s, "RCL n", "2");
+    expect(n(s.x)).toBe(7); // primaries back
+  });
+
+  it("RND rounds X to the displayed value", () => {
+    const s = createRpn();
+    run(s, "2", "ENTER", "3", "÷"); // 0.666…
+    applyFunction(s, "RND");
+    expect(xval(s).toString()).toBe("0.67"); // FIX 2
+  });
+
+  it("PRINT x / PRINT STACK / PRINT SPACE print onto the history tape", () => {
+    const s = createRpn();
+    run(s, "1", "ENTER", "2", "ENTER", "3", "ENTER", "4");
+    applyFunction(s, "PRINT x");
+    applyFunction(s, "PRINT STACK");
+    applyFunction(s, "PRINT SPACE");
+    const ops = s.hist.map((h) => h.op);
+    expect(ops).toContain("🖨 x");
+    expect(ops.filter((o) => o.startsWith("🖨"))).toHaveLength(5); // x + T/Z/Y/X
+    expect(ops[ops.length - 1]).toBe("⋯");
+  });
+
+  it("the 97's lowercase labels run too: LBL a", () => {
+    const s = createRpn();
+    record(s, "LBL", "a", "3", "×", "RTN");
+    run(s, "3", "ENTER");
+    applyFunction(s, "a");
+    expect(n(s.x)).toBe(9);
   });
 });
 

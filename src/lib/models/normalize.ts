@@ -52,6 +52,23 @@ const ALIAS: Record<string, string> = {
   "% (percent)": "%",
   "→H.MS": "→D.MS",
   "→H": "D.MS→",
+  "H.MS→": "D.MS→",
+  "H.MS+": "D.MS+",
+  // 97 conditional spellings carry a question mark
+  "x=y?": "x=y",
+  "x≠y?": "x≠y",
+  "x≤y?": "x≤y",
+  "x>y?": "x>y",
+  "x=0?": "x=0",
+  "x≠0?": "x≠0",
+  "x<0?": "x<0",
+  "x>0?": "x>0",
+  // 97 flag spellings; the 67's print-x pauses (a tape line here)
+  STF: "SF",
+  CLF: "CF",
+  "−x−": "PRINT x",
+  "CL PRGM": "CLEAR PRGM",
+  "CL REG": "CLEAR REG",
   // 42S/35s/Prime spellings
   ASIN: "SIN⁻¹",
   ACOS: "COS⁻¹",
@@ -109,5 +126,17 @@ export const MODEL_FN_OVERRIDES: Record<string, Record<string, string>> = {
     PRGM: "CLEAR PRGM", // the f-row under the 25's CLEAR bracket
     REG: "CLEAR REG",
     STK: "CLEAR STK",
+  },
+  "HP-67": {
+    DSZ: "DSZ I", // the 67/97 count on the I register (the 65 uses R8)
+    ISZ: "ISZ I",
+    REG: "REVIEW REG", // h-3: review registers → printed to the tape
+    STK: "PRINT STACK", // g of R/S (97-compatible print command)
+    SPACE: "PRINT SPACE",
+  },
+  "HP-97": {
+    DSZ: "DSZ I",
+    ISZ: "ISZ I",
+    I: "RC I", // the desk unit's dedicated I key recalls the index register
   },
 };

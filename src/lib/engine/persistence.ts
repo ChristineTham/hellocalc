@@ -32,6 +32,8 @@ interface SerializedRpn {
   mem: TaggedValue;
   /** optional for v1 forward-compat: pre-P2 saves have no registers/Σ */
   regs?: TaggedValue[];
+  regsS?: TaggedValue[];
+  iReg?: TaggedValue;
   sum?: { n: TaggedValue; x: TaggedValue; x2: TaggedValue; y: TaggedValue };
   prgm?: PrgmState;
   entry: string | null;
@@ -73,6 +75,8 @@ export function snapshot(
       lastX: encodeValue(rpn.lastX),
       mem: encodeValue(rpn.mem),
       regs: rpn.regs.map(encodeValue),
+      regsS: rpn.regsS.map(encodeValue),
+      iReg: encodeValue(rpn.iReg),
       sum: {
         n: encodeValue(rpn.sum.n),
         x: encodeValue(rpn.sum.x),
@@ -111,6 +115,8 @@ export function restore(state: EngineStateV1): {
     lastX: decodeValue(state.rpn.lastX),
     mem: decodeValue(state.rpn.mem),
     regs: state.rpn.regs ? state.rpn.regs.map(decodeValue) : fresh.regs,
+    regsS: state.rpn.regsS ? state.rpn.regsS.map(decodeValue) : fresh.regsS,
+    iReg: state.rpn.iReg ? decodeValue(state.rpn.iReg) : fresh.iReg,
     sum: state.rpn.sum
       ? {
           n: decodeValue(state.rpn.sum.n),
@@ -160,6 +166,8 @@ function isSerializedRpn(v: unknown): v is SerializedRpn {
     isTagged(s.lastX) &&
     isTagged(s.mem) &&
     (s.regs === undefined || (Array.isArray(s.regs) && s.regs.every(isTagged))) &&
+    (s.regsS === undefined || (Array.isArray(s.regsS) && s.regsS.every(isTagged))) &&
+    (s.iReg === undefined || isTagged(s.iReg)) &&
     (s.sum === undefined ||
       (isTagged(s.sum?.n) && isTagged(s.sum?.x) && isTagged(s.sum?.x2) && isTagged(s.sum?.y))) &&
     (s.prgm === undefined ||

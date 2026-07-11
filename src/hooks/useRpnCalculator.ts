@@ -41,8 +41,9 @@ const clone = (e: RpnEngine): RpnEngine => ({
   ...e,
   disp: { ...e.disp },
   regs: [...e.regs],
+  regsS: [...e.regsS],
   sum: { ...e.sum },
-  prgm: { ...e.prgm, steps: [...e.prgm.steps] },
+  prgm: { ...e.prgm, steps: [...e.prgm.steps], flags: [...e.prgm.flags], ret: [...e.prgm.ret] },
   pending: e.pending ? { ...e.pending } : null,
 });
 
@@ -89,6 +90,7 @@ export function useRpnCalculator(): RpnCalculator {
     engine.regs.forEach((r, i) => {
       if (!r.isZero()) registers.push({ name: `R${i}`, value: fmt(r) });
     });
+    if (!engine.iReg.isZero()) registers.push({ name: "I", value: fmt(engine.iReg) });
     if (!engine.sum.n.isZero()) registers.push({ name: "Σn", value: fmt(engine.sum.n, 0) });
     return {
       T: engine.t,

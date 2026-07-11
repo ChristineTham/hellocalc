@@ -73,6 +73,19 @@ describe("model adapter (hp/mapping/mapping.json)", () => {
     expect(byLegend("CLX").fFn).toBe("CLEAR STK");
   });
 
+  it("HP-67 + HP-97: NO key remains inert (Phase-5 DoD)", () => {
+    for (const model of ["HP-67", "HP-97"]) {
+      const report = coverage(model, rpnImplements);
+      expect(report.missing, model).toEqual([]);
+    }
+  });
+
+  it("the 67's DSZ/ISZ resolve to the I-register forms (model override)", () => {
+    expect(resolveKey("HP-67", "STO", "f")).toBe("DSZ I");
+    expect(resolveKey("HP-67", "RCL", "f")).toBe("ISZ I");
+    expect(resolveKey("HP-97", "I")).toBe("RC I");
+  });
+
   it("coverage reports honestly for models awaiting their engine phase", () => {
     // the 12C's finance plane is Phase 7 — the report must SAY so, not hide it
     const report = coverage("HP-12C", rpnImplements);

@@ -5,7 +5,7 @@
 // framework-agnostic (per docs/architecture.md §3) so it is unit-testable in
 // isolation and Web-Worker safe.
 
-import { asReal, bn, math, PI, type Value } from "./config";
+import { asReal, bn, math, num, PI, type Value } from "./config";
 import { DEFAULT_FORMAT, type DisplayFormat } from "./format";
 import { appendDigit, backspace, parseEntry, startExponent, toggleSign } from "./entry";
 
@@ -23,7 +23,7 @@ export interface HistEntry {
  * digits count, GTO awaits a label (digit or A–E). Transient — never
  * persisted. */
 export interface PendingArg {
-  op: "STO" | "RCL" | "FIX" | "SCI" | "ENG" | "DSP" | "GTO" | "LBL";
+  op: "STO" | "RCL" | "FIX" | "SCI" | "ENG" | "DSP" | "GTO" | "LBL" | "GSB" | "SF" | "CF" | "F?";
   arith?: "+" | "−" | "×" | "÷";
 }
 
@@ -35,11 +35,17 @@ export interface PrgmState {
   steps: string[];
   pc: number; // record cursor (PRGM) / execution pointer (RUN)
   mode: PrgmMode;
-  f1: boolean; // flags F1/F2 (SF/TF)
-  f2: boolean;
+  flags: boolean[]; // F0–F3 (65: SF/TF 1–2; 67/97: SF/CF/F? 0–3)
+  ret: number[]; // GSB return stack (P5)
 }
 
-const freshPrgm = (): PrgmState => ({ steps: [], pc: 0, mode: "RUN", f1: false, f2: false });
+const freshPrgm = (): PrgmState => ({
+  steps: [],
+  pc: 0,
+  mode: "RUN",
+  flags: [false, false, false, false],
+  ret: [],
+});
 
 /** Σ summation registers (HP-45 descriptive statistics, FR-STAT-1). */
 export interface SumRegs {
@@ -57,6 +63,8 @@ export interface RpnEngine {
   lastX: Value;
   mem: Value; // single memory register (HP-35 STO/RCL, no argument)
   regs: Value[]; // addressable registers R0–R9 (HP-45 uses R1–R9)
+  regsS: Value[]; // secondary registers RS0–RS9 (HP-67/97 P⇄S)
+  iReg: Value; // the I index register (HP-67/97 indirect addressing)
   sum: SumRegs; // Σ+ accumulation
   prgm: PrgmState; // keystroke program (P3)
   pending: PendingArg | null; // argument-taking key in progress
@@ -80,6 +88,8 @@ export function createRpn(): RpnEngine {
     lastX: zero,
     mem: zero,
     regs: Array.from({ length: 10 }, () => zero),
+    regsS: Array.from({ length: 10 }, () => zero),
+    iReg: zero,
     sum: zeroSum(),
     prgm: freshPrgm(),
     pending: null,
@@ -307,7 +317,7 @@ const arith = (a: Value, b: Value, op: ArithOp): unknown =>
  * optional register arithmetic; FIX/SCI digit counts). Any key that can't be
  * part of the argument cancels the pending state and dispatches normally —
  * pressing STO then ENTER just ENTERs, exactly like walking away mid-prefix. */
-const isLabel = (fn: string): boolean => /^[0-9A-E]$/.test(fn);
+const isLabel = (fn: string): boolean => /^[0-9A-Ea-e]$/.test(fn);
 
 function resolvePending(s: RpnEngine, fn: string): boolean {
   const p = s.pending;
@@ -326,6 +336,42 @@ function resolvePending(s: RpnEngine, fn: string): boolean {
   if (p.op === "LBL" && isLabel(fn)) {
     // a label pressed in RUN mode marks nothing — consume and move on
     s.pending = null;
+    return true;
+  }
+  if (p.op === "GSB" && isLabel(fn)) {
+    // keyboard GSB = run the subroutine from its label
+    s.pending = null;
+    runLabel(s, fn);
+    return true;
+  }
+  if ((p.op === "SF" || p.op === "CF" || p.op === "F?") && /^[0-3]$/.test(fn)) {
+    s.pending = null;
+    if (p.op === "SF") s.prgm.flags[Number(fn)] = true;
+    else if (p.op === "CF") s.prgm.flags[Number(fn)] = false;
+    // F? outside a program: consume the digit, steer nothing
+    return true;
+  }
+  if ((p.op === "STO" || p.op === "RCL" || p.op === "GTO") && fn === "(i)") {
+    // indirect addressing through I (HP-67/97): the argument comes from the
+    // I register — register index for STO/RCL, a digit label for GTO
+    const i = Math.abs(Math.trunc(num(s.iReg)));
+    s.pending = null;
+    if (p.op === "GTO") {
+      const at = findLabel(s.prgm.steps, String(i % 10));
+      if (at === null) s.error = "Error";
+      else s.prgm.pc = at;
+      return true;
+    }
+    const idx = i % 10;
+    if (p.op === "STO") {
+      commit(s);
+      const r = p.arith ? tryReal(() => arith(s.regs[idx], s.x, p.arith as ArithOp)) : s.x;
+      s.error = r === null ? "Error" : null;
+      s.regs[idx] = r ?? bn(0);
+      s.lift = true;
+    } else {
+      pushX(s, s.regs[idx]);
+    }
     return true;
   }
   if (/^[0-9]$/.test(fn)) {
@@ -372,7 +418,9 @@ function findLabel(steps: string[], label: string): number | null {
 }
 
 /** Steps whose next step is an argument (skip both on a false conditional). */
-const ARG_TAKERS = new Set(["GTO", "LBL", "STO n", "RCL n", "FIX", "SCI", "DSP"]);
+const ARG_TAKERS = new Set([
+  "GTO", "LBL", "GSB", "STO n", "RCL n", "FIX", "SCI", "ENG", "DSP", "SF", "CF", "F?",
+]);
 
 const CONDITIONALS = new Set(["x=y", "x≠y", "x≤y", "x>y", "x<y", "x≥y", "x<0", "x=0", "x≠0", "x>0", "x≥0"]);
 
@@ -411,24 +459,47 @@ function execStep(s: RpnEngine): void {
     s.prgm.pc += 2; // marker + label
     return;
   }
-  if (fn === "GTO") {
+  if (fn === "GTO" || fn === "GSB") {
     const at = findLabel(steps, steps[s.prgm.pc + 1] ?? "");
     if (at === null) {
       s.error = "Error";
       s.prgm.pc = steps.length;
       return;
     }
+    if (fn === "GSB") s.prgm.ret.push(s.prgm.pc + 2); // return past the call
     s.prgm.pc = at;
     return;
   }
-  if (CONDITIONALS.has(fn) || fn === "TF 1" || fn === "TF 2" || fn === "DSZ") {
+  if (fn === "F?") {
+    // flag test with a digit argument: consume both, skip-on-false
+    const d = Number(steps[s.prgm.pc + 1] ?? "0");
+    const pass = s.prgm.flags[d] === true;
+    s.prgm.pc += 2;
+    if (!pass) {
+      const next = steps[s.prgm.pc];
+      s.prgm.pc += next !== undefined && ARG_TAKERS.has(next) ? 2 : 1;
+    }
+    return;
+  }
+  if (
+    CONDITIONALS.has(fn) ||
+    fn === "TF 1" ||
+    fn === "TF 2" ||
+    fn === "DSZ" ||
+    fn === "DSZ I" ||
+    fn === "ISZ I"
+  ) {
     let pass: boolean;
-    if (fn === "TF 1") pass = s.prgm.f1;
-    else if (fn === "TF 2") pass = s.prgm.f2;
+    if (fn === "TF 1") pass = s.prgm.flags[1];
+    else if (fn === "TF 2") pass = s.prgm.flags[2];
     else if (fn === "DSZ") {
       // decrement-skip-on-zero over R8 (HP-65 manual)
       s.regs[8] = s.regs[8].minus(1);
       pass = !s.regs[8].isZero();
+    } else if (fn === "DSZ I" || fn === "ISZ I") {
+      // the 67/97 count on the I register
+      s.iReg = fn === "DSZ I" ? s.iReg.minus(1) : s.iReg.plus(1);
+      pass = !s.iReg.isZero();
     } else pass = testCondition(s, fn);
     s.prgm.pc += 1;
     if (!pass) {
@@ -458,6 +529,11 @@ export function runProgram(s: RpnEngine): void {
       return;
     }
     if (fn === "RTN") {
+      const back = s.prgm.ret.pop();
+      if (back !== undefined) {
+        s.prgm.pc = back; // subroutine return (P5)
+        continue;
+      }
       s.prgm.pc = 0;
       return;
     }
@@ -472,6 +548,7 @@ export function runLabel(s: RpnEngine, label: string): void {
   const at = findLabel(s.prgm.steps, label);
   if (at === null) return; // no program under this key — silently inert
   s.prgm.pc = at;
+  s.prgm.ret = []; // a keyboard start owns a fresh call stack
   runProgram(s);
 }
 
@@ -699,15 +776,124 @@ export function applyFunction(s: RpnEngine, fn: string): boolean {
       s.pending = { op: "DSP" };
       return true;
     case "SF 1":
-      s.prgm.f1 = true;
+      s.prgm.flags[1] = true;
       return true;
     case "SF 2":
-      s.prgm.f2 = true;
+      s.prgm.flags[2] = true;
+      return true;
+    case "SF":
+      s.pending = { op: "SF" };
+      return true;
+    case "CF":
+      s.pending = { op: "CF" };
+      return true;
+    case "F?":
+      s.pending = { op: "F?" };
+      return true;
+    case "GSB":
+      s.pending = { op: "GSB" };
+      return true;
+    case "a":
+    case "b":
+    case "c":
+    case "d":
+    case "e":
+      // the 97's second label set
+      runLabel(s, fn);
+      return true;
+    case "ST I":
+      commit(s);
+      s.iReg = s.x;
+      s.lift = true;
+      return true;
+    case "RC I":
+      pushX(s, s.iReg);
+      return true;
+    case "x⇄I": {
+      commit(s);
+      const a = s.x;
+      s.x = s.iReg;
+      s.iReg = a;
+      s.lift = true;
+      return true;
+    }
+    case "DSZ I":
+      s.iReg = s.iReg.minus(1);
+      return true;
+    case "ISZ I":
+      s.iReg = s.iReg.plus(1);
+      return true;
+    case "DSZ (i)": {
+      // decrement the register ADDRESSED BY I (program flow handles skips)
+      const idx = Math.abs(Math.trunc(num(s.iReg))) % 10;
+      s.regs[idx] = s.regs[idx].minus(1);
+      return true;
+    }
+    case "ISZ (i)": {
+      const idx = Math.abs(Math.trunc(num(s.iReg))) % 10;
+      s.regs[idx] = s.regs[idx].plus(1);
+      return true;
+    }
+    case "(i)":
+      // meaningful as a pending argument (resolvePending); alone a no-op
+      return true;
+    case "P⇄S": {
+      // primary ⇄ secondary register file (HP-67/97)
+      const a = s.regs;
+      s.regs = s.regsS;
+      s.regsS = a;
+      return true;
+    }
+    case "RND":
+      // round X to the DISPLAYED value (FIX: places; SCI/ENG: mantissa digits)
+      unary(s, (x) =>
+        s.disp.mode === "FIX" ? bn(x.toFixed(s.disp.digits)) : x.toSD(s.disp.digits + 1),
+      );
+      return true;
+    case "PRINT x":
+      // the 97's printer IS our paper tape (FR-EXP-5 poetry)
+      commit(s);
+      s.hist = [...s.hist.slice(-49), { op: "🖨 x", raw: xval(s).toString() }];
+      return true;
+    case "PRINT STACK": {
+      commit(s);
+      const rows: HistEntry[] = [
+        { op: "🖨 T", raw: s.t.toString() },
+        { op: "🖨 Z", raw: s.z.toString() },
+        { op: "🖨 Y", raw: s.y.toString() },
+        { op: "🖨 X", raw: s.x.toString() },
+      ];
+      s.hist = [...s.hist, ...rows].slice(-50);
+      return true;
+    }
+    case "PRINT REG": {
+      const rows: HistEntry[] = s.regs
+        .map((r, i) => ({ op: `🖨 R${i}`, raw: r.toString() }))
+        .filter((r) => r.raw !== "0");
+      s.hist = [...s.hist, ...rows].slice(-50);
+      return true;
+    }
+    case "PRINT SPACE":
+      s.hist = [...s.hist.slice(-49), { op: "⋯", raw: "0" }];
+      return true;
+    case "PRINT PRGM":
+      s.hist = [
+        ...s.hist.slice(-49),
+        { op: "🖨 PRGM", raw: String(s.prgm.steps.length) },
+      ];
+      return true;
+    case "W/DATA":
+    case "WRITE DATA":
+    case "MERGE":
+      // magnetic-card ops — persistence (P1) is the card deck now
       return true;
     case "TF 1":
     case "TF 2":
       // flag tests steer program flow (execStep); a direct press is a no-op
       return true;
+    case "REVIEW REG":
+      // the 67's h-REG reviews registers — on the tape, like the 97 prints
+      return applyFunction(s, "PRINT REG");
     case "DSZ":
       // decrement R8 (skip-on-zero applies inside a program)
       s.regs[8] = s.regs[8].minus(1);
