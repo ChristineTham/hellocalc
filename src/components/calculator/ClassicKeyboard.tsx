@@ -22,7 +22,7 @@ import type { Prefix } from "@/hooks/useRpnCalculator";
 const toneFor = (k: ClassicKey) => {
   if (k.kind === "pf" || k.kind === "pfi") return "f" as const; // gold prefix keys
   if (k.kind === "pg") return "g" as const; // blue prefix key
-  if (k.kind === "ph") return "h" as const; // black prefix key (HP-67)
+  if (k.kind === "ph" || k.kind === "alpha") return "h" as const; // black prefix/toggle keys
   if (k.legend.startsWith("ENTER")) return "enter" as const;
   if (k.cat === "beige") return "beige" as const;
   if (k.cat === "blue") return "arith" as const; // operators / mode keys
@@ -58,6 +58,7 @@ export function ClassicKeyboard({
     if (k.kind === "pfi") return onArm?.("fi");
     if (k.kind === "pg") return onArm?.("g");
     if (k.kind === "ph") return onArm?.("h");
+    if (k.kind === "alpha") return onArm?.("alpha");
     if (k.fn === "arc") {
       setArc((v) => !v);
       return;
@@ -74,7 +75,10 @@ export function ClassicKeyboard({
           ? k.g || k.fn
           : prefix === "h"
             ? k.h || k.fn
-            : k.fn;
+            : prefix === "alpha"
+              ? k.al || "" // letters are inert until alpha entry lands (§12.2 guard)
+              : k.fn;
+    if (!printed) return;
     onPress(normalizeFn(printed));
     if (arc) setArc(false);
   };
@@ -107,12 +111,17 @@ export function ClassicKeyboard({
           // f⁻¹ (65) promotes the INVERSE of each gold word.
           const arcTarget = arc && ARC[k.fn] ? ARC[k.fn] : undefined;
           const fLegend = arcTarget ?? fWordFor(k, prefix);
+          // The HP-41's ALPHA letters ride the h visual slot (bottom-right
+          // small legend + promotion) — no model has both a black h plane
+          // and alpha letters, so the slot is never contested.
           const armed =
             arcTarget || (k.fn === "arc" && arc) || prefix === "f" || prefix === "fi"
               ? ("f" as const)
-              : prefix === "g" || prefix === "h"
-                ? prefix
-                : ("none" as const);
+              : prefix === "g"
+                ? ("g" as const)
+                : prefix === "h" || prefix === "alpha"
+                  ? ("h" as const)
+                  : ("none" as const);
           return (
             <CalcKey
               key={`${ri}-${ki}`}
@@ -122,7 +131,7 @@ export function ClassicKeyboard({
               style={{ gridColumn: `span ${spanCols} / span ${spanCols}` }}
               f={fLegend}
               g={k.g}
-              h={k.h}
+              h={k.h ?? k.al}
               armed={armed}
               onClick={() => handle(k)}
             />

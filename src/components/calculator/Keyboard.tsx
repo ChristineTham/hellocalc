@@ -66,9 +66,9 @@ export function Keyboard({ keys, geometry, prefix, onArm, onPress }: KeyboardPro
           col={k.col}
           row={k.row}
           rowSpan={k.rowSpan}
-          // Voyagers only arm f/g; fi (HP-65) maps to its gold plane for type
-          // completeness and can never be armed from this family's hook use
-          armed={prefix === "fi" ? "f" : prefix}
+          // Voyagers only arm f/g; the wider Prefix values (fi/h/alpha) exist
+          // for other families and can never be armed from this family's use
+          armed={prefix === "f" || prefix === "g" ? prefix : "none"}
           tone={toneFor(k.kind)}
           onClick={() => handle(k)}
         />

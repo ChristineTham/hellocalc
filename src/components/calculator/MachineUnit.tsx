@@ -127,7 +127,7 @@ export function MachineUnit({ model, rpn, rpl, lcd, paper }: MachineUnitProps) {
             onPress={rpn.press}
           />
         )}
-        {model.family === "classic" && (
+        {(model.family === "classic" || model.family === "hp41") && (
           <ClassicKeyboard
             rows={model.rows}
             geometry={model.geometry}

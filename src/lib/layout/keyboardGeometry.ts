@@ -9,7 +9,7 @@
 // already satisfy, so this module stays layer-clean and unit-testable.
 
 /** Families whose key data this oracle understands (per-family key aspect k). */
-export type GeometryFamily = "voyager" | "classic" | "rpl";
+export type GeometryFamily = "voyager" | "classic" | "hp41" | "rpl";
 
 export type KeyboardAspectClass = "landscape" | "portrait" | "tall";
 
@@ -49,6 +49,7 @@ export interface KeyboardGeometry {
 export const KEY_ASPECT: Record<GeometryFamily, number> = {
   voyager: 1.15,
   classic: 1.15,
+  hp41: 1.15, // same key sculpt as the classic handhelds
   rpl: 1.1,
 };
 

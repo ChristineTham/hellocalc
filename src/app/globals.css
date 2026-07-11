@@ -554,7 +554,8 @@
     }
   }
   @container kbdmod (max-width: 18rem) {
-    .machine[data-family="classic"] .key-shift {
+    .machine[data-family="classic"] .key-shift,
+    .machine[data-family="hp41"] .key-shift {
       display: none;
     }
   }

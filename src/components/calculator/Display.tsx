@@ -99,6 +99,7 @@ function AnnunRow({
       <Annunciator label="f" hot={s.prefix === "f" || s.prefix === "fi"} />
       <Annunciator label="g" hot={s.prefix === "g"} />
       {s.prefix === "h" && <Annunciator label="h" hot />}
+      {s.prefix === "alpha" && family !== "rpl" && <Annunciator label="ALPHA" hot />}
       {showAngle && s.ang && <Annunciator label={s.ang} hot />}
       <Annunciator label={isRpl ? "RPL" : "RPN"} hot />
       {family === "voyager" && <Annunciator label={s.beg ? "BEG" : "END"} hot />}

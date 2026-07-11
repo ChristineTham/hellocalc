@@ -13,7 +13,7 @@ import {
   type KeyboardGeometry,
 } from "@/lib/layout/keyboardGeometry";
 
-export type Family = "voyager" | "classic" | "rpl";
+export type Family = "voyager" | "classic" | "hp41" | "rpl";
 
 /** Voyager (HP-12C / HP-15C): fixed 4x10 grid, gold f / blue g, tall ENTER. */
 export interface VoyagerKey {
@@ -39,7 +39,8 @@ export interface ClassicKey {
   f?: string; // gold f-shift legend, as printed
   g?: string; // blue g-shift legend, as printed
   h?: string; // black h-shift legend, as printed (HP-67)
-  kind?: "pf" | "pfi" | "pg" | "ph"; // prefix keys (f / f⁻¹ / g / h)
+  al?: string; // ALPHA character (HP-41), printed lower-right like h
+  kind?: "pf" | "pfi" | "pg" | "ph" | "alpha"; // prefix/toggle keys
 }
 
 /** RPL (HP-48G): purple left-shift / green right-shift / white ALPHA. */
@@ -83,6 +84,7 @@ export interface ModelBase {
 export type Model =
   | (ModelBase & { family: "voyager"; keys: VoyagerKey[] })
   | (ModelBase & { family: "classic"; rows: ClassicKey[][] })
+  | (ModelBase & { family: "hp41"; rows: ClassicKey[][] })
   | (ModelBase & { family: "rpl"; rows: RplKey[][] });
 
 // ---- HP-35 (classic, red LED originally; rendered on the standard LCD) -------
@@ -97,7 +99,7 @@ const ck = (
   legend: string,
   fn: string,
   cat: ClassicKey["cat"],
-  opts: Partial<Pick<ClassicKey, "f" | "g" | "h" | "kind" | "flex">> = {},
+  opts: Partial<Pick<ClassicKey, "f" | "g" | "h" | "al" | "kind" | "flex">> = {},
 ): ClassicKey => ({ legend, fn, cat, flex: 1, ...opts });
 const HP35_ROWS: ClassicKey[][] = [
   [c("xʸ","yˣ","black"),c("log","LOG","black"),c("ln","LN","black"),c("eˣ","eˣ","black"),c("CLR","CLR","blue")],
@@ -155,6 +157,21 @@ const HP67_ROWS: ClassicKey[][] = [
   [ck("+","+","black",{f:"x≠0",g:"x≠y",h:"CF"}),ck("4","4","black",{f:"SIN",g:"SIN⁻¹",h:"1/x"}),ck("5","5","black",{f:"COS",g:"COS⁻¹",h:"yˣ"}),ck("6","6","black",{f:"TAN",g:"TAN⁻¹",h:"ABS"})],
   [ck("×","×","black",{f:"x<0",g:"x≤y",h:"F?"}),ck("1","1","black",{f:"→R",g:"→P",h:"PAUSE"}),ck("2","2","black",{f:"D→R",g:"R→D",h:"π"}),ck("3","3","black",{f:"→H",g:"→H.MS",h:"REG"})],
   [ck("÷","÷","black",{f:"x>0",g:"x>y",h:"N!"}),ck("0","0","black",{f:"%",g:"%CH",h:"LST X"}),ck(".",".","black",{f:"INT",g:"FRAC",h:"H.MS+"}),ck("R/S","R/S","black",{f:"−x−",g:"STK",h:"SPACE"})],
+];
+
+// ---- HP-41C/CV/CX (gold shift + ALPHA letters; hp/layouts/HP-41C-CV.md) ------
+// Row 0 is the real unit's toggle strip (ON / USER / PRGM / ALPHA) below the
+// display; the C/CV and CX share this keyplate exactly (grids diffed equal).
+const HP41_ROWS: ClassicKey[][] = [
+  [ck("ON","ON","black"),ck("USER","USER","black"),ck("PRGM","PRGM","black"),ck("ALPHA","ALPHA","black",{kind:"alpha"})],
+  [ck("Σ+","Σ+","black",{f:"Σ−",al:"A"}),ck("1/x","1/x","black",{f:"yˣ",al:"B"}),ck("√x","√x","black",{f:"x²",al:"C"}),ck("LOG","LOG","black",{f:"10ˣ",al:"D"}),ck("LN","LN","black",{f:"eˣ",al:"E"})],
+  [ck("x≷y","x⇄y","black",{f:"CLΣ",al:"F"}),ck("R↓","R↓","black",{f:"%",al:"G"}),ck("SIN","SIN","black",{f:"SIN⁻¹",al:"H"}),ck("COS","COS","black",{f:"COS⁻¹",al:"I"}),ck("TAN","TAN","black",{f:"TAN⁻¹",al:"J"})],
+  [ck("","f","gold",{kind:"pf"}),ck("XEQ","XEQ","black",{f:"ASN",al:"K"}),ck("STO","STO","black",{f:"LBL",al:"L"}),ck("RCL","RCL","black",{f:"GTO",al:"M"}),ck("SST","SST","black",{f:"BST"})],
+  [ck("ENTER↑","ENTER","black",{flex:2,f:"CATALOG",al:"N"}),ck("CHS","CHS","black",{f:"ISG",al:"O"}),ck("EEX","EEX","black",{f:"RTN",al:"P"}),ck("←","CLx","black",{f:"CL x/A"})],
+  [ck("−","−","black",{f:"x=y?",al:"Q"}),ck("7","7","black",{f:"SF",al:"R"}),ck("8","8","black",{f:"CF",al:"S"}),ck("9","9","black",{f:"FS?",al:"T"})],
+  [ck("+","+","black",{f:"x≤y?",al:"U"}),ck("4","4","black",{f:"BEEP",al:"V"}),ck("5","5","black",{f:"P→R",al:"W"}),ck("6","6","black",{f:"R→P",al:"X"})],
+  [ck("×","×","black",{f:"x>y?",al:"Y"}),ck("1","1","black",{f:"FIX",al:"Z"}),ck("2","2","black",{f:"SCI",al:"="}),ck("3","3","black",{f:"ENG",al:"?"})],
+  [ck("÷","÷","black",{f:"x=0?",al:":"}),ck("0","0","black",{f:"π",al:"SPC"}),ck("•","•","black",{f:"LASTx",al:","}),ck("R/S","R/S","black",{f:"VIEW"})],
 ];
 
 // ---- HP-48G (RPL, graphing) --------------------------------------------------
@@ -228,6 +245,10 @@ const GEOM = {
   "HP-65": computeKeyboardGeometry({ rows: HP65_ROWS }, "classic"),
   "HP-25": computeKeyboardGeometry({ rows: HP25_ROWS }, "classic"),
   "HP-67": computeKeyboardGeometry({ rows: HP67_ROWS }, "classic"),
+  // Toggle strip makes 9 rows → A≈0.624 (numerically tall), but the real 41
+  // is a classic handheld — half-height toggles inflate the computed height.
+  // Deliberate portrait override keeps the LCD-above-keys posture (§11 #4).
+  "HP-41": computeKeyboardGeometry({ rows: HP41_ROWS }, "hp41", { aspectClass: "portrait" }),
   "HP-11C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-11C"] }, "voyager"),
   "HP-12C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-12C"] }, "voyager"),
   "HP-15C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-15C"] }, "voyager"),
@@ -250,6 +271,8 @@ export const MODELS: Record<string, Model> = {
   "HP-65":  { id: "HP-65",  name: "HP-65",  family: "classic", sub: "RPN · MAG CARD",   angle: true,  geometry: GEOM["HP-65"],  rows: HP65_ROWS },
   "HP-25":  { id: "HP-25",  name: "HP-25",  family: "classic", sub: "RPN · PROGRAM",    angle: true,  geometry: GEOM["HP-25"],  rows: HP25_ROWS },
   "HP-67":  { id: "HP-67",  name: "HP-67",  family: "classic", sub: "RPN · MAG CARD",   angle: true,  geometry: GEOM["HP-67"],  rows: HP67_ROWS },
+  "HP-41C-CV": { id: "HP-41C-CV", name: "HP-41C/CV", family: "hp41", sub: "RPN · ALPHA", angle: true, geometry: GEOM["HP-41"], rows: HP41_ROWS },
+  "HP-41CX":   { id: "HP-41CX",   name: "HP-41CX",   family: "hp41", sub: "RPN · ALPHA · TIME", angle: true, geometry: GEOM["HP-41"], rows: HP41_ROWS },
   "HP-11C": { id: "HP-11C", name: "HP-11C", family: "voyager", sub: "RPN · SCIENTIFIC", angle: true,  geometry: GEOM["HP-11C"], keys: GENERATED_VOYAGER["HP-11C"] },
   "HP-12C": { id: "HP-12C", name: "HP-12C", family: "voyager", sub: "RPN · FINANCIAL",  angle: false, geometry: GEOM["HP-12C"], keys: GENERATED_VOYAGER["HP-12C"] },
   "HP-15C": { id: "HP-15C", name: "HP-15C", family: "voyager", sub: "RPN · SCIENTIFIC", angle: true,  geometry: GEOM["HP-15C"], keys: GENERATED_VOYAGER["HP-15C"] },
@@ -265,6 +288,7 @@ export const MODELS: Record<string, Model> = {
 
 export const MODEL_ORDER = [
   "HP-35", "HP-45", "HP-65", "HP-25", "HP-67",
+  "HP-41C-CV", "HP-41CX",
   "HP-11C", "HP-12C", "HP-15C", "HP-16C",
   "HP-48SX", "HP-48G", "HP-49G", "HP-50g",
 ] as const;

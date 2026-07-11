@@ -15,9 +15,10 @@ import {
 import type { RpnState } from "@/components/calculator/Display";
 
 // f/g are the Voyager planes; h (HP-67 black) and fi (HP-65 f⁻¹ gold inverse)
-// arrive with the classic programmables. The engine never sees a prefix —
-// keyboards resolve (key, prefix) → one function id before press().
-export type Prefix = "none" | "f" | "g" | "h" | "fi";
+// arrive with the classic programmables; alpha with the HP-41 (letters are
+// promoted visually but inert until alpha entry lands). The engine never sees
+// a prefix — keyboards resolve (key, prefix) → one function id before press().
+export type Prefix = "none" | "f" | "g" | "h" | "fi" | "alpha";
 
 const DIGIT = /^[0-9]$/;
 const isValueKey = (fn: string) => DIGIT.test(fn) || fn === "•" || fn === ".";
