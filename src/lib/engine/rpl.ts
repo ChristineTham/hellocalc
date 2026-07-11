@@ -36,6 +36,7 @@ import {
   addU, convertU, DimensionError, divU, mulU, powU, scaleU, subU, ubaseU, validUnit,
 } from "./units";
 import { UNIT_CATEGORIES, UNIT_MENUS } from "./units-catalog";
+import { getCas } from "./cas/provider";
 
 export type Angle = "DEG" | "RAD" | "GRD";
 
@@ -177,6 +178,43 @@ const pushU = (s: RplEngine, q: { mag: Value; u: string }): void => {
   s.stack.push(q.u === "" ? real(q.mag) : { k: "unit", mag: q.mag, u: q.u });
 };
 const fRe = (o: RplObj): number => num(wantReal(o));
+
+/** The algebraic source of an object (CAS input): alg, name, or real. */
+const algSrcOf = (o: RplObj): string => {
+  if (o.k === "alg") return o.src;
+  if (o.k === "name") return o.v;
+  if (o.k === "real") return o.v.toString();
+  throw err("Bad Argument Type");
+};
+const varNameOf = (o: RplObj): string => {
+  if (o.k === "name") return o.v;
+  if (o.k === "alg" && /^[A-Za-z][A-Za-z0-9]*$/.test(o.src)) return o.src;
+  throw err("Bad Argument Type");
+};
+/** The registered CAS tier, or the honest loading message (the React seam
+ * lazy-loads the provider before dispatching CAS keys — NFR-3/NFR-4). */
+function requireCas() {
+  const cas = getCas();
+  if (!cas) throw err("CAS loading — press again");
+  return cas;
+}
+function tryCas<T>(op: () => T): T {
+  try {
+    return op();
+  } catch (e) {
+    if (e instanceof RplError) throw e;
+    throw err("CAS: no result");
+  }
+}
+/** A CAS result string → real (when purely numeric) or algebraic object. */
+function casObjOf(text: string): RplObj {
+  const t = text.trim();
+  if (/^[+-]?(\d+\.?\d*|\.\d+)([Ee][+-]?\d+)?$/.test(t)) return real(bn(t));
+  return { k: "alg", src: t };
+}
+function pushCasResult(s: RplEngine, text: string): void {
+  s.stack.push(casObjOf(tryCas(() => text)));
+}
 
 /** Run a tower op to a real Value; domain faults become RPL errors. */
 function tryReal(op: () => unknown): Value {
@@ -648,9 +686,8 @@ const fPdf = (n1: number, n2: number) => (t: number): number =>
 // ---- the command registry -----------------------------------------------------------
 
 const DEFERRED: Record<string, string> = {
-  // CAS (P14)
-  COLCT: "P14", EXPAN: "P14", FORM: "P14", OBSUB: "P14", EXSUB: "P14",
-  TAYLR: "P14", ISOL: "P14", QUAD: "P14", SHOW: "P14", OBGET: "P14", EXGET: "P14",
+  // positional subexpression editing needs the FORM UI — heavy-tier era
+  FORM: "P19", OBSUB: "P19", EXSUB: "P19", OBGET: "P19", EXGET: "P19",
   // plotting (P17/P18)
   DRAW: "P17", DRAX: "P17", PIXEL: "P17", SCLΣ: "P18", DRWΣ: "P18",
 };
@@ -1389,6 +1426,14 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
     }
     case "SIZE": {
       const o = pop1(s);
+      if (o.k === "alg") {
+        // top-level object count: operator + operands (the 28C's convention)
+        const node = parseExpr(o.src);
+        const n =
+          node.t === "bin" ? 3 : node.t === "neg" ? 2 : node.t === "call" ? node.args.length + 1 : 1;
+        s.stack.push(real(bn(n)));
+        return true;
+      }
       if (o.k === "str") s.stack.push(real(bn(o.v.length)));
       else if (o.k === "list") s.stack.push(real(bn(o.items.length)));
       else if (o.k === "arr") {
@@ -2001,6 +2046,50 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
     case "ERRM":
       s.stack.push(mkStr(s.errM));
       return true;
+    // ---- light CAS (P14, FR-CAS-1..4) ----------------------------------------------------------------
+    case "d/dx":
+    case "∂": {
+      const [eO, vO] = popN(s, 2);
+      pushCasResult(s, requireCas().diff(algSrcOf(eO), varNameOf(vO)));
+      return true;
+    }
+    case "∫": {
+      // light-tier ∫: the antiderivative, no +C (delivery note)
+      const [eO, vO] = popN(s, 2);
+      pushCasResult(s, requireCas().integrate(algSrcOf(eO), varNameOf(vO)));
+      return true;
+    }
+    case "COLCT":
+      pushCasResult(s, requireCas().simplify(algSrcOf(pop1(s))));
+      return true;
+    case "EXPAN":
+      pushCasResult(s, requireCas().expand(algSrcOf(pop1(s))));
+      return true;
+    case "FACTOR": // reachable by name (command entry); not a 28C key
+      pushCasResult(s, requireCas().factor(algSrcOf(pop1(s))));
+      return true;
+    case "ISOL":
+    case "QUAD": {
+      const [eO, vO] = popN(s, 2);
+      const sols = tryCas(() => requireCas().solve(algSrcOf(eO), varNameOf(vO)));
+      if (!sols.length) throw err("No Solution");
+      const objs = sols.map((t) => casObjOf(t));
+      if (objs.length === 1) s.stack.push(objs[0]);
+      else s.stack.push({ k: "list", items: objs });
+      return true;
+    }
+    case "TAYLR": {
+      const [eO, vO, nO] = popN(s, 3);
+      const n = wantInt(nO);
+      pushCasResult(s, requireCas().taylor(algSrcOf(eO), varNameOf(vO), n));
+      return true;
+    }
+    case "SHOW": {
+      // light-tier SHOW: the variables an expression references (delivery note)
+      const src2 = algSrcOf(pop1(s));
+      s.stack.push({ k: "list", items: exprNames(src2).map((nm) => mkName(nm)) });
+      return true;
+    }
     // ---- UNITS (P13, FR-UNIT-1/2/3) ----------------------------------------------------------------
     case "CONVERT": {
       const [q, t] = popN(s, 2);

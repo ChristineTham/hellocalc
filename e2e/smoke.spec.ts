@@ -194,6 +194,30 @@ test.describe("hellocalc — smoke", () => {
     await expect(glass().getByText("Error").first()).toBeVisible();
   });
 
+  test("Phase 14 on the live HP-28C: d/dx lazy-loads the CAS and differentiates", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await selectModel(page, "HP-28C");
+    const key = (name: string) =>
+      page.getByRole("button", { name, exact: true }).click();
+    const glass = () => page.locator('[data-lcd-mode]:visible');
+
+    // 'X^2' — the ^ rides the red shift of ×
+    for (const k of ["◆", "X"]) await key(k);
+    await key("◄");
+    await key("×"); // → ^ (types into the algebraic)
+    await key("2");
+    await key("◆");
+    await key("ENTER");
+    // 'X' then shift-6 → d/dx (first press lazy-loads the nerdamer chunk)
+    for (const k of ["◆", "X", "◆"]) await key(k);
+    await key("ENTER");
+    await key("◄");
+    await key("6"); // → d/dx
+    await expect(glass().getByText("'2*X'").first()).toBeVisible({ timeout: 15000 });
+  });
+
   test("persistence: the session survives a reload (FR-STATE-1)", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "7", exact: true }).click();

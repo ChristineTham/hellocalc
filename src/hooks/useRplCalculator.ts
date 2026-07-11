@@ -17,10 +17,17 @@ import {
 } from "@/lib/engine/rpl";
 import { formatObj } from "@/lib/engine/rpl/object";
 import { formatValue } from "@/lib/engine/format";
+import { casReady } from "@/lib/engine/cas/provider";
+import { loadNerdamerProvider } from "@/lib/engine/cas/nerdamer-provider";
+import { setCas } from "@/lib/engine/cas/provider";
+import { objToTex } from "@/lib/render/tex";
 import { bn, type Value } from "@/lib/engine/config";
 import type { RpnState } from "@/components/calculator/Display";
 
 export type RplPrefix = "none" | "ls" | "rs" | "alpha";
+
+/** Keys/softkeys that need the lazy CAS tier (P14). */
+const CAS_FNS = new Set(["d/dx", "∂", "∫", "COLCT", "EXPAN", "FACTOR", "ISOL", "QUAD", "TAYLR"]);
 
 export interface RplCalculator {
   state: RpnState;
@@ -64,23 +71,59 @@ export function useRplCalculator(): RplCalculator {
     [engine.disp],
   );
 
-  const press = useCallback((fn: string) => {
+  // CAS keys lazy-load the light tier on FIRST use (P14, NFR-3/NFR-4): show
+  // an explicit loading line, import the chunk, register, then dispatch.
+  const withCas = useCallback((go: (e: RplEngine) => void) => {
     setEngine((prev) => {
       const next = clone(prev);
-      dispatchRpl(next, fn);
+      next.msg = "CAS loading…";
       return next;
     });
-    setPrefix("none");
+    void loadNerdamerProvider().then((p) => {
+      setCas(p);
+      setEngine((prev) => {
+        const next = clone(prev);
+        next.msg = null;
+        go(next);
+        return next;
+      });
+    });
   }, []);
 
-  const soft = useCallback((i: number) => {
-    setEngine((prev) => {
-      const next = clone(prev);
-      pressSoft(next, i);
-      return next;
-    });
-    setPrefix("none");
-  }, []);
+  const press = useCallback(
+    (fn: string) => {
+      if (CAS_FNS.has(fn) && !casReady()) {
+        withCas((e) => dispatchRpl(e, fn));
+      } else {
+        setEngine((prev) => {
+          const next = clone(prev);
+          dispatchRpl(next, fn);
+          return next;
+        });
+      }
+      setPrefix("none");
+    },
+    [withCas],
+  );
+
+  const soft = useCallback(
+    (i: number) => {
+      setEngine((prev) => {
+        if (CAS_FNS.has(menuLabels(prev)[i] ?? "") && !casReady()) {
+          // re-enter through the loader; return the loading state for now
+          withCas((e) => pressSoft(e, i));
+          const next = clone(prev);
+          next.msg = "CAS loading…";
+          return next;
+        }
+        const next = clone(prev);
+        pressSoft(next, i);
+        return next;
+      });
+      setPrefix("none");
+    },
+    [withCas],
+  );
 
   const recall = useCallback((raw: string) => {
     setEngine((prev) => {
@@ -111,13 +154,12 @@ export function useRplCalculator(): RplCalculator {
       dec: engine.disp.digits,
       ang: engine.angle,
       prefix,
-      // unit quantities typeset on the hero line (P13; AGENTS §3): magnitude
-      // per the display mode, unit in upright roman
+      // the unified LaTeX pipeline (P14, FR-IO-1): units, algebraics and
+      // binaries typeset on the hero line; reals stay on the dot-matrix rows
       latex: (() => {
         const top = engine.stack[engine.stack.length - 1];
-        if (!top || top.k !== "unit") return "";
-        const uTex = top.u.replace(/\u00b5/g, "\\mu ");
-        return `${formatValue(top.mag, engine.disp)}\\,\\mathrm{${uTex}}`;
+        if (!top || top.k === "real") return "";
+        return objToTex(top, engine.disp, engine.base);
       })(),
       err: engine.error ?? undefined,
       msg: engine.msg ?? undefined,

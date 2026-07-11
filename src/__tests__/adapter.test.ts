@@ -115,13 +115,11 @@ describe("model adapter (hp/mapping/mapping.json)", () => {
     expect(report.missing).toEqual([]);
   });
 
-  it("HP-28C: NO key remains inert except the documented P13/P14 planes (Phase-12 DoD)", async () => {
+  it("HP-28C: NO key remains inert — the full plane is live (Phase-14 DoD)", async () => {
     const rpl = await import("@/lib/engine/rpl");
     const probe = (fn: string) => rpl.dispatchRpl(rpl.createRpl(), fn);
     const report = coverage("HP-28C", probe);
-    // the CAS keys (P14) are the only remaining deferral — units landed in P13
-    const deferred = new Set(["∫", "d/dx"]);
-    expect(report.missing.filter((fn) => !deferred.has(fn))).toEqual([]);
+    expect(report.missing).toEqual([]);
   });
 
   it("coverage reports honestly for models awaiting their engine phase", async () => {

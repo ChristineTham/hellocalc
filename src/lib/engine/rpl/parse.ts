@@ -374,7 +374,11 @@ export function evalExpr(node: Node, env: ExprEnv): Value {
     case "name": {
       if (node.v === "π") return PI;
       const v = env.get(node.v);
-      if (v === null) throw new UndefinedName(node.v);
+      if (v === null) {
+        // Euler's e (the CAS prints exp as e^x) — unless user-defined
+        if (node.v === "e") return asV(math.exp(bn(1)));
+        throw new UndefinedName(node.v);
+      }
       return v;
     }
     case "neg":

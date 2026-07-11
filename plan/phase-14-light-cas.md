@@ -74,6 +74,32 @@ Per architecture §5: heavy CAS (Pyodide+SymPy) is **not** added here — it arr
   initial bundle) / `pnpm test:e2e` green; the existing UI suites (geometry, promotion, typing)
   stay green.
 
+## Delivery notes (as shipped)
+- `CasProvider` (src/lib/engine/cas/provider.ts) is a SYNCHRONOUS interface
+  with a registry (`setCas`/`getCas`) — the async lives in the React seam:
+  useRplCalculator intercepts CAS keys/softkeys, shows "CAS loading…"
+  (NFR-4), dynamic-imports nerdamer-prime (+Calculus/Algebra/Solve), then
+  dispatches. The engine stays pure and sync; programs using CAS words
+  before the first load report "CAS loading — press again" honestly.
+- **Name translation at the provider boundary**: HP algebraics print
+  UPPERCASE (SIN, LN, EXP, √); nerdamer speaks lowercase (sin, log, exp,
+  sqrt) — mapped both ways, longest-first. LN↔log, LOG↔log10; nerdamer's
+  `e^x` output is handled by the numeric evaluator treating an undefined
+  `e` as Euler's constant.
+- Wired: d/dx (∂), ∫ (antiderivative, NO +C — documented), COLCT→simplify,
+  EXPAN→expand, FACTOR (by command name), ISOL/QUAD→solve (single alg or
+  solution list), TAYLR (Maclaurin built from nth derivatives — nerdamer-
+  prime's own taylor() is non-functional), SHOW→variable list (simplified
+  semantics, documented), SIZE on algebraics.
+- FORM/OBSUB/EXSUB/OBGET/EXGET (positional subexpression editing) defer to
+  P19 — they need the FORM UI and heavy-tier rewriting.
+- **Algebrite is NOT added** — one canonical light provider avoids
+  normalization disagreements (architecture §8); the seam accepts it later
+  if factoring gaps appear.
+- KaTeX pipeline unified in src/lib/render/tex.ts (objToTex): algebraics via
+  the provider's toTeX (verbatim \texttt before load), units/complex/binary
+  typeset locally; the hero line gets a Copy-LaTeX control (FR-IO-3).
+
 ## Notes / risks
 - Nerdamer vs Algebrite disagree on form/normalization; pick one canonical provider per op and pin
   versions (architecture §8 maintenance risk) — the `CasProvider` seam lets us swap without churn.

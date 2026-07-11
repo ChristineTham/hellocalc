@@ -10,7 +10,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronsDownUp, ChevronsUpDown } from "lucide-react";
+import { ChevronsDownUp, ChevronsUpDown, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Family } from "./models";
 import type { Value } from "@/lib/engine/config";
@@ -248,12 +248,25 @@ export function Display({
           }
         />
 
-        {/* KaTeX hero */}
+        {/* KaTeX hero + LaTeX export (P14, FR-IO-3): the copy control lifts
+            the SOURCE the hero renders */}
         <div
-          className="flex items-center text-hp-lcd-hero text-hp-display-fg"
+          className="flex items-center gap-2 text-hp-lcd-hero text-hp-display-fg"
           style={{ minBlockSize: "var(--calc-lcd-line-h)" }}
-          dangerouslySetInnerHTML={renderLatex(s.latex)}
-        />
+        >
+          <div className="min-w-0 flex-1" dangerouslySetInnerHTML={renderLatex(s.latex)} />
+          {s.latex && (
+            <button
+              type="button"
+              aria-label="Copy LaTeX"
+              title="Copy LaTeX source"
+              onClick={() => void navigator.clipboard?.writeText(s.latex)}
+              className="shrink-0 text-hp-display-dim transition-colors hover:text-hp-display-fg"
+            >
+              <Copy className="size-3" />
+            </button>
+          )}
+        </div>
 
         {/* compact stack — for RPN it is `lcd-stack` (one home: paper when
             in-plane, glass otherwise, §14.3 rev 3); the RPL glass ALWAYS

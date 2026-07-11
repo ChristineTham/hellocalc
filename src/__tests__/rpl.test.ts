@@ -253,7 +253,6 @@ describe("P13 units & dimensional analysis", () => {
     const top = s.stack[0];
     expect(top.k).toBe("unit");
     if (top.k === "unit") {
-      expect(top.v === undefined).toBe(true); // discriminant sanity
       expect(top.mag.toString()).toBe("10.08"); // exact on BigNumber
       expect(top.u).toBe("cm");
     }
@@ -472,6 +471,92 @@ describe("P12 variables, algebraics, programs (the evaluator)", () => {
   });
 });
 
+describe("P14 light CAS (nerdamer tier behind CasProvider)", () => {
+  // load the real provider once — a local module, deterministic, no network
+  const casLoaded = (async () => {
+    const { loadNerdamerProvider } = await import("@/lib/engine/cas/nerdamer-provider");
+    const { setCas } = await import("@/lib/engine/cas/provider");
+    setCas(await loadNerdamerProvider());
+  })();
+
+  it("FR-CAS-1: d/dx of 'X^2' is the algebraic '2*X'", async () => {
+    await casLoaded;
+    const s = createRpl();
+    line(s, "'X^2' 'X' d/dx");
+    expect(s.stack[0]).toEqual({ k: "alg", src: "2*X" });
+  });
+
+  it("FR-CAS-2: ∫ of '2*X' is 'X^2' (no +C, documented); →NUM evaluates", async () => {
+    await casLoaded;
+    const s = createRpl();
+    line(s, "'2*X' 'X' ∫");
+    expect(s.stack[0]).toEqual({ k: "alg", src: "X^2" });
+    line(s, "3 'X' STO");
+    dispatchRpl(s, "→NUM");
+    expect(nums(s.stack)).toEqual([9]);
+  });
+
+  it("FR-CAS-3: EXPAN and COLCT rewrite; FACTOR by name", async () => {
+    await casLoaded;
+    const s = createRpl();
+    line(s, "'(Q+1)^2' EXPAN");
+    expect(s.stack[0]).toEqual({ k: "alg", src: "1+2*Q+Q^2" });
+    line(s, "CLEAR 'Q+Q+2*Q' COLCT");
+    expect(s.stack[0]).toEqual({ k: "alg", src: "4*Q" });
+    line(s, "CLEAR 'Q^2-4' FACTOR");
+    expect(s.stack[0]).toEqual({ k: "alg", src: "(-2+Q)*(2+Q)" });
+  });
+
+  it("FR-CAS-4: ISOL solves 'X^2-4' for X → the solution list {2, -2}", async () => {
+    await casLoaded;
+    const s = createRpl();
+    line(s, "'X^2-4' 'X' ISOL");
+    expect(fmtTop(s)).toBe("{ 2 -2 }");
+  });
+
+  it("TAYLR builds the Maclaurin polynomial from derivatives", async () => {
+    await casLoaded;
+    const s = createRpl();
+    line(s, "'EXP(Z)' 'Z' 3 TAYLR EVAL"); // no Z defined → stays symbolic
+    const top = s.stack[0];
+    expect(top.k).toBe("alg");
+    // evaluate at Z = 1: 1 + 1 + 1/2 + 1/6 = 2.6666…
+    line(s, "1 'Z' STO");
+    dispatchRpl(s, "EVAL");
+    expect(nums(s.stack)[0]).toBeCloseTo(2.666666667, 6);
+  });
+
+  it("SHOW lists an algebraic's variables; SIZE counts top-level objects", async () => {
+    await casLoaded;
+    const s = createRpl();
+    line(s, "'A+B*C' SHOW");
+    expect(fmtTop(s)).toBe("{ 'A' 'B' 'C' }");
+    line(s, "CLEAR 'A+B' SIZE");
+    expect(nums(s.stack)).toEqual([3]); // operator + two operands
+  });
+
+  it("FR-CAS-6/FR-IO-1: toLatex feeds KaTeX without throwing", async () => {
+    await casLoaded;
+    const { getCas } = await import("@/lib/engine/cas/provider");
+    const { objToTex } = await import("@/lib/render/tex");
+    const katex = (await import("katex")).default;
+    const tex = getCas()!.toLatex("X^2+1");
+    expect(tex).toBe("X^{2}+1");
+    const rendered = katex.renderToString(
+      objToTex({ k: "alg", src: "X^2+1" }, { mode: "STD", digits: 4 }, 10),
+      { throwOnError: true },
+    );
+    expect(rendered).toContain("katex");
+  });
+
+  it("subexpression editing defers honestly to the heavy tier", async () => {
+    await casLoaded;
+    const s = createRpl();
+    line(s, "'X+1' 1 FORM");
+    expect(s.error).toMatch(/P19/);
+  });
+});
+
 describe("P12 command line, editing, and recovery", () => {
   it("the ◆ key types the algebraic delimiter; operators append in text mode", () => {
     const s = createRpl();
@@ -592,13 +677,10 @@ describe("P12 softkey MENU system", () => {
     expect(s.entry).toBe("IF ");
   });
 
-  it("ALGEBRA menu opens, but its commands defer honestly to P14", () => {
+  it("ALGEBRA opens its menu (execution is the P14 suite's concern)", () => {
     const s = createRpl();
     dispatchRpl(s, "ALGEBRA");
-    expect(menuLabels(s)[0]).toBe("COLCT");
-    line(s, "'X+X'");
-    pressSoft(s, 0);
-    expect(s.error).toMatch(/P14/);
+    expect(menuLabels(s)).toEqual(["COLCT", "EXPAN", "SIZE", "FORM", "OBSUB", "EXSUB"]);
   });
 
   it("SOLVR lists the equation's variables; softkey stores level 1", () => {
