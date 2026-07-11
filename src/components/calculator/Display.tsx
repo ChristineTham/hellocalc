@@ -32,6 +32,8 @@ export interface RpnState {
   err?: string;
   latex: string; // last result, as KaTeX source
   reg?: Record<"n" | "i" | "PV" | "PMT" | "FV", string>; // TVM readout
+  /** nonzero storage registers (M, R0–R9, Σn), formatted — the vars note */
+  registers?: { name: string; value: string }[];
   rpl?: Value[]; // RPL dynamic stack (bottom -> top)
   hist?: { op: string; v: string; raw?: string }[];
 }

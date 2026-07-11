@@ -190,6 +190,117 @@ describe("Phase-1 additions: EEX, STO/RCL, FIX/SCI, history", () => {
   });
 });
 
+describe("Phase-2: registers, statistics, conversions (HP-45)", () => {
+  it("STO n / RCL n round-trip through R1–R9; RCL lifts", () => {
+    const s = createRpn();
+    run(s, "7", "STO n", "1", "CLx");
+    expect(n(xval(s))).toBe(0);
+    run(s, "3", "ENTER", "RCL n", "1");
+    expect(n(s.x)).toBe(7);
+    expect(n(s.y)).toBe(3);
+  });
+
+  it("register arithmetic: 5 STO + 1 adds into R1 in place", () => {
+    const s = createRpn();
+    run(s, "10", "STO n", "1"); // R1 = 10
+    run(s, "5", "STO n", "+", "1"); // R1 += 5
+    run(s, "RCL n", "1");
+    expect(n(s.x)).toBe(15);
+  });
+
+  it("a non-argument key cancels the pending state and runs normally", () => {
+    const s = createRpn();
+    run(s, "5", "STO n", "ENTER"); // STO abandoned; ENTER just enters
+    expect(s.pending).toBeNull();
+    expect(n(s.y)).toBe(5);
+    run(s, "2"); // 2 keys as a NUMBER (not a register argument)
+    expect(n(xval(s))).toBe(2);
+  });
+
+  it("descriptive statistics: 2,4,6 via Σ+ → x̄ = 4, s = 2 (HP-45 reference)", () => {
+    const s = createRpn();
+    run(s, "2", "Σ+", "4", "Σ+", "6", "Σ+");
+    expect(n(xval(s))).toBe(3); // Σ+ leaves n in X
+    applyFunction(s, "x̄");
+    expect(n(xval(s))).toBe(4);
+    applyFunction(s, "s");
+    expect(n(xval(s))).toBe(2);
+  });
+
+  it("x̄,s (the 45's one key): mean to X, std dev to Y; Σ− removes a sample", () => {
+    const s = createRpn();
+    run(s, "2", "Σ+", "4", "Σ+", "6", "Σ+", "9", "Σ+");
+    run(s, "9", "Σ−"); // withdraw the bad sample
+    applyFunction(s, "x̄,s");
+    expect(n(s.x)).toBe(4);
+    expect(n(s.y)).toBe(2);
+  });
+
+  it("Σ+ disables stack lift (the next number overwrites n)", () => {
+    const s = createRpn();
+    run(s, "2", "Σ+", "5");
+    expect(n(xval(s))).toBe(5);
+    expect(n(s.y)).not.toBe(1); // the n=1 was overwritten, not lifted
+  });
+
+  it("→P: 3 ENTER 4 →P gives r=5, θ=atan2(3,4) in DEG (HP-45 reference)", () => {
+    const s = createRpn();
+    run(s, "3", "ENTER", "4", "→P");
+    expect(n(s.x)).toBeCloseTo(5, 12);
+    expect(n(s.y)).toBeCloseTo(36.86989764584402, 10);
+    applyFunction(s, "→R"); // and back
+    expect(n(s.x)).toBeCloseTo(4, 12);
+    expect(n(s.y)).toBeCloseTo(3, 12);
+  });
+
+  it("→D.MS / D.MS→: 30.5° ⇄ 30°30′00″ exactly", () => {
+    const s = createRpn();
+    run(s, "30.5", "→D.MS");
+    expect(xval(s).toString()).toBe("30.3");
+    applyFunction(s, "D.MS→");
+    expect(xval(s).toString()).toBe("30.5");
+  });
+
+  it("metric constants push exactly and lift (never auto-convert)", () => {
+    const s = createRpn();
+    run(s, "100", "ENTER", "cm/in");
+    expect(xval(s).toString()).toBe("2.54");
+    expect(n(s.y)).toBe(100); // ÷ then gives inches
+    applyFunction(s, "÷");
+    expect(n(s.x)).toBeCloseTo(39.3700787, 6);
+  });
+
+  it("CLEAR (HP-45 gold) wipes stack + registers + Σ, keeps M", () => {
+    const s = createRpn();
+    run(s, "9", "STO"); // M = 9 (the 35's plain STO)
+    run(s, "7", "STO n", "2", "4", "Σ+", "CLEAR");
+    expect(n(s.regs[2])).toBe(0);
+    expect(n(s.sum.n)).toBe(0);
+    expect(n(s.x)).toBe(0);
+    expect(n(s.mem)).toBe(9);
+  });
+
+  it("FIX/SCI consume a following digit as the digit count", () => {
+    const s = createRpn();
+    run(s, "FIX", "4");
+    expect(s.disp).toEqual({ mode: "FIX", digits: 4 });
+    expect(s.entry).toBeNull(); // the 4 was an argument, not entry
+    run(s, "SCI", "1");
+    expect(s.disp).toEqual({ mode: "SCI", digits: 1 });
+  });
+
+  it("the tape prints argument sequences composed: STO + 1, FIX 4", () => {
+    const s = createRpn();
+    dispatch(s, "5");
+    dispatch(s, "STO n");
+    dispatch(s, "+");
+    dispatch(s, "1");
+    dispatch(s, "FIX");
+    dispatch(s, "4");
+    expect(s.hist.map((h) => h.op)).toEqual(["STO + 1", "FIX 4"]);
+  });
+});
+
 describe("classic-era ops (HP-25/45/65/67 planes)", () => {
   it("R↑ is the inverse of R↓ (one full cycle restores the stack)", () => {
     const s = createRpn();

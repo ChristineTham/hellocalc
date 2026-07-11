@@ -144,16 +144,20 @@ const TVM_KEYS = ["n", "i", "PV", "PMT", "FV"] as const;
 
 /**
  * The variables note (§14 rev 5): TVM registers for financial models; the
+ * storage-register file (M, R0–R9, Σn) for the other RPN machines (P2); the
  * named-variable directory for RPL machines (placeholder rows until the
  * engine's VAR directory lands — it reserves the bay estate deliberately).
  */
 export function VarsNote({
   state: s,
   family,
+  tvm,
   className,
 }: {
   state: RpnState;
   family: Family;
+  /** financial models (HP-12C): show the TVM strip instead of the registers */
+  tvm?: boolean;
   className?: string;
 }) {
   if (family === "rpl") {
@@ -164,6 +168,35 @@ export function VarsNote({
           <p className="py-1 text-center font-mono text-[11px] text-muted-foreground/70">
             — none yet —
           </p>
+        </div>
+      </section>
+    );
+  }
+  if (!tvm) {
+    const rows = s.registers ?? [];
+    return (
+      <section data-slot="vars-note" className={className}>
+        <h3 className={CAPTION}>Registers</h3>
+        <div data-slot="regs-note" className={NOTE}>
+          {rows.length === 0 ? (
+            <p className="py-1 text-center font-mono text-[11px] text-muted-foreground/70">
+              — empty —
+            </p>
+          ) : (
+            rows.map((r) => (
+              <div
+                key={r.name}
+                className="flex justify-between border-b border-paper-line py-1 last:border-0"
+              >
+                <span className="font-mono text-[12px] tracking-[0.1em] text-muted-foreground">
+                  {r.name}
+                </span>
+                <span className="font-mono text-[13.5px] tabular-nums text-foreground">
+                  {r.value}
+                </span>
+              </div>
+            ))
+          )}
         </div>
       </section>
     );
@@ -215,7 +248,8 @@ export function AuxColumn({
   // One home for the stack (§14.3 rev 3): the RPL glass IS a stack display,
   // so RPL models get no paper StackNote — vars + tape only.
   const paperStack = family !== "rpl";
-  const showVars = showRegisters || family === "rpl";
+  const showVars =
+    showRegisters || family === "rpl" || (state.registers?.length ?? 0) > 0;
   if (variant === "bay") {
     // paper resting on the machine body. Both pieces render; CSS picks per
     // context (§14 rev 5): desktop-tall shows VARS (tape lives on the page),
@@ -223,7 +257,9 @@ export function AuxColumn({
     return (
       <div className={cn("aux-flow w-full", className)}>
         {paperStack && <StackNote state={state} family={family} fmt={fmt} />}
-        {showVars && <VarsNote state={state} family={family} className="bay-vars" />}
+        {showVars && (
+          <VarsNote state={state} family={family} tvm={showRegisters} className="bay-vars" />
+        )}
         <HistoryTape hist={state.hist} onRecall={onRecall} className="bay-tape min-h-0 flex-1" />
       </div>
     );
@@ -231,7 +267,7 @@ export function AuxColumn({
   return (
     <div className={cn("aux-flow size-full", className)}>
       {paperStack && <StackNote state={state} family={family} fmt={fmt} />}
-      {showVars && <VarsNote state={state} family={family} />}
+      {showVars && <VarsNote state={state} family={family} tvm={showRegisters} />}
       <HistoryTape hist={state.hist} onRecall={onRecall} className="min-h-0 flex-1" />
     </div>
   );

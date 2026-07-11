@@ -61,6 +61,29 @@ describe("EngineState snapshot/restore", () => {
     expect(parseState(JSON.stringify(state))).toBeNull();
   });
 
+  it("round-trips registers and Σ state (P2), exactly", () => {
+    const rpn = createRpn();
+    for (const k of ["0", ".", "3", "STO n", "4", "2", "Σ+"]) dispatch(rpn, k);
+    const engines = restore(parseState(JSON.stringify(snapshot(rpn, createRpl(), "HP-45")))!);
+    expect(engines.rpn.regs[4].toString()).toBe("0.3");
+    expect(engines.rpn.sum.n.toString()).toBe("1");
+    expect(engines.rpn.sum.x.toString()).toBe("2");
+  });
+
+  it("accepts pre-P2 saves without regs/Σ (forward-compatible v1)", () => {
+    const { rpn, rpl } = populated();
+    const state = snapshot(rpn, rpl, "HP-35");
+    // simulate an old save: strip the P2 fields
+    delete (state.rpn as { regs?: unknown }).regs;
+    delete (state.rpn as { sum?: unknown }).sum;
+    const parsed = parseState(JSON.stringify(state));
+    expect(parsed).not.toBeNull();
+    if (!parsed) return;
+    const engines = restore(parsed);
+    expect(engines.rpn.regs).toHaveLength(10);
+    expect(engines.rpn.sum.n.toString()).toBe("0");
+  });
+
   it("memoryAdapter load/save/clear behaves like a storage", () => {
     const store = memoryAdapter();
     expect(store.load()).toBeNull();

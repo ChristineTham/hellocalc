@@ -62,7 +62,7 @@ export function resolveKey(
 
 /** Ids the KEYBOARD layer consumes (prefix/mode modifiers) — they never reach
  * the engine, so coverage must not count them as missing engine ops. */
-const FACEPLATE_LOCAL = new Set(["arc", "f", "g", "h", "f⁻¹", "ALPHA", "α"]);
+const FACEPLATE_LOCAL = new Set(["arc", "f", "g", "h", "f⁻¹", "ALPHA", "α", "[gold shift key]"]);
 
 /** Coverage report for the no-inert-keys DoD line: which of a model's mapped
  * functions the engine implements today (per the caller's probe). */

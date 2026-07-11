@@ -13,7 +13,6 @@ const ALIAS: Record<string, string> = {
   CLX: "CLx",
   "CL X": "CLx",
   "CL x": "CLx",
-  CLEAR: "CLR",
   "·": "•",
   "+/−": "CHS",
   // last-x spellings across eras
@@ -41,6 +40,11 @@ const ALIAS: Record<string, string> = {
   "N!": "x!",
   "%CH": "Δ%",
   "%CHG": "Δ%",
+  // HP-45 mapping prints the gold digit constants/LAST-x as composites
+  "7→cm/in": "cm/in",
+  "8→kg/lb": "kg/lb",
+  "9→ltr/gal": "ltr/gal",
+  "0→LAST x": "LSTx",
   // 42S/35s/Prime spellings
   ASIN: "SIN⁻¹",
   ACOS: "COS⁻¹",

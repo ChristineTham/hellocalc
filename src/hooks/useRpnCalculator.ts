@@ -37,7 +37,13 @@ export interface RpnCalculator {
 
 /** Clone before mutating so the setState updater stays pure under StrictMode
  * (values are immutable BigNumbers; hist is replaced, never pushed in place). */
-const clone = (e: RpnEngine): RpnEngine => ({ ...e, disp: { ...e.disp } });
+const clone = (e: RpnEngine): RpnEngine => ({
+  ...e,
+  disp: { ...e.disp },
+  regs: [...e.regs],
+  sum: { ...e.sum },
+  pending: e.pending ? { ...e.pending } : null,
+});
 
 export function useRpnCalculator(): RpnCalculator {
   const [engine, setEngine] = useState<RpnEngine>(() => createRpn());
@@ -75,8 +81,15 @@ export function useRpnCalculator(): RpnCalculator {
     setPrefix("none");
   }, []);
 
-  const state = useMemo<RpnState>(
-    () => ({
+  const state = useMemo<RpnState>(() => {
+    // registers note (§14 rev 5): M + the nonzero R0–R9 + Σn, formatted
+    const registers: { name: string; value: string }[] = [];
+    if (!engine.mem.isZero()) registers.push({ name: "M", value: fmt(engine.mem) });
+    engine.regs.forEach((r, i) => {
+      if (!r.isZero()) registers.push({ name: `R${i}`, value: fmt(r) });
+    });
+    if (!engine.sum.n.isZero()) registers.push({ name: "Σn", value: fmt(engine.sum.n, 0) });
+    return {
       T: engine.t,
       Z: engine.z,
       Y: engine.y,
@@ -88,10 +101,10 @@ export function useRpnCalculator(): RpnCalculator {
       prefix,
       latex: fmt(xval(engine)),
       err: engine.error ?? undefined,
+      registers,
       hist: engine.hist.map((h) => ({ op: h.op, v: fmt(bn(h.raw)), raw: h.raw })),
-    }),
-    [engine, prefix, fmt],
-  );
+    };
+  }, [engine, prefix, fmt]);
 
   // Math output is always typeset (AGENTS §3): KaTeX renders synchronously at
   // first render — no post-mount flash. katex.min.css is imported in layout.tsx.

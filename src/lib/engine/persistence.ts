@@ -30,6 +30,9 @@ interface SerializedRpn {
   t: TaggedValue;
   lastX: TaggedValue;
   mem: TaggedValue;
+  /** optional for v1 forward-compat: pre-P2 saves have no registers/Σ */
+  regs?: TaggedValue[];
+  sum?: { n: TaggedValue; x: TaggedValue; x2: TaggedValue; y: TaggedValue };
   entry: string | null;
   lift: boolean;
   angle: Angle;
@@ -68,6 +71,13 @@ export function snapshot(
       t: encodeValue(rpn.t),
       lastX: encodeValue(rpn.lastX),
       mem: encodeValue(rpn.mem),
+      regs: rpn.regs.map(encodeValue),
+      sum: {
+        n: encodeValue(rpn.sum.n),
+        x: encodeValue(rpn.sum.x),
+        x2: encodeValue(rpn.sum.x2),
+        y: encodeValue(rpn.sum.y),
+      },
       entry: rpn.entry,
       lift: rpn.lift,
       angle: rpn.angle,
@@ -89,14 +99,24 @@ export function restore(state: EngineStateV1): {
   rpl: RplEngine;
   activeModel: string;
 } {
+  const fresh = createRpn();
   const rpn: RpnEngine = {
-    ...createRpn(),
+    ...fresh,
     x: decodeValue(state.rpn.x),
     y: decodeValue(state.rpn.y),
     z: decodeValue(state.rpn.z),
     t: decodeValue(state.rpn.t),
     lastX: decodeValue(state.rpn.lastX),
     mem: decodeValue(state.rpn.mem),
+    regs: state.rpn.regs ? state.rpn.regs.map(decodeValue) : fresh.regs,
+    sum: state.rpn.sum
+      ? {
+          n: decodeValue(state.rpn.sum.n),
+          x: decodeValue(state.rpn.sum.x),
+          x2: decodeValue(state.rpn.sum.x2),
+          y: decodeValue(state.rpn.sum.y),
+        }
+      : fresh.sum,
     entry: state.rpn.entry,
     lift: state.rpn.lift,
     angle: state.rpn.angle,
@@ -134,6 +154,9 @@ function isSerializedRpn(v: unknown): v is SerializedRpn {
     isTagged(s.t) &&
     isTagged(s.lastX) &&
     isTagged(s.mem) &&
+    (s.regs === undefined || (Array.isArray(s.regs) && s.regs.every(isTagged))) &&
+    (s.sum === undefined ||
+      (isTagged(s.sum?.n) && isTagged(s.sum?.x) && isTagged(s.sum?.x2) && isTagged(s.sum?.y))) &&
     (s.entry === null || typeof s.entry === "string") &&
     typeof s.lift === "boolean" &&
     typeof s.angle === "string" &&

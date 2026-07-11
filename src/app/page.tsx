@@ -132,10 +132,9 @@ export default function Home() {
                   <StackNote state={active.state} family={model.family} fmt={active.fmt} />
                 ) : undefined,
               tape: <HistoryTape hist={active.state.hist} onRecall={active.recall} />,
-              vars:
-                showRegisters || model.family === "rpl" ? (
-                  <VarsNote state={active.state} family={model.family} />
-                ) : undefined,
+              vars: (
+                <VarsNote state={active.state} family={model.family} tvm={showRegisters} />
+              ),
             }}
           />
         }

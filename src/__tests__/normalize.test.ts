@@ -11,7 +11,9 @@ describe("normalizeFn", () => {
     expect(normalizeFn("ENTER↑")).toBe("ENTER");
     expect(normalizeFn("CLX")).toBe("CLx");
     expect(normalizeFn("CL X")).toBe("CLx");
-    expect(normalizeFn("CLEAR")).toBe("CLR");
+    expect(normalizeFn("CLEAR")).toBe("CLEAR"); // its own op since P2 (45 semantics)
+    expect(normalizeFn("7→cm/in")).toBe("cm/in"); // 45 mapping composites
+    expect(normalizeFn("0→LAST x")).toBe("LSTx");
     expect(normalizeFn("LAST x")).toBe("LSTx");
     expect(normalizeFn("LST X")).toBe("LSTx");
     expect(normalizeFn("ln")).toBe("LN");

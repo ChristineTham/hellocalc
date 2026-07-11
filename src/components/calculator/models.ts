@@ -121,7 +121,7 @@ const HP35_ROWS: ClassicKey[][] = [
 const HP45_ROWS: ClassicKey[][] = [
   [ck("1/x","1/x","black",{f:"yˣ"}),ck("ln","LN","black",{f:"log"}),ck("eˣ","eˣ","black",{f:"10ˣ"}),ck("FIX","FIX","black",{f:"SCI"}),ck("","f","gold",{kind:"pf"})],
   [ck("x²","x²","black",{f:"√x"}),ck("→P","→P","black",{f:"→R"}),ck("SIN","SIN","black",{f:"SIN⁻¹"}),ck("COS","COS","black",{f:"COS⁻¹"}),ck("TAN","TAN","black",{f:"TAN⁻¹"})],
-  [ck("x⇄y","x⇄y","black",{f:"n!"}),ck("R↓","R↓","black",{f:"x̄,s"}),ck("STO","STO","black",{f:"→D.MS"}),ck("RCL","RCL","black",{f:"D.MS→"}),ck("%","%","black",{f:"Δ%"})],
+  [ck("x⇄y","x⇄y","black",{f:"n!"}),ck("R↓","R↓","black",{f:"x̄,s"}),ck("STO","STO n","black",{f:"→D.MS"}),ck("RCL","RCL n","black",{f:"D.MS→"}),ck("%","%","black",{f:"Δ%"})],
   [ck("ENTER↑","ENTER","blue",{flex:2,f:"DEG"}),ck("CHS","CHS","blue",{f:"RAD"}),ck("EEX","EEX","blue",{f:"GRD"}),ck("CLx","CLx","blue",{f:"CLEAR"})],
   [ck("−","−","blue"),ck("7","7","beige",{f:"cm/in"}),ck("8","8","beige",{f:"kg/lb"}),ck("9","9","beige",{f:"ltr/gal"})],
   [ck("+","+","blue"),ck("4","4","beige"),ck("5","5","beige"),ck("6","6","beige")],

@@ -50,6 +50,27 @@ describe("AuxPanel (paper aux)", () => {
     expect(histAt).toBeGreaterThan(tvmAt);
   });
 
+  it("non-financial RPN models get a Registers note when registers are set (P2)", () => {
+    const withRegs: RpnState = {
+      ...state,
+      registers: [
+        { name: "M", value: "9.00" },
+        { name: "R1", value: "15.00" },
+        { name: "Σn", value: "3" },
+      ],
+    };
+    const { container } = render(
+      <AuxPanel state={withRegs} family="classic" fmt={fmt} />,
+    );
+    const note = container.querySelector('[data-slot="regs-note"]');
+    expect(note).not.toBeNull();
+    expect(note?.textContent).toContain("R1");
+    expect(note?.textContent).toContain("15.00");
+    expect(note?.textContent).toContain("Σn");
+    // no TVM strip on a non-financial model
+    expect(container.querySelector('[data-slot="tvm-strip"]')).toBeNull();
+  });
+
   it("RPL models get NO paper stack (glass owns it) but DO get a Variables note (§14 rev 5)", () => {
     const { container } = render(<AuxPanel state={state} family="rpl" fmt={fmt} />);
     expect(container.querySelector('[data-slot="stack-note"]')).toBeNull();

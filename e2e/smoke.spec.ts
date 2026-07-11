@@ -63,6 +63,39 @@ test.describe("hellocalc — smoke", () => {
     await expect(glass().getByText("0.30").first()).toBeVisible();
   });
 
+  test("Phase 2 on the live HP-45: gold plane, statistics, register arithmetic", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await selectModel(page, "HP-45");
+    const key = (name: string) =>
+      page.getByRole("button", { name, exact: true }).click();
+    const glass = () => page.locator('[data-lcd-mode]:visible');
+
+    // gold sequence: f then x² dispatches its promoted √x — 9 f √x → 3
+    await key("9");
+    await key("f");
+    await key("x²");
+    await expect(glass().getByText("3.00").first()).toBeVisible();
+
+    // statistics: 2 Σ+ 4 Σ+ 6 Σ+ then f R↓ (x̄,s) → mean 4 in X
+    for (const seq of ["2", "Σ+", "4", "Σ+", "6", "Σ+"]) await key(seq);
+    await key("f");
+    await key("R↓");
+    await expect(glass().getByText("4.00").first()).toBeVisible();
+
+    // register arithmetic: 10 STO 1, 5 STO + 1, RCL 1 → 15; the Registers
+    // note surfaces R1
+    for (const seq of ["1", "0", "STO", "1"]) await key(seq);
+    for (const seq of ["5", "STO", "+", "1"]) await key(seq);
+    await key("RCL");
+    await key("1");
+    await expect(glass().getByText("15.00").first()).toBeVisible();
+    await expect(
+      page.locator('[data-slot="regs-note"]:visible').first(),
+    ).toContainText("R1");
+  });
+
   test("persistence: the session survives a reload (FR-STATE-1)", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "7", exact: true }).click();
