@@ -110,9 +110,7 @@ export function CalcKey({
           fHot || gHot
             ? cn(
                 "text-key-promoted font-bold tracking-tight whitespace-nowrap",
-                fHot
-                  ? "text-hp-shift-f [text-shadow:0_0_9px_var(--color-hp-shift-f)]"
-                  : "text-hp-shift-g [text-shadow:0_0_9px_var(--color-hp-shift-g)]",
+                fHot ? "text-hp-shift-f" : "text-hp-shift-g",
               )
             : cn(
                 "text-key-primary",

@@ -141,9 +141,7 @@ export function RplKeyboard({ rows, geometry, prefix, onArm, onPress }: RplKeybo
                   promoted
                     ? cn(
                         "text-key-promoted font-bold tracking-tight whitespace-nowrap",
-                        prefix === "ls"
-                          ? "text-hp-shift-ls [text-shadow:0_0_9px_var(--color-hp-shift-ls)]"
-                          : "text-hp-shift-rs [text-shadow:0_0_9px_var(--color-hp-shift-rs)]",
+                        prefix === "ls" ? "text-hp-shift-ls" : "text-hp-shift-rs",
                       )
                     : prefix !== "none" &&
                         prefix !== "alpha" &&
