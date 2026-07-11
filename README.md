@@ -53,11 +53,12 @@ See the [PRD](docs/prd.md) for the full, prioritized requirement set.
 
 ## Status
 
-**The UI foundation is built and deployed** — four pilot faceplates, one per family
-archetype (**HP-35, HP-12C, HP-15C, HP-48G**), are fully playable at
-<https://christinetham.github.io/hellocalc/> on a prototype engine (real 4-level-RPN and
-dynamic-RPL stack semantics; plain JS numbers until the math.js/BigNumber tower lands in
-Phase 1). The design and full rationale live in
+**The UI foundation is built and deployed, and ALL 21 model faceplates are playable** at
+<https://christinetham.github.io/hellocalc/> — every keyboard authored or generated from
+the verified [`hp/`](hp/) reference data, dispatching to a prototype engine (real
+4-level-RPN and dynamic-RPL stack semantics; plain JS numbers until the math.js/BigNumber
+tower lands in Phase 1). Functions beyond the engine's current set render faithfully but
+stay inert until their engine phase. The design and full rationale live in
 [docs/responsive-layout.md](docs/responsive-layout.md); the highlights:
 
 - **The integrated machine** — nameplate, LCD and keyboard are ONE bezel that reflows across
@@ -65,9 +66,10 @@ Phase 1). The design and full rationale live in
   classic calculator look; tall models like the HP-48G go LCD-beside-keyboard with a
   variables bay under the glass and the history tape at full height alongside.
 - **Keyboard aspect fidelity** — each keyboard's proportions derive from its real key grid
-  (the 12C/15C land landscape at 2.89:1, the HP-35 portrait at 0.70:1) and scale uniformly —
-  no distortion, no clipping; dual-pitch rows (the genuinely wider digit keys) are modeled
-  exactly via lcm sub-column grids.
+  (the Voyagers land landscape at 2.89:1, the HP-35 portrait at 0.70:1, the open HP-28
+  clamshell at 2.04:1) and scale uniformly — no distortion, no clipping; dual-pitch rows
+  (the genuinely wider digit keys) are modeled exactly via lcm sub-column grids, and the
+  two-block machines (28C/28S, 97) merge their halves across a bare-plate hinge gap.
 - **Per-family glass** — seven-segment (DSEG7) readouts for Classic/Voyager models; a
   dot-matrix, 131:64-proportioned multi-line stack display for RPL, after the real HP-48
   screen.
@@ -76,8 +78,10 @@ Phase 1). The design and full rationale live in
   phones).
 - **Type, don't tap** — per-model physical-keyboard maps with visible key echo, a `?`
   shortcut cheat-sheet, and a ⌘K model picker.
-- **Prefix promotion** — arming `f`/`g`/left-shift/right-shift/alpha promotes each key's
-  shifted function into its primary slot, so the keyboard always shows what a press will do.
+- **Prefix promotion** — arming any shift plane (`f`/`g`/`h`/`f⁻¹`/left/right/alpha)
+  promotes each key's shifted function into its primary slot, so the keyboard always shows
+  what a press will do; per-model shift palettes (48SX orange/blue, 49G green/red, 50g
+  white/orange, 28 red) re-theme the planes token-deep.
 - **Trademark-safe branding** — HELLO·CALC nameplates with the pink `hc` mark and bare model
   numbers; mode tags (RPN, FINANCIAL, …) as top-bar badges.
 
@@ -105,8 +109,9 @@ layout and function set (see [`hp/`](hp/)):
 Full feature parity with the legendary HP-48 series (matrices, statistics, programmability)
 is an explicit goal.
 
-The four pilot faceplates — **HP-35, HP-12C, HP-15C, HP-48G**, one per family archetype —
-are playable today; the rest arrive model-by-model per the [plan](plan/).
+All 21 faceplates are playable today (native mode arrives in Phase 23); each model's
+remaining work is the **engine capability** its [plan](plan/) phase adds — the keys are
+already on the desk, waiting to be wired.
 
 ## Architecture
 

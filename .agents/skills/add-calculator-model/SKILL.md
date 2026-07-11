@@ -94,9 +94,35 @@ const GEOM = {
    model needs a registers/vars panel; RPL models get `VarsNote` automatically and their
    glass owns the stack (no paper StackNote — one home per §14.4b).
 
+## Step 4b — Patterns proven across the full fleet (all 21 models)
+
+- **Family roster (mechanics, not marketing):** `voyager` (placed 10×4 grid, f/g),
+  `classic` (row-authored, 0–3 shift planes: arc/f/f⁻¹/g/h — covers 35/45/65/25/67 AND
+  the merged-block HP-97), `hp41` (classic rows + gold shift + `al` alpha letters,
+  toggle-strip row), `pioneer` (row-authored + f/g planes + letters + DOT-MATRIX glass —
+  covers 42S, 35s, Prime), `rpl` (p/ls/rs/al — covers 48SX/48G/49G/50g AND the merged
+  28C/28S clamshells). Catalog-era grouping lives in `modelCatalog.ts`, NOT in `family`.
+- **Two-block machines (28 clamshell, 97 desk):** merge the halves into ONE grid — each
+  row pairs left + right across a bare-plate hinge `gap` key whose width absorbs the
+  halves' differing row units. Keep EVERY merged row the same total units (28: 13, 97:
+  12) or the halves' columns misalign row-to-row. The board derives landscape (open-lid
+  posture); no new machinery.
+- **`gap` kind** (ClassicKey + RplKey): consumes grid slots, renders an aria-hidden div,
+  no button — bare plate for cursor-diamond corners, hinges, cluster offsets.
+- **Per-model shift palettes:** `ModelBase.shift` carries `var(--hp-shift-*-xx)` refs;
+  MachineUnit sets them on the bezel root; ink is tokenized (`--hp-shift-ls-fg`) so a
+  white shift key (50g) can carry dark ink. **Per-model glass:** `ModelBase.lcdAspect`
+  overrides the family 131:64 token locally (50g "131 / 80").
+- **Print → id normalization** lives in `src/lib/models/normalize.ts` (view-layer, used
+  by the RPN-side keyboards): author legends AS PRINTED (`ln`, `e^x`, `CLX`, `n!`,
+  `%CHG`, `ASIN`…), map to canonical engine ids at dispatch. Never map an AMBIGUOUS
+  print ("STK" = clear-stack on the 25 but print-stack on the 67) — leave it inert.
+- **Inverse prefix (65 `f⁻¹`):** `INVERSE_OF` maps each gold word to its inverse for
+  both promotion and dispatch; unlisted words fall back to the gold word (no-op safe).
+
 ## Step 5 — Only if the model doesn't fit an existing family
 
-A new family (HP-41, Pioneer, clamshell 28…) is a bigger lift — budget for all of:
+A new family (a genuinely new mechanic) is a bigger lift — budget for all of:
 
 - `Family` union + key interface + row helper in `models.ts`.
 - A keyboard component modeled on
@@ -188,6 +214,18 @@ nameplate, tags in the topbar, paper panels in the right home.
 13. **Verification environment:** Turbopack serves stale CSS after edits — `rm -rf
     .next` before visual checks. The in-app Browser pane suspends rAF (Base UI overlays
     stick at opacity 0) — verify overlays via the Playwright suite, not the pane.
+14. **`@theme inline` flattens one var level.** This app's `@theme inline` compiles
+    utilities to the RAW `--hp-*` vars, so per-element theming (a machine's shift
+    palette) must override `--hp-shift-ls`, NOT `--color-hp-shift-ls` — a `--color-*`
+    override sets a variable nothing reads. Caught in-browser when the 49G stayed
+    purple/green; guarded by a MachineUnit inline-style unit test.
+15. **Widened union types ripple.** Extending `Prefix` (h/fi/alpha) breaks every
+    narrower consumer at BUILD time (tsc), not lint/test time — `pnpm build` is the
+    gate that catches it. Narrow explicitly at family boundaries
+    (`prefix === "f" || prefix === "g" ? prefix : "none"`).
+16. **Helper-before-use (TDZ).** models.ts row constants execute at module load —
+    a rows block pasted above the `r`/`ck` helper it calls throws
+    "Cannot access before initialization" in every test suite at once.
 
 ## Definition of done
 

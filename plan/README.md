@@ -42,12 +42,16 @@ The repo already contains a substantial, deployed prototype — in two very diff
   picker), prefix promotion, and trademark-safe HELLO·CALC branding. Every phase below
   REUSES this shell — per-model faceplate work reduces to data (layout rows, mapping,
   functions) plus family styling.
-- **Engine — prototype only.** Basic 4-level RPN and dynamic RPL stack machines drive the
-  HP-35/12C/15C/48G faceplates on plain JS numbers — no math.js/BigNumber, no persistence,
-  no TVM; RPL has no named variables or history yet. **Phase 1 formalizes this prototype
-  onto the target architecture** — the math.js value tower configured to BigNumber and the
-  `hp/mapping`-driven model-adapter layer — and the existing faceplates are re-based onto it
-  as their phases come up.
+- **Faceplates — ALL 21 live.** Every model's keyboard is authored or generated from the
+  verified `hp/` data and playable on the shell (see the as-built geometry table,
+  responsive-layout §4.4): scientific/stack keys dispatch to the prototype engines;
+  everything else renders faithfully but stays **inert until its engine phase**.
+- **Engine — prototype only.** Basic 4-level RPN and dynamic RPL stack machines run on
+  plain JS numbers — no math.js/BigNumber, no persistence, no TVM, no programmability;
+  RPL has no named variables or history yet. **Phase 1 formalizes this prototype onto the
+  target architecture** — the math.js value tower configured to BigNumber and the
+  `hp/mapping`-driven model-adapter layer. Each model phase's scope is therefore the
+  ENGINE capability it introduces; its faceplate already exists.
 
 ---
 

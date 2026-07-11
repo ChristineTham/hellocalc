@@ -439,25 +439,26 @@ pitch — so nothing is stretched. `--calc-kbd-max-w` is Priority 2's "not comic
 > regression guard; the old `Faceplate`/`AutoScale` provide no size container, so the
 > contain formula would have no determinate `cqb` there.
 
-### 4.4 Per-model geometry set (21 models; `*` = live in `MODELS` today; `g = 0.12`)
+### 4.4 Per-model geometry set — AS BUILT (all 21 live in `MODELS`; `g = 0.12`)
 
-| Model (family) | cols × rows | double key | k | A (block W:H) | class |
-|---|---|---|---|---|---|
-| **HP-35 \* (classic)** | **5 × 8** | ENTER w2 (row4) | **1.15** | **≈0.70** | **portrait** |
-| HP-45 (classic) | 5 × 8 | ENTER w2 | 1.15 | ≈0.70 | portrait |
-| HP-65 (classic) | 5 × 9 | ENTER w2 (+card slot) | 1.15 | ≈0.64 | tall |
-| HP-25 / 21 (woodstock) | 4 × 7 (top 5-w) | ENTER w2 (row3) | 1.15 | ≈0.66 (4c) / 0.82 (5c) | tall/portrait |
-| HP-41 C/CV/CX | 5 × 8 (+mode strip) | ENTER w2 (row4) | 1.20 | ≈0.75 | portrait |
-| **HP-12C \* (voyager)** | **10 × 4** | ENTER h2 (col6, r3-4) | **1.15** | **≈2.88** | **landscape** |
-| **HP-15C \* (voyager)** | **10 × 4** | ENTER h2 (col6, r3-4) | **1.15** | **≈2.88** | **landscape** |
-| HP-11C / 16C (voyager) | 10 × 4 | ENTER h2 | 1.15 | ≈2.88 | landscape |
-| HP-28C / 28S (clamshell) | L 6×6 + R 5×7 | ENTER w2, SPACE w2 | 1.15 | comb ≈1.81 | **clamshell** (deferred) |
-| HP-42S (pioneer) | 6 × 7 (num 5-w) | ENTER w2 (row3) | 1.15 | ≈0.99 (6c) / 0.82 (5c) | portrait |
-| **HP-48G \* (rpl)** | **6 × 9 (bot 5-w)** | ENTER w2 (row5) | **1.10** | **≈0.72** | **portrait** |
-| HP-48SX (rpl) | 6 × 9 | ENTER w2 | 1.10 | ≈0.72 | portrait |
-| HP-49G (rpl) | 6 × 9 | ENTER w2 | 1.10 | ≈0.72 | portrait |
-| HP-50g (rpl) | 6 × 10 (num 5-w, cursor diamond) | ENTER w1 | 1.10 | ≈0.66 | tall |
-| HP-Prime | main 5×7 (→~5×9 full) | ENTER w2 (row3) | 1.05 | ≈0.75 (main) / 0.58 (full) | portrait/tall |
+Values are the derived output of `computeKeyboardGeometry` over the authored/generated
+key data (unit-pinned in `keyboardGeometry.test.ts`, ±2% e2e-guarded in the browser).
+`k` = 1.15 for every RPN family, 1.10 for rpl. Earlier design-time estimates in this
+table were superseded by the hp/layouts-verified grids.
+
+| Model (family) | cols × rows | A (block W:H) | class |
+|---|---|---|---|
+| HP-35 / 45 / 65 / 67 (classic) | 5 × 8 | 0.703 | portrait |
+| HP-25 (classic) | 5 × 7 | 0.805 | portrait |
+| HP-97 (classic, merged desk blocks) | 12 × 6 | 2.290 | landscape |
+| HP-41C/CV / 41CX (hp41; toggle-strip row) | 5 × 9 | 0.624 | portrait **(override)** |
+| HP-11C / 12C / 15C / 16C (voyager) | 10 × 4 | 2.887 | landscape |
+| HP-28C / 28S (rpl, merged clamshell halves) | 13 × 7 | 2.038 | landscape |
+| HP-42S (pioneer) | 6 × 7 | 0.970 | portrait |
+| HP-35s (pioneer) | 6 × 8 | 0.847 | portrait |
+| HP Prime (pioneer; 2 view rows + 7 keypad) | 6 × 9 | 0.751 | portrait |
+| HP-48SX / 48G (rpl) | 6 × 9 | 0.722 | tall **(override)** |
+| HP-49G / 50g (rpl; cursor diamond, br ENTER) | 6 × 10 | 0.649 | tall |
 
 **Worked checks** (`k`, `g` as above):
 `HP-12C 10×4 → A_exact = (10 + 9·0.12)/(4/1.15 + 3·0.12) = 11.08/3.838 = 2.887`.
@@ -476,12 +477,13 @@ matches the real HP-48G keyboard-region ratio (~0.74). The competing research fi
 - **~0.48** is the **whole device** (≈89×184mm including the LCD, bezel, and label band),
   not the keyboard. The layout system sizes and classifies the *keyboard block* only.
 
-Because 0.72 sits just **above** the 0.68 tall/portrait boundary, HP-48G classifies as
-**portrait** (bottom-right on tablet, right-side on desktop). It is near the knife-edge, so
-`aspectClass` should be a **per-model override** rather than a raw threshold artifact — a
-deliberate placement choice, tied to open decision §11 #4. **HP-35 (≈0.703)** sits in the
-same band and gets the same treatment: it is portrait by the threshold, and the override
-keeps that a decision rather than an accident of `k`/`g`.
+Because 0.72 sits just **above** the 0.68 tall/portrait boundary, the 48-series is near
+the knife-edge, so `aspectClass` is a **per-model override** rather than a raw threshold
+artifact — a deliberate placement choice (§11 #4, resolved). As built (rev 5), the
+48SX/48G are **overridden to `tall`**: their 9-row keyboards behave tall, and stacking
+them on a desktop starves the glass — the override sends them side-by-side. The HP-35
+(≈0.703, 8 rows) stays **portrait** and keeps the classic LCD-above-keys look; the
+HP-41 (0.624 with its toggle-strip row) is overridden the same way for the same reason.
 
 **Dual-pitch caveat.** Classic/Woodstock/HP-41/Pioneer have a finer-pitch control area over
 a coarser number pad. Use `cols` = the max column count that spans the full field width and
@@ -1428,11 +1430,16 @@ originals did. The mode tags (RPN · FINANCIAL…) moved off the machine into
 the topbar as pill badges. The model picker keeps the factual HP-* names —
 nominative reference to what is being emulated.
 
-### 14.5 Clamshell note (HP-28, still deferred)
+### 14.5 Clamshell note (HP-28 — SHIPPED as a merged grid; stacked halves deferred)
 
-When the 28-series lands: large displays render the two keyboard halves side by side under
-one lid (the real posture); phones stack the halves vertically. The MachineUnit grid gains a
-second keyboard area then — no new machinery needed.
+The 28C/28S ship as ONE aspect-locked grid: each row pairs the left (alpha/menu) half
+with the right (numeric) half across a bare-plate hinge gap whose width absorbs the
+halves' differing row units — every merged row is exactly 13 units, so both halves keep
+internally uniform columns and the board derives **landscape ≈2.04**, the open-lid-on-a-
+desk posture, with zero new machinery. The HP-97 desk unit uses the same pattern
+(12-unit rows, A≈2.29). The original sketch here — a second MachineUnit keyboard area
+whose halves stack vertically on phones — remains a possible refinement; today phones
+render the merged board full width.
 
 ### 14.6 Rollout — Steps 7–9
 
