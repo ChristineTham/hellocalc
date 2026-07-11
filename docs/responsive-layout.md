@@ -7,6 +7,13 @@ document is prescriptive and phase-by-phase. It supersedes the "scale as one uni
 of [`docs/prd.md`](prd.md) FR-UI-7 and [`plan/phase-01-engine-hp35.md`](../plan/phase-01-engine-hp35.md);
 those reconciliations are itemised in §8.
 
+> **STATUS — implemented & deployed (2026-07).** Rollout Steps 0–6 (§9) and v2 Steps 7–9
+> (§14.6), plus design revisions 3–7 (§14.4b–f), are all live on GitHub Pages with the full
+> gate green (lint · unit · build · e2e). The v2 **integrated machine** (§14) supersedes the
+> v1 split-region templates of §3.3 — read §3/§5–§6 as design rationale and §4 (geometry),
+> §12–§13 (interaction + visual language) and §14 (machine, paper, branding) as the as-built
+> spec.
+
 Every recommendation is tagged:
 
 - **[fixed]** — a hard constraint derived from the intent spec or a verified source fact.

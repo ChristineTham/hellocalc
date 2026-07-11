@@ -291,6 +291,15 @@ architecture:
 7. **Heavy CAS tier (optional).** Lazy Pyodide+SymPy behind an "advanced CAS" gate for the
    Mathematica-compatible goal.
 
+> **Status (2026-07).** The UI shell that hosts all of these phases is already built, tested
+> and deployed ahead of step 1 — the integrated machine (nameplate + LCD + keyboard as one
+> reflowing bezel), aspect-faithful keyboard geometry (`src/lib/layout/`), per-family LCD
+> glass (seven-segment vs dot-matrix), paper history/stack/variables components,
+> physical-keyboard input and trademark-safe HELLO·CALC branding — see
+> [`responsive-layout.md`](responsive-layout.md). The live HP-35/12C/15C/48G faceplates run
+> real RPN/RPL stack semantics on a prototype scope (plain JS numbers); step 1's math.js
+> value tower and step 2's adapter formalization are the next engine work.
+
 ---
 
 ## 8. Risks, caveats & open questions

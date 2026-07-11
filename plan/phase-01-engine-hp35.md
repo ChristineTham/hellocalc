@@ -30,16 +30,19 @@ New subsystems across architecture §3 layers (value tower · parser/eval · sta
   resolves `(physical_key, prefix)` → engine op; per-model exposure from `hp/functions/`.
 - **Faceplate framework** — `Faceplate` / `Keyboard` / `Display` / `CalcKey` (evolve existing
   `src/components/calculator/*`) rendered from generated model data (`models.generated.ts`).
-- **Responsive layout framework** (built once here, reused by every model — see
-  [docs/responsive-layout.md](../docs/responsive-layout.md)) — the KEYBOARD block preserves the
-  real model's proportions (aspect derived from its key grid) and scales uniformly with no
-  clipping or scroll-to-reach-a-key; the LCD is placed and sized INDEPENDENTLY, filling most of
-  the remaining estate, collapsing between a device-like line state and a mini multi-line state
-  (container-driven, with a manual override). Secondary panels (history, stack rail) collapse
-  behind a bottom/nav sheet on small screens.
+- **Responsive layout framework — ✅ already shipped ahead of this phase** (see
+  [docs/responsive-layout.md](../docs/responsive-layout.md), Steps 0–9 + revisions 3–7): the
+  integrated machine bezel (nameplate + LCD + keyboard), aspect-faithful keyboard geometry
+  (`src/lib/layout/`), five page templates, per-family LCD glass (seven-segment vs
+  dot-matrix), paper history/stack/vars components with individual toggles,
+  physical-keyboard input (hotkey maps, key echo, `?` cheat-sheet, ⌘K picker) and prefix
+  promotion. Phase 1 consumes this shell as-is — its remaining UI work is wiring the real
+  engine (above) into it.
 - **History stack** — the engine/hook records each committed entry and result as a running
   history (`{ op, value }`), recallable into the display; the substrate for the native-mode
-  history/expression library in Phase 23.
+  history/expression library in Phase 23. *(The paper-tape history display and hook-side
+  recording are already live for RPN models; this phase moves recording into `EngineState`
+  and adds recall.)*
 - **State persistence foundation** (architecture §9) — a single serializable `EngineState` tree
   (`shared` + `perModel`) with a tagged **value codec** (numbers/BigNumber now; later phases
   extend it) and a schema `version`; a `StorageAdapter` doing **localStorage autosave/restore**

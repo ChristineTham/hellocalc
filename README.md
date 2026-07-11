@@ -11,7 +11,9 @@ engine through a typed expression evaluator with history, variables, and an expr
 library.
 
 > **Docs:** [Product Requirements (PRD)](docs/prd.md) ·
-> [Engine Architecture](docs/architecture.md) · [Implementation plan](plan/) ·
+> [Engine Architecture](docs/architecture.md) ·
+> [Responsive layout & machine UI](docs/responsive-layout.md) ·
+> [Implementation plan](plan/) ·
 > [Build rules for agents](AGENTS.md) · [HP calculator reference](hp/)
 
 ---
@@ -25,9 +27,10 @@ library.
   keys and functions.
 - **Native mode** — no virtual keypad; type algebraic (or RPN) expressions directly, with a
   history stack, variables, and a saved expression library.
-- **Modern, responsive UI** — a large display with computation history, the RPN stack, and
-  KaTeX-rendered equations that goes beyond a single-line traditional display; optimized for
-  mobile, tablet, and desktop.
+- **Modern, responsive UI** — nameplate, LCD and keyboard render as one integrated machine
+  whose keyboard keeps the real model's proportions on every screen; computation history
+  prints to a paper-style tape, the stack and variables read as notebook notes, and
+  equations render in KaTeX — optimized for mobile, tablet, and desktop.
 - **Advanced math**:
   - Arbitrary-precision (BigNumber / fixed-point) arithmetic, floating point in selectable
     precisions, and high-precision currency
@@ -48,6 +51,40 @@ library.
 
 See the [PRD](docs/prd.md) for the full, prioritized requirement set.
 
+## Status
+
+**The UI foundation is built and deployed** — four pilot faceplates, one per family
+archetype (**HP-35, HP-12C, HP-15C, HP-48G**), are fully playable at
+<https://christinetham.github.io/hellocalc/> on a prototype engine (real 4-level-RPN and
+dynamic-RPL stack semantics; plain JS numbers until the math.js/BigNumber tower lands in
+Phase 1). The design and full rationale live in
+[docs/responsive-layout.md](docs/responsive-layout.md); the highlights:
+
+- **The integrated machine** — nameplate, LCD and keyboard are ONE bezel that reflows across
+  five page templates (phone → desktop): classic portrait models stack LCD-over-keys for the
+  classic calculator look; tall models like the HP-48G go LCD-beside-keyboard with a
+  variables bay under the glass and the history tape at full height alongside.
+- **Keyboard aspect fidelity** — each keyboard's proportions derive from its real key grid
+  (the 12C/15C land landscape at 2.89:1, the HP-35 portrait at 0.70:1) and scale uniformly —
+  no distortion, no clipping; dual-pitch rows (the genuinely wider digit keys) are modeled
+  exactly via lcm sub-column grids.
+- **Per-family glass** — seven-segment (DSEG7) readouts for Classic/Voyager models; a
+  dot-matrix, 131:64-proportioned multi-line stack display for RPL, after the real HP-48
+  screen.
+- **Paper, not pixels** — history prints as a calculator tape; stack and variables are
+  notebook notes; each individually toggleable and placed by the active template (sheets on
+  phones).
+- **Type, don't tap** — per-model physical-keyboard maps with visible key echo, a `?`
+  shortcut cheat-sheet, and a ⌘K model picker.
+- **Prefix promotion** — arming `f`/`g`/left-shift/right-shift/alpha promotes each key's
+  shifted function into its primary slot, so the keyboard always shows what a press will do.
+- **Trademark-safe branding** — HELLO·CALC nameplates with the pink `hc` mark and bare model
+  numbers; mode tags (RPN, FINANCIAL, …) as top-bar badges.
+
+All of it is guarded by unit/component suites (geometry, templates, promotion, machine
+anatomy) and a Playwright device-matrix e2e (keyboard aspect fidelity ±2%, template
+boundaries, typing, sheet behavior).
+
 ## Emulated models
 
 21 landmark models across the HP eras, plus native mode — each backed by a verified keyboard
@@ -67,6 +104,9 @@ layout and function set (see [`hp/`](hp/)):
 
 Full feature parity with the legendary HP-48 series (matrices, statistics, programmability)
 is an explicit goal.
+
+The four pilot faceplates — **HP-35, HP-12C, HP-15C, HP-48G**, one per family archetype —
+are playable today; the rest arrive model-by-model per the [plan](plan/).
 
 ## Architecture
 
@@ -117,14 +157,15 @@ consumes it directly:
 ```
 src/
   lib/engine/     # pure-TS math engine (value tower, parser, stack machine, feature modules)
+  lib/layout/     # layout oracles: keyboard geometry, page templates, shared breakpoints
   lib/models/     # model-adapter layer (keystroke → engine op; per-model config from hp/)
-  hooks/          # React hooks bridging engine ↔ UI
-  components/     # faceplates, display, stack view, keypad, plots
+  hooks/          # React hooks bridging engine ↔ UI (calculators, hotkeys, viewport tier)
+  components/     # the machine (bezel, keyboards, LCD, paper tape/notes) + chrome (topbar, nav)
   components/ui/  # shadcn primitives (added via CLI)
   app/            # Next.js routes/layout (static export)
   __tests__/      # unit/component tests (Vitest)
 e2e/              # end-to-end tests (Playwright)
-docs/             # prd.md, architecture.md
+docs/             # prd.md, architecture.md, responsive-layout.md
 plan/             # phased implementation plan (one .md per phase + index)
 hp/               # HP calculator reference (layouts, functions, mapping, manuals)
 ```
@@ -154,7 +195,8 @@ full build rules in [AGENTS.md](AGENTS.md).
 
 Configured via [`next.config.ts`](next.config.ts) as a **static export** (`output: "export"`)
 under the base path **`/hellocalc`**, deployed to **GitHub Pages** automatically on push to
-`main` by [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml). CI (lint · test ·
+`main` by [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) — live at
+<https://christinetham.github.io/hellocalc/>. CI (lint · test ·
 build · e2e) runs via [`.github/workflows/ci.yml`](.github/workflows/ci.yml). The app can also
 be deployed to [Vercel](https://vercel.com/new).
 
@@ -170,8 +212,9 @@ per phase with tasks and acceptance tests — is in [`plan/`](plan/) ([index](pl
 
 **Phase 1 — Engine foundation & HP-35 (1972).** The shared pure-TS engine (math.js/BigNumber
 value tower, 4-level RPN stack + `LAST X`, memory, scientific functions), the `hp/mapping`-driven
-model adapter, the responsive faceplate framework, the history display, and state persistence —
-proven end-to-end by the first HP scientific.
+model adapter, and state persistence — proven end-to-end by the first HP scientific. (The
+responsive faceplate framework and history display it calls for are already delivered — see
+[Status](#status).)
 
 Then, in release order:
 
@@ -187,9 +230,10 @@ Then, in release order:
 | 21–22 | HP-35s, HP Prime · 2007–13 | Modern RPN/algebraic dual entry; touchscreen CAS, Home/CAS + apps |
 | **23** | **Native mode** | Full-engine expression evaluator: notebook, expression library, copy/paste + KaTeX export |
 
-Responsive scaling, the history display, and state persistence are established in Phase 1 and
-reused by every faceplate; **file import/export and named workspaces** are finalized in Phase 23
-(see [architecture §9](docs/architecture.md)).
+Responsive scaling and the history display are already delivered (see
+[docs/responsive-layout.md](docs/responsive-layout.md)) and reused by every faceplate; state
+persistence is established in Phase 1, and **file import/export and named workspaces** are
+finalized in Phase 23 (see [architecture §9](docs/architecture.md)).
 
 ## Contributing
 

@@ -243,12 +243,20 @@ the unified [`hp/mapping/mapping.json`](../hp/mapping/mapping.json).
 - **FR-UI-12 (M):** **Always-present top bar + navigation** — hamburger (top-left, below `lg`)
   opening a nav sheet, persistent sidebar at `lg`+, exposing settings/about/state
   import-export/reset (surfaces FR-STATE-4).
-- **FR-UI-13 (S):** **Armed-prefix plane highlighting** — arming `f`/`g`/`ls`/`rs` brightens
-  the matching shift-legend plane and dims primary legends; on narrow keyboards the shift
-  planes hide entirely except while armed ([responsive-layout §12.3](responsive-layout.md)).
+- **FR-UI-13 (S):** **Prefix promotion** — arming `f`/`g`/`ls`/`rs`/`alpha` temporarily
+  promotes each key's matching shifted legend into the key's PRIMARY slot (large, in the
+  shift colour) so every key shows exactly what it will execute; unaffected legends dim, and
+  on narrow keyboards the shift planes hide entirely except while armed
+  ([responsive-layout §12.3 + §14.4e](responsive-layout.md)).
 - **FR-UI-14 (S):** **Three-plane visual language** (extends FR-UI-5): desk / machine / glass
   material rules, warm shadows, pastel chrome accents, cq-proportional legend type
   ([responsive-layout §13](responsive-layout.md)).
+- **FR-UI-15 (M):** **Trademark-safe branding** — no third-party marks anywhere in the UI:
+  nameplates pair the **HELLO·CALC** wordmark and pink `hc` badge with the BARE model number
+  ("12C", "48G"), styled after each era's real faceplate layout; mode tags (RPN, FINANCIAL,
+  …) appear as top-bar badges, never on the machine face; factual model names (HP-35, …)
+  remain in the picker as nominative reference
+  ([responsive-layout §14.4f](responsive-layout.md)).
 
 ---
 

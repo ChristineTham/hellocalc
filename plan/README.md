@@ -31,12 +31,23 @@ added · PRD requirements · key tasks · new dependencies · tests & DoD · not
 
 ### Relationship to the current prototype
 
-The repo already contains a working prototype: basic 4-level RPN and dynamic RPL engines and
-faceplates for HP-12C/15C/35/48G (JS numbers, no math.js/BigNumber yet). **Phase 1 formalizes
-that prototype onto the target architecture** — math.js value tower configured to BigNumber,
-the model-adapter layer, and the faceplate framework — and the existing prototype faceplates
-are re-based onto it as their phases come up. Treat the prototype as a spike that proved the
-UI/engine seam; the plan is the production path.
+The repo already contains a substantial, deployed prototype — in two very different states:
+
+- **UI foundation — complete.** The responsive machine shell specified in
+  [`docs/responsive-layout.md`](../docs/responsive-layout.md) is implemented, tested and
+  deployed (Steps 0–9 + revisions 3–7): the integrated nameplate+LCD+keyboard bezel,
+  aspect-faithful keyboard geometry (`src/lib/layout/`), five page templates, per-family LCD
+  glass (seven-segment vs 131:64 dot-matrix), the paper history tape + notebook stack/vars
+  notes, physical-keyboard input (per-model hotkey maps, key echo, `?` cheat-sheet, ⌘K
+  picker), prefix promotion, and trademark-safe HELLO·CALC branding. Every phase below
+  REUSES this shell — per-model faceplate work reduces to data (layout rows, mapping,
+  functions) plus family styling.
+- **Engine — prototype only.** Basic 4-level RPN and dynamic RPL stack machines drive the
+  HP-35/12C/15C/48G faceplates on plain JS numbers — no math.js/BigNumber, no persistence,
+  no TVM; RPL has no named variables or history yet. **Phase 1 formalizes this prototype
+  onto the target architecture** — the math.js value tower configured to BigNumber and the
+  `hp/mapping`-driven model-adapter layer — and the existing faceplates are re-based onto it
+  as their phases come up.
 
 ---
 
