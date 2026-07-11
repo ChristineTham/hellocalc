@@ -361,8 +361,10 @@ export function StackPanel({ state: s, family, fmt, className, onClose, varsRow 
             </span>
             <span
               className={cn(
+                // salvia = informational accent (§13.3) — gold stays reserved
+                // for the brand and f-shift semantics
                 "font-mono text-[14px]",
-                row.hot ? "text-primary" : "text-foreground",
+                row.hot ? "text-salvia" : "text-foreground",
               )}
             >
               {row.val}

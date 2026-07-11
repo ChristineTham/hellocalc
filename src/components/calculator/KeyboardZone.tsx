@@ -12,6 +12,7 @@ import { RplKeyboard } from "./RplKeyboard";
 import type { Model } from "./models";
 import type { RpnCalculator } from "@/hooks/useRpnCalculator";
 import type { RplCalculator } from "@/hooks/useRplCalculator";
+import { cn } from "@/lib/utils";
 
 export interface KeyboardZoneProps {
   model: Model;
@@ -22,7 +23,14 @@ export interface KeyboardZoneProps {
 export function KeyboardZone({ model, rpn, rpl }: KeyboardZoneProps) {
   return (
     <div
-      className="flex flex-col rounded-[var(--radius-bezel)] border border-hp-bezel-border bg-hp-bezel shadow-2xl"
+      className={cn(
+        // machine plane (§13.1): the elevated instrument under warm light
+        "flex flex-col rounded-[var(--radius-bezel)] border border-hp-bezel-border bg-hp-bezel shadow-[0_18px_36px_-14px_var(--color-shadow-warm)]",
+        // the Voyager silver trim line (§13.2): a double hairline — the detail
+        // that makes a 12C read as a 12C
+        model.family === "voyager" &&
+          "shadow-[inset_0_1px_0_rgb(255_255_255/0.5),inset_0_0_0_1px_rgb(255_255_255/0.22),0_18px_36px_-14px_var(--color-shadow-warm)]",
+      )}
       style={{ padding: "var(--calc-bezel-pad)" }}
     >
       {/* nameplate — the machine's badge (§13.5) */}

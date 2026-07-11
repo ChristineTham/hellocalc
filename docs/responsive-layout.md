@@ -1143,6 +1143,9 @@ the LCD annunciator row (already true).
 - **Toolstrip is the phone's action bar:** history/stack sheet toggle + LCD expand mirror
   live in the `--calc-toolstrip-h` strip *below the keyboard* — the most reachable pixels on
   the device. The top bar keeps only rare actions (brand, model picker, hamburger).
+  **[implementation note, Step 6]:** deferred — the §3.3 templates (the buildable spec) have
+  no toolstrip row, and a 52px strip would come straight out of the phone's LCD estate. The
+  toggles live in the topbar for now; revisit if real-device use shows the reach cost matters.
 - **Hamburger anchors top-LEFT** **[intent change]**, matching the persistent desktop
   sidebar's left position — the same mental location at every size. Model picker stays
   top-right. Its nav `Sheet` slides from the **left** for the same reason.

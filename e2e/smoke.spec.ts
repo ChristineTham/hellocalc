@@ -182,6 +182,43 @@ test.describe("hellocalc — smoke", () => {
     await expect(page.locator('[data-lcd-mode="mini"]').getByText("5.00").first()).toBeVisible();
   });
 
+  test("typing & polish: physical keyboard, prefix plane, cheat-sheet (§12.2/§12.3)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    // data-template is stamped post-mount → hydration + effects (hotkeys) ready
+    await page.waitForSelector("main.calc-shell[data-template]");
+
+    // physical-keyboard arithmetic: keystrokes press the faceplate's own keys
+    await page.keyboard.type("2");
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("3");
+    await page.keyboard.press("+");
+    await expect(
+      page.locator('[data-lcd-mode="mini"]').getByText("5.00").first(),
+    ).toBeVisible();
+
+    // typing `f` arms the gold prefix and DIMS the primary plane (§12.3)
+    const primary7 = page
+      .locator('[data-region="keyboard"] button[aria-label="7"] span')
+      .nth(1);
+    await page.keyboard.press("f");
+    await expect
+      .poll(() => primary7.evaluate((el) => Number(getComputedStyle(el).opacity)))
+      .toBeLessThan(0.9);
+    // Escape disarms — the plane returns
+    await page.keyboard.press("Escape");
+    await expect
+      .poll(() => primary7.evaluate((el) => Number(getComputedStyle(el).opacity)))
+      .toBe(1);
+
+    // `?` opens the shortcut cheat-sheet
+    await page.keyboard.press("?");
+    await expect(page.getByRole("dialog", { name: "Keyboard shortcuts" })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog", { name: "Keyboard shortcuts" })).toHaveCount(0);
+  });
+
   test("keyboard blocks keep their real aspect ratio (Priority 1 regression guard)", async ({ page }) => {
     // Expected block aspects derived from the key data — the Vitest oracle in
     // src/__tests__/keyboardGeometry.test.ts pins the same values (±0.02).

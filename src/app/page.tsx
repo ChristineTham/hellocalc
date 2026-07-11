@@ -9,9 +9,11 @@ import { Display } from "@/components/calculator/Display";
 import { AuxPanel } from "@/components/calculator/AuxPanel";
 import { Topbar } from "@/components/calculator/Topbar";
 import { CalcNav } from "@/components/calculator/CalcNav";
+import { CheatSheet } from "@/components/calculator/CheatSheet";
 import { MODELS } from "@/components/calculator/models";
 import { useRpnCalculator } from "@/hooks/useRpnCalculator";
 import { useRplCalculator } from "@/hooks/useRplCalculator";
+import { useHotkeys } from "@/hooks/useHotkeys";
 
 export default function Home() {
   const [modelId, setModelId] = useState<string>("HP-12C");
@@ -21,6 +23,19 @@ export default function Home() {
   const rpn = useRpnCalculator();
   const rpl = useRplCalculator();
   const active = model.family === "rpl" ? rpl : rpn;
+  const [cheatOpen, setCheatOpen] = useState(false);
+
+  // Physical keyboard is a first-class input (§12.2, FR-UI-2): keystrokes
+  // click the matching faceplate key; Escape disarms an armed prefix.
+  useHotkeys({
+    family: model.family,
+    prefix: active.prefix,
+    disarm: () =>
+      model.family === "rpl"
+        ? rpl.prefix !== "none" && rpl.arm(rpl.prefix)
+        : rpn.prefix !== "none" && rpn.arm(rpn.prefix),
+    openCheatsheet: () => setCheatOpen(true),
+  });
 
   const aux = (
     <AuxPanel
@@ -32,6 +47,7 @@ export default function Home() {
   );
 
   return (
+    <>
     <CalcShell
       model={model}
       topbar={
@@ -67,5 +83,13 @@ export default function Home() {
       }
       aux={aux}
     />
+    <CheatSheet
+      family={model.family}
+      modelName={model.name}
+      open={cheatOpen}
+      onOpenChange={setCheatOpen}
+    />
+    </>
   );
 }
+

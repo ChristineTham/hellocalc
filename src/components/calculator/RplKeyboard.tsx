@@ -83,23 +83,59 @@ export function RplKeyboard({ rows, geometry, prefix, onArm, onPress }: RplKeybo
             <ButtonPrimitive
               key={`${ri}-${ki}`}
               aria-label={k.p || (k.kind === "soft" ? "menu" : "key")}
+              data-kind={k.kind}
               onClick={() => handle(k)}
               style={{ gridColumn: `span ${spanCols} / span ${spanCols}` }}
               className={cn(
-                "relative flex select-none flex-col items-center justify-center rounded-[var(--radius-key)] px-0.5 pt-2 font-legend text-key-primary font-bold leading-none shadow-[0_2px_0_var(--color-hp-key-border)] outline-none transition-transform duration-[50ms] active:translate-y-0.5 focus-visible:brightness-110",
+                "relative flex select-none flex-col items-center justify-center rounded-[var(--radius-key)] px-0.5 pt-2 font-legend text-key-primary font-bold leading-none shadow-[0_2px_0_var(--color-hp-key-border),0_3px_5px_var(--color-shadow-warm)] outline-none transition-transform duration-[50ms] active:translate-y-0.5 focus-visible:ring-2 focus-visible:ring-terracotta",
                 bgFor(k.kind),
               )}
             >
-              {/* left-shift (purple) / right-shift (green) legends */}
+              {/* left-shift (purple) / right-shift (green) legends — armed
+                  prefix shifts the plane (§12.3): armed side glows, the other
+                  side and the primaries dim */}
               {(k.ls || k.rs) && (
                 <span className="pointer-events-none absolute inset-x-1 top-0.5 flex justify-between text-key-shift leading-none font-semibold">
-                  <span className="text-hp-shift-ls">{k.ls}</span>
-                  <span className="text-hp-shift-rs">{k.rs}</span>
+                  <span
+                    className={cn(
+                      "text-hp-shift-ls transition-all",
+                      prefix === "ls"
+                        ? "[text-shadow:0_0_7px_var(--color-hp-shift-ls)]"
+                        : prefix !== "none" && "opacity-30",
+                    )}
+                  >
+                    {k.ls}
+                  </span>
+                  <span
+                    className={cn(
+                      "text-hp-shift-rs transition-all",
+                      prefix === "rs"
+                        ? "[text-shadow:0_0_7px_var(--color-hp-shift-rs)]"
+                        : prefix !== "none" && "opacity-30",
+                    )}
+                  >
+                    {k.rs}
+                  </span>
                 </span>
               )}
-              <span className="z-10">{k.p}</span>
+              <span
+                className={cn(
+                  "z-10 transition-opacity",
+                  prefix !== "none" &&
+                    prefix !== "alpha" &&
+                    !["ls", "rs", "alpha", "on"].includes(k.kind) &&
+                    "opacity-40",
+                )}
+              >
+                {k.p}
+              </span>
               {k.al && (
-                <span className="pointer-events-none absolute right-1 bottom-0.5 text-key-shift leading-none text-hp-key-fg opacity-45">
+                <span
+                  className={cn(
+                    "pointer-events-none absolute right-1 bottom-0.5 text-key-shift leading-none text-hp-key-fg transition-all",
+                    prefix === "alpha" ? "opacity-100 font-bold" : "opacity-45",
+                  )}
+                >
                   {k.al}
                 </span>
               )}

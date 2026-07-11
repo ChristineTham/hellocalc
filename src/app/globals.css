@@ -74,6 +74,10 @@
   --color-hp-shift-g: var(--hp-shift-g); /* Voyager blue g (lower face) */
   --color-hp-shift-ls: var(--hp-shift-ls); /* RPL left-shift  (48G purple) */
   --color-hp-shift-rs: var(--hp-shift-rs); /* RPL right-shift (48G green)  */
+  /* Chrome accent pair + warm shadow tint (§13.3, §13.6) */
+  --color-terracotta: var(--terracotta);
+  --color-salvia: var(--salvia);
+  --color-shadow-warm: var(--shadow-warm);
 
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
@@ -150,7 +154,14 @@
   --destructive: #b23b2f;
   --border: #dcd8cc;
   --input: #c6c2b5;
-  --ring: #a9832f;
+  /* Chrome accents (§13.3) — pastel pair, never on the faceplate: terracotta
+     for interaction (focus/active), salvia echoing the LCD sage for info.
+     Gold stays reserved for the brand + f-shift semantics, so chrome focus is
+     terracotta, not gold. */
+  --terracotta: #bd5d47;
+  --salvia: #6d7d52;
+  --shadow-warm: rgb(58 48 35 / 0.35); /* warm brown-black — sunlight, not fluorescent */
+  --ring: #bd5d47;
   --chart-1: #a9832f;
   --chart-2: #35619e;
   --chart-3: #2f7d4f;
@@ -206,7 +217,10 @@
   --destructive: #e08a7a;
   --border: #2f2c25;
   --input: #2b2a27;
-  --ring: #d3a441;
+  --terracotta: #e08a7a;
+  --salvia: #9aab7e;
+  --shadow-warm: rgb(0 0 0 / 0.55);
+  --ring: #e08a7a;
   --chart-1: #d3a441;
   --chart-2: #5b8fd6;
   --chart-3: #5fc487;
@@ -330,6 +344,25 @@
     /* inline-size container so key-legend cq tokens (§13.5) track the MODULE
        width (the slot can be much wider than the capped module). */
     container: kbdmod / inline-size;
+  }
+
+  /* ── Key press echo + hit-slop (§12.2, §12.4) ────────────────────────────
+     data-pressed mirrors the pointer :active press so a PHYSICAL keystroke
+     visibly depresses the on-screen key. The ::after halo grows each key's
+     tap target ~4px beyond its visual face without touching fidelity. */
+  [data-region="keyboard"] button[data-pressed] {
+    transform: translateY(2px);
+    filter: brightness(0.96);
+  }
+  [data-region="keyboard"] button::after {
+    content: "";
+    position: absolute;
+    inset: -0.125rem;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    [data-region="keyboard"] button {
+      transition: none;
+    }
   }
 
   /* ── Key shift-plane legibility (§13.5) ──────────────────────────────────
