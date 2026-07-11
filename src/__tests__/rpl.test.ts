@@ -352,11 +352,11 @@ describe("P12 variables, algebraics, programs (the evaluator)", () => {
     const s = createRpl();
     line(s, "42 'A' STO");
     expect(s.stack).toEqual([]);
-    expect(s.vars["A"]).toEqual({ k: "real", v: bn(42) });
+    expect(s.home.vars["A"]).toEqual({ k: "real", v: bn(42) });
     line(s, "'A' RCL");
     expect(nums(s.stack)).toEqual([42]);
     line(s, "'A' PURGE");
-    expect(s.vars["A"]).toBeUndefined();
+    expect(s.home.vars["A"]).toBeUndefined();
   });
 
   it("HP reference: « 1 + » 4 SWAP EVAL → 5", () => {
@@ -466,7 +466,7 @@ describe("P12 variables, algebraics, programs (the evaluator)", () => {
     line(s, "'X^2-4' 'X' 3 ROOT");
     expect(s.stack).toHaveLength(1);
     expect(nums(s.stack)[0]).toBeCloseTo(2, 9);
-    const x = s.vars["X"];
+    const x = s.home.vars["X"];
     expect(x && x.k === "real" && num(x.v)).toBeCloseTo(2, 9);
   });
 });
@@ -691,7 +691,89 @@ describe("P12 softkey MENU system", () => {
     expect(menuLabels(s).slice(0, 2)).toEqual(["A", "B"]);
     line(s, "5");
     pressSoft(s, 0); // store into A
-    expect(s.vars["A"]).toEqual({ k: "real", v: bn(5) });
+    expect(s.home.vars["A"]).toEqual({ k: "real", v: bn(5) });
+  });
+});
+
+describe("P15 directories & the HP-28S deltas", () => {
+  it("CRDIR/HOME/PATH/VARS: the directory tree navigates and lists", () => {
+    const s = createRpl();
+    line(s, "'D1' CRDIR PATH");
+    expect(fmtTop(s)).toBe("{ 'HOME' }");
+    line(s, "CLEAR D1 PATH"); // evaluating a directory name enters it
+    expect(fmtTop(s)).toBe("{ 'HOME' 'D1' }");
+    line(s, "CLEAR 42 'D' STO VARS");
+    expect(fmtTop(s)).toBe("{ 'D' }");
+    dispatchRpl(s, "HOME");
+    line(s, "CLEAR VARS");
+    expect(fmtTop(s)).toBe("{ 'D1' }");
+  });
+
+  it("name resolution walks UP the path: HOME vars visible from a subdir", () => {
+    const s = createRpl();
+    line(s, "7 'G' STO 'D1' CRDIR D1");
+    line(s, "G 1 +"); // G resolves in HOME from inside D1
+    expect(nums(s.stack)).toEqual([8]);
+    line(s, "CLEAR 9 'G' STO G"); // a local G shadows HOME's
+    expect(nums(s.stack)).toEqual([9]);
+    dispatchRpl(s, "HOME");
+    line(s, "CLEAR G");
+    expect(nums(s.stack)).toEqual([7]);
+  });
+
+  it("PURGE removes only EMPTY subdirectories, like the 28S", () => {
+    const s = createRpl();
+    line(s, "'D1' CRDIR D1 1 'V' STO");
+    dispatchRpl(s, "HOME");
+    line(s, "'D1' PURGE");
+    expect(s.error).toBe("Non-Empty Directory");
+    line(s, "D1 'V' PURGE");
+    dispatchRpl(s, "HOME");
+    line(s, "'D1' PURGE VARS");
+    expect(fmtTop(s)).toBe("{  }"); // empty list
+  });
+
+  it("COMB and PERM are exact on the tower", () => {
+    const s = createRpl();
+    line(s, "52 5 COMB");
+    expect(nums(s.stack)).toEqual([2598960]);
+    line(s, "CLEAR 10 3 PERM");
+    expect(nums(s.stack)).toEqual([720]);
+  });
+
+  it("MEMORY menu opens; MENU builds the CUSTOM row; MENUS is the meta-menu", () => {
+    const s = createRpl();
+    dispatchRpl(s, "MEMORY");
+    expect(menuLabels(s)).toEqual(["MEM", "MENU", "ORDER", "PATH", "HOME", "CRDIR"]);
+    line(s, "{ DUP DROP } MENU");
+    expect(menuLabels(s).slice(0, 2)).toEqual(["DUP", "DROP"]);
+    line(s, "5");
+    pressSoft(s, 0); // CUSTOM/DUP executes the command
+    expect(nums(s.stack)).toEqual([5, 5]);
+    dispatchRpl(s, "MENUS");
+    expect(menuLabels(s)[0]).toBe("STACK");
+    pressSoft(s, 0); // opens the STACK menu
+    expect(menuLabels(s)[0]).toBe("DUP");
+  });
+
+  it("the 28S MODE menu single-toggles flip the P12 mode flags", () => {
+    const s = createRpl();
+    expect(s.modes.cmd).toBe(true);
+    dispatchRpl(s, "CMD"); // the 28S single-toggle, reachable as a command id
+    expect(s.modes.cmd).toBe(false);
+    dispatchRpl(s, "TRAC");
+    expect(s.modes.trace).toBe(true);
+  });
+
+  it("the directory tree persists (round-trip incl. path)", async () => {
+    const { snapshot, restore } = await import("@/lib/engine/persistence");
+    const { createRpn } = await import("@/lib/engine/rpn");
+    const s = createRpl();
+    line(s, "'D1' CRDIR D1 3 'K' STO");
+    const state = JSON.parse(JSON.stringify(snapshot(createRpn(), s, "HP-28S")));
+    const engines = restore(state);
+    expect(engines.rpl.path).toEqual(["D1"]);
+    expect(engines.rpl.home.subs["D1"].vars["K"]).toEqual({ k: "real", v: bn(3) });
   });
 });
 

@@ -8,7 +8,7 @@
 
 import { bn, type Value } from "./config";
 import { createRpn, type Angle, type HistEntry, type PrgmState, type RpnEngine } from "./rpn";
-import { createRpl, type RplEngine } from "./rpl";
+import { createRpl, newDir, type DirNode, type RplEngine } from "./rpl";
 import type { RplObj } from "./rpl/object";
 import type { DisplayFormat } from "./format";
 
@@ -141,6 +141,11 @@ interface SerializedRpn {
   hist: HistEntry[];
 }
 
+interface SerializedDir {
+  vars: Record<string, TaggedObj>;
+  subs: Record<string, SerializedDir>;
+}
+
 interface SerializedRpl {
   stack: TaggedObj[];
   entry: string | null;
@@ -148,9 +153,37 @@ interface SerializedRpl {
   disp: DisplayFormat;
   hist: HistEntry[];
   /** P12 additions — optional so pre-P12 saves stay valid */
-  vars?: Record<string, TaggedObj>;
+  vars?: Record<string, TaggedObj>; // legacy flat store (pre-P15) → HOME
   base?: 2 | 8 | 10 | 16;
   ws?: number;
+  /** P15 additions: the HOME directory tree + current path */
+  home?: SerializedDir;
+  path?: string[];
+}
+
+function encodeDir(d: DirNode): SerializedDir {
+  return {
+    vars: Object.fromEntries(Object.entries(d.vars).map(([k, v]) => [k, encodeObj(v)])),
+    subs: Object.fromEntries(Object.entries(d.subs).map(([k, v]) => [k, encodeDir(v)])),
+  };
+}
+function decodeDir(t: SerializedDir): DirNode {
+  return {
+    vars: Object.fromEntries(Object.entries(t.vars).map(([k, v]) => [k, decodeObj(v)])),
+    subs: Object.fromEntries(Object.entries(t.subs).map(([k, v]) => [k, decodeDir(v)])),
+  };
+}
+function isSerializedDir(v: unknown): v is SerializedDir {
+  if (typeof v !== "object" || v === null) return false;
+  const d = v as Partial<SerializedDir>;
+  return (
+    typeof d.vars === "object" &&
+    d.vars !== null &&
+    Object.values(d.vars).every(isTaggedObj) &&
+    typeof d.subs === "object" &&
+    d.subs !== null &&
+    Object.values(d.subs).every(isSerializedDir)
+  );
 }
 
 export interface EngineStateV1 {
@@ -226,7 +259,8 @@ export function snapshot(
       angle: rpl.angle,
       disp: { ...rpl.disp },
       hist: rpl.hist.map((h) => ({ ...h })),
-      vars: Object.fromEntries(Object.entries(rpl.vars).map(([k, v]) => [k, encodeObj(v)])),
+      home: encodeDir(rpl.home),
+      path: [...rpl.path],
       base: rpl.base,
       ws: rpl.ws,
     },
@@ -307,9 +341,17 @@ export function restore(state: EngineStateV1): {
     angle: state.rpl.angle,
     disp: { ...state.rpl.disp },
     hist: state.rpl.hist.map((h) => ({ ...h })),
-    vars: state.rpl.vars
-      ? Object.fromEntries(Object.entries(state.rpl.vars).map(([k, v]) => [k, decodeObj(v)]))
-      : freshR.vars,
+    home: state.rpl.home
+      ? decodeDir(state.rpl.home)
+      : state.rpl.vars // legacy pre-P15 flat store restores into HOME
+        ? {
+            ...newDir(),
+            vars: Object.fromEntries(
+              Object.entries(state.rpl.vars).map(([k, v]) => [k, decodeObj(v)]),
+            ),
+          }
+        : freshR.home,
+    path: state.rpl.path ? [...state.rpl.path] : [],
     base: state.rpl.base ?? freshR.base,
     ws: state.rpl.ws ?? freshR.ws,
   };
@@ -401,6 +443,7 @@ function isSerializedRpl(v: unknown): v is SerializedRpl {
       (typeof s.vars === "object" &&
         s.vars !== null &&
         Object.values(s.vars).every(isTaggedObj))) &&
+    (s.home === undefined || isSerializedDir(s.home)) &&
     (s.entry === null || typeof s.entry === "string") &&
     typeof s.angle === "string" &&
     ANGLES.includes(s.angle) &&

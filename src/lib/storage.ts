@@ -51,3 +51,30 @@ export function downloadStateFile(json: string): void {
 export function readStateFile(file: File): Promise<string> {
   return file.text();
 }
+
+// ---- named workspaces (P15 foundation, FR-STATE-3) --------------------------------
+// The 28S directory tree makes saved variable/program sets meaningful; these
+// helpers persist whole EngineState JSON blobs under names. UI affordances
+// arrive with the 48-series file phases — the seam ships (and tests) now.
+
+const WS_PREFIX = "hellocalc-ws:";
+
+export function saveWorkspace(name: string, json: string): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(WS_PREFIX + name, json);
+}
+
+export function loadWorkspace(name: string): string | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(WS_PREFIX + name);
+}
+
+export function listWorkspaces(): string[] {
+  if (typeof window === "undefined") return [];
+  const out: string[] = [];
+  for (let i = 0; i < window.localStorage.length; i++) {
+    const key = window.localStorage.key(i);
+    if (key?.startsWith(WS_PREFIX)) out.push(key.slice(WS_PREFIX.length));
+  }
+  return out.sort();
+}

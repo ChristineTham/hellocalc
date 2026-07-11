@@ -8,6 +8,7 @@
 import { useCallback, useMemo, useState } from "react";
 import katex from "katex";
 import {
+  cloneDir,
   createRpl,
   dispatchRpl,
   menuLabels,
@@ -48,7 +49,9 @@ export interface RplCalculator {
 const clone = (e: RplEngine): RplEngine => ({
   ...e,
   stack: [...e.stack],
-  vars: { ...e.vars },
+  home: cloneDir(e.home),
+  path: [...e.path],
+  custom: [...e.custom],
   flags: [...e.flags],
   last: [...e.last],
   lastCmd: [...e.lastCmd],

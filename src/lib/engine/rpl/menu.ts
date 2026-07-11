@@ -21,7 +21,7 @@ export const RPL_MENUS: Record<string, string[]> = {
   TEST: ["SF", "CF", "FS?", "FC?", "FS?C", "FC?C", "AND", "OR", "XOR", "NOT", "SAME", "==", "STOF", "RCLF", "TYPE"],
   BRANCH: ["IF", "IFERR", "THEN", "ELSE", "END", "START", "FOR", "NEXT", "STEP", "IFT", "IFTE", "DO", "UNTIL", "WHILE", "REPEAT"],
   CTRL: ["SST", "HALT", "ABORT", "KILL", "WAIT", "KEY", "BEEP", "CLLCD", "DISP", "CLMF", "ERRN", "ERRM"],
-  STAT: ["Σ+", "Σ−", "NΣ", "CLΣ", "STOΣ", "RCLΣ", "TOT", "MEAN", "SDEV", "VAR", "MAXΣ", "MINΣ", "COLΣ", "CORR", "COV", "LR", "PREDV", "UTPC", "UTPF", "UTPN", "UTPT"],
+  STAT: ["Σ+", "Σ−", "NΣ", "CLΣ", "STOΣ", "RCLΣ", "TOT", "MEAN", "SDEV", "VAR", "MAXΣ", "MINΣ", "COLΣ", "CORR", "COV", "LR", "PREDV", "UTPC", "UTPF", "UTPN", "UTPT", "COMB", "PERM"],
   PLOT: ["STEQ", "RCEQ", "PMIN", "PMAX", "INDEP", "DRAW", "PPAR", "RES", "AXES", "CENTR", "*W", "*H", "STOΣ", "RCLΣ", "COLΣ", "SCLΣ", "DRWΣ", "CLLCD", "DISP", "PRLCD"],
   PRINT: ["PR1", "PRST", "PRVAR", "PRLCD", "TRACE", "NORM", "PRSTC", "PRUSR", "PRMD", "CR"],
   SOLVE: ["STEQ", "RCEQ", "SOLVR", "ISOL", "QUAD", "SHOW", "ROOT"],

@@ -69,6 +69,28 @@ persistence. `COMB`/`PERM` reuse the Phase-8 probability core.
 - `pnpm lint` / `pnpm test` / `pnpm build` / `pnpm test:e2e` green; the existing UI suites
   (geometry, promotion, typing) stay green.
 
+## Delivery notes (as shipped)
+- The flat P12 variable store became a **directory tree** (`DirNode`: vars +
+  subdirs) rooted at HOME with a `path` cursor. Resolution walks current-dir
+  → up to HOME (28S rule); evaluating a subdirectory NAME enters it (USER
+  behavior); PURGE deletes vars, or subdirectories only when empty
+  ("Non-Empty Directory" otherwise). STO± register arithmetic is
+  current-dir-only (documented simplification).
+- MEMORY menu: MEM/MENU/ORDER/PATH/HOME/CRDIR/VARS/CLUSR (+UP/UPDIR by
+  name); MENU builds the CUSTOM softkey row from a list; the 28S MENUS key
+  opens a meta-menu of every menu. USER/CUSTOM softkeys resolve like typed
+  words (commands run, variables evaluate, directories enter).
+- 28S single-toggle modes (CMD/UNDO/LAST/ML/TRAC) work as MODE-menu context
+  softkeys AND as command ids; the 28C's paired +/− commands remain.
+- COMB/PERM exact on the tower (STAT roster); →LCD/LCD→/DGTIZ defer to P17
+  graphics with honest errors; the shared menu rosters carry the 28S deltas
+  (visible on the 28C too — one engine serves the family, documented).
+- Persistence: the tree serializes recursively (`home`/`path`, additive);
+  legacy flat `vars` blobs restore into HOME. Named-workspace storage
+  helpers (save/load/list under `hellocalc-ws:`) ship as the FR-STATE-3
+  foundation — UI affordances arrive with the 48-series file phases.
+- HP-28S coverage oracle: GREEN — no key remains inert.
+
 ## Notes / risks
 - Path-resolved name lookup (current dir → up to HOME) must be exact — it changes what `RCL`/`EVAL`
   see; lock the resolution order in tests to avoid subtle shadowing bugs.

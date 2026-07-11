@@ -218,6 +218,33 @@ test.describe("hellocalc — smoke", () => {
     await expect(glass().getByText("'2*X'").first()).toBeVisible({ timeout: 15000 });
   });
 
+  test("Phase 15 on the live HP-28S: MEMORY menu creates and enters directories", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await selectModel(page, "HP-28S");
+    const key = (name: string) =>
+      page.getByRole("button", { name, exact: true }).click();
+    const glass = () => page.locator('[data-lcd-mode]:visible');
+    const soft = (i: number) => page.getByRole("button", { name: "menu" }).nth(i).click();
+
+    // 'D1' CRDIR via the MEMORY menu (red-shift I)
+    for (const k of ["◆", "D", "1", "◆"]) await key(k);
+    await key("ENTER");
+    await key("◄");
+    await key("I"); // → MEMORY
+    await expect(page.getByRole("button", { name: "menu" }).first()).toContainText("MEM");
+    await soft(5); // CRDIR
+    // typing the bare name enters the directory
+    await key("D");
+    await key("1");
+    await key("ENTER");
+    await key("◄");
+    await key("I");
+    await soft(3); // PATH
+    await expect(glass().getByText("{ 'HOME' 'D1' }").first()).toBeVisible();
+  });
+
   test("persistence: the session survives a reload (FR-STATE-1)", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "7", exact: true }).click();

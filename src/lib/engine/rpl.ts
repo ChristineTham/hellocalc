@@ -57,10 +57,25 @@ export interface PlotParams {
   axes: [number, number];
 }
 
+/** A directory node (P15, HP-28S): named variables + subdirectories. */
+export interface DirNode {
+  vars: Record<string, RplObj>; // insertion order = USER menu order
+  subs: Record<string, DirNode>;
+}
+export const newDir = (): DirNode => ({ vars: {}, subs: {} });
+export function cloneDir(d: DirNode): DirNode {
+  return {
+    vars: { ...d.vars },
+    subs: Object.fromEntries(Object.entries(d.subs).map(([k, v]) => [k, cloneDir(v)])),
+  };
+}
+
 export interface RplEngine {
   stack: RplObj[]; // bottom -> top (top = level 1)
   entry: string | null; // the command line (raw source text)
-  vars: Record<string, RplObj>; // insertion order = USER menu order
+  home: DirNode; // the variable tree rooted at HOME (P15)
+  path: string[]; // current directory (names below HOME; [] = HOME)
+  custom: string[]; // the MENU/CUSTOM softkey labels (P15)
   menu: { name: string; page: number } | null;
   base: 2 | 8 | 10 | 16; // binary-integer display base
   ws: number; // binary word size 1–64
@@ -88,7 +103,9 @@ export function createRpl(): RplEngine {
   return {
     stack: [],
     entry: null,
-    vars: {},
+    home: newDir(),
+    path: [],
+    custom: [],
     menu: null,
     base: 10,
     ws: 64,
@@ -323,6 +340,35 @@ const binOfReal = (v: Value, ws: number): RplObj => {
   return binObj(t.isNegative() ? (maskOf(ws) + B1 - (i & maskOf(ws))) & maskOf(ws) : i, ws);
 };
 
+// ---- directory resolution (P15) ---------------------------------------------------
+
+/** The chain of directories from HOME down to the current one. */
+function dirChain(s: RplEngine): DirNode[] {
+  const chain = [s.home];
+  let cur = s.home;
+  for (const nm of s.path) {
+    const next = cur.subs[nm];
+    if (!next) break; // stale path — clamp to what exists
+    chain.push(next);
+    cur = next;
+  }
+  return chain;
+}
+const curDir = (s: RplEngine): DirNode => dirChain(s)[dirChain(s).length - 1];
+
+/** 28S name resolution: current directory first, then up the path to HOME. */
+function lookupVar(s: RplEngine, nm: string): RplObj | null {
+  const chain = dirChain(s);
+  for (let i = chain.length - 1; i >= 0; i--) {
+    const v = chain[i].vars[nm];
+    if (v) return v;
+  }
+  return null;
+}
+const storeVar = (s: RplEngine, nm: string, v: RplObj): void => {
+  curDir(s).vars[nm] = v;
+};
+
 // ---- program evaluator (structured nodes over parse items) ------------------------
 
 interface Ctx {
@@ -533,7 +579,7 @@ function envOf(s: RplEngine, ctx: Ctx) {
     get: (nm: string): Value | null => {
       const loc = lookupLocal(ctx, nm);
       if (loc) return loc.k === "real" ? loc.v : null;
-      const v = s.vars[nm];
+      const v = lookupVar(s, nm);
       if (!v) return null;
       if (v.k === "real") return v.v;
       if (v.k === "alg") {
@@ -572,7 +618,12 @@ function evalObj(s: RplEngine, o: RplObj, ctx: Ctx): void {
       evalAlg(s, o, ctx);
       return;
     case "name": {
-      const c = s.vars[o.v];
+      // a subdirectory name EVALuates by entering it (the 28S USER behavior)
+      if (curDir(s).subs[o.v]) {
+        s.path = [...s.path, o.v];
+        return;
+      }
+      const c = lookupVar(s, o.v);
       if (c) evalObj(s, c, ctx);
       else s.stack.push(o); // undefined names evaluate to themselves
       return;
@@ -590,7 +641,11 @@ function execToken(s: RplEngine, w: string, ctx: Ctx): void {
     s.stack.push(loc);
     return;
   }
-  const v = s.vars[w];
+  if (curDir(s).subs[w]) {
+    s.path = [...s.path, w];
+    return;
+  }
+  const v = lookupVar(s, w);
   if (v) {
     evalObj(s, v, ctx);
     return;
@@ -688,8 +743,9 @@ const fPdf = (n1: number, n2: number) => (t: number): number =>
 const DEFERRED: Record<string, string> = {
   // positional subexpression editing needs the FORM UI — heavy-tier era
   FORM: "P19", OBSUB: "P19", EXSUB: "P19", OBGET: "P19", EXGET: "P19",
-  // plotting (P17/P18)
+  // plotting / display bitmaps (P17/P18)
   DRAW: "P17", DRAX: "P17", PIXEL: "P17", SCLΣ: "P18", DRWΣ: "P18",
+  "→LCD": "P17", "LCD→": "P17", DGTIZ: "P17",
 };
 
 function binaryNum(s: RplEngine, f: (a: Value, b: Value) => unknown): void {
@@ -1662,12 +1718,12 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
     // ---- STORE -----------------------------------------------------------------------------
     case "STO": {
       const [v, nm] = popN(s, 2);
-      s.vars[wantNameOf(nm)] = v;
+      storeVar(s, wantNameOf(nm), v);
       return true;
     }
     case "RCL": {
       const nm = wantNameOf(pop1(s));
-      const v = s.vars[nm];
+      const v = lookupVar(s, nm);
       if (!v) throw err("Undefined Name");
       s.stack.push(v);
       return true;
@@ -1675,7 +1731,16 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
     case "PURGE": {
       const o = pop1(s);
       const names = o.k === "list" ? o.items.map(wantNameOf) : [wantNameOf(o)];
-      for (const nm of names) delete s.vars[nm];
+      const dir = curDir(s);
+      for (const nm of names) {
+        if (dir.subs[nm]) {
+          // only an EMPTY subdirectory purges, like the 28S
+          const d = dir.subs[nm];
+          if (Object.keys(d.vars).length || Object.keys(d.subs).length)
+            throw err("Non-Empty Directory");
+          delete dir.subs[nm];
+        } else delete dir.vars[nm];
+      }
       return true;
     }
     case "STO+":
@@ -1684,38 +1749,106 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
     case "STO/": {
       const [v, nmO] = popN(s, 2);
       const nm = wantNameOf(nmO);
-      const cur = s.vars[nm];
+      const cur = curDir(s).vars[nm]; // register arithmetic is current-dir (note)
       if (!cur) throw err("Undefined Name");
       const a = wantReal(cur);
       const b = wantReal(v);
       const r =
         w === "STO+" ? a.plus(b) : w === "STO−" ? a.minus(b) : w === "STO*" ? a.times(b) : a.div(b);
       if (!r.isFinite()) throw err("Infinite Result");
-      s.vars[nm] = real(r);
+      curDir(s).vars[nm] = real(r);
       return true;
     }
     case "SNEG":
     case "SINV":
     case "SCONJ": {
       const nm = wantNameOf(pop1(s));
-      const cur = s.vars[nm];
+      const cur = curDir(s).vars[nm];
       if (!cur) throw err("Undefined Name");
-      if (w === "SCONJ" && cur.k === "cpx") s.vars[nm] = cpx(cur.re, -cur.im);
+      if (w === "SCONJ" && cur.k === "cpx") curDir(s).vars[nm] = cpx(cur.re, -cur.im);
       else {
         const a = wantReal(cur);
-        s.vars[nm] = real(w === "SNEG" ? a.neg() : w === "SINV" ? tryReal(() => math.divide(bn(1), a)) : a);
+        curDir(s).vars[nm] = real(
+          w === "SNEG" ? a.neg() : w === "SINV" ? tryReal(() => math.divide(bn(1), a)) : a,
+        );
       }
       return true;
     }
     case "ORDER": {
       const names = wantList(pop1(s)).map(wantNameOf);
-      const rest = Object.entries(s.vars).filter(([k]) => !names.includes(k));
-      const first = names.filter((nm) => nm in s.vars).map((nm): [string, RplObj] => [nm, s.vars[nm]]);
-      s.vars = Object.fromEntries([...first, ...rest]);
+      const dir = curDir(s);
+      const rest = Object.entries(dir.vars).filter(([k]) => !names.includes(k));
+      const first = names
+        .filter((nm) => nm in dir.vars)
+        .map((nm): [string, RplObj] => [nm, dir.vars[nm]]);
+      dir.vars = Object.fromEntries([...first, ...rest]);
       return true;
     }
-    case "CLUSR":
-      s.vars = {};
+    case "CLUSR": {
+      const dir = curDir(s);
+      dir.vars = {};
+      dir.subs = {};
+      return true;
+    }
+    // ---- MEMORY / directories (P15, HP-28S) ---------------------------------------
+    case "CRDIR": {
+      const nm = wantNameOf(pop1(s));
+      const dir = curDir(s);
+      if (dir.vars[nm] || dir.subs[nm]) throw err("Name Conflict");
+      dir.subs[nm] = newDir();
+      return true;
+    }
+    case "HOME":
+      s.path = [];
+      return true;
+    case "UP":
+    case "UPDIR":
+      s.path = s.path.slice(0, -1);
+      return true;
+    case "PATH":
+      s.stack.push({ k: "list", items: [mkName("HOME"), ...s.path.map(mkName)] });
+      return true;
+    case "VARS": {
+      const dir = curDir(s);
+      s.stack.push({
+        k: "list",
+        items: [...Object.keys(dir.subs), ...Object.keys(dir.vars)].map(mkName),
+      });
+      return true;
+    }
+    case "MENU": {
+      // build the CUSTOM softkey row from a list of names/commands
+      s.custom = wantList(pop1(s)).map((o) => (o.k === "name" || o.k === "str" ? o.v : ""))
+        .filter(Boolean);
+      s.menu = { name: "CUSTOM", page: 0 };
+      return true;
+    }
+    case "COMB": {
+      // C(n,r) — exact on the tower, like the P8 probability core
+      const [nO, rO] = popN(s, 2);
+      const n = wantInt(nO);
+      const r2 = wantInt(rO);
+      if (n < 0 || r2 < 0 || r2 > n) throw err("Bad Argument Value");
+      let acc = bn(1);
+      for (let i = 0; i < r2; i++) acc = acc.times(n - i).div(i + 1);
+      s.stack.push(real(acc));
+      return true;
+    }
+    case "PERM": {
+      const [nO, rO] = popN(s, 2);
+      const n = wantInt(nO);
+      const r2 = wantInt(rO);
+      if (n < 0 || r2 < 0 || r2 > n) throw err("Bad Argument Value");
+      let acc = bn(1);
+      for (let i = 0; i < r2; i++) acc = acc.times(n - i);
+      s.stack.push(real(acc));
+      return true;
+    }
+    case "CMD":
+      s.modes.cmd = !s.modes.cmd;
+      return true;
+    case "TRAC":
+      s.modes.trace = !s.modes.trace;
       return true;
     case "MEM":
       s.stack.push(real(bn(65536))); // emulator: memory is effectively unbounded
@@ -1877,10 +2010,10 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
     }
     // ---- SOLVE -----------------------------------------------------------------------------
     case "STEQ":
-      s.vars["EQ"] = pop1(s);
+      storeVar(s, "EQ", pop1(s));
       return true;
     case "RCEQ": {
-      const eq = s.vars["EQ"];
+      const eq = lookupVar(s, "EQ");
       if (!eq) throw err("No Current Equation");
       s.stack.push(eq);
       return true;
@@ -1894,7 +2027,7 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
       const src = exprO.k === "alg" ? exprO.src : exprO.k === "name" ? exprO.v : null;
       if (src === null) throw err("Bad Argument Type");
       const node = parseExpr(exprO.k === "name" ? (() => {
-        const v = s.vars[src];
+        const v = lookupVar(s, src);
         if (!v || v.k !== "alg") throw err("Bad Argument Type");
         return v.src;
       })() : src);
@@ -1929,7 +2062,7 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
         f1 = f(x1);
       }
       if (root === null) throw err("No Root Found");
-      s.vars[nm] = realOf(root);
+      storeVar(s, nm, realOf(root));
       s.stack.push(realOf(root));
       return true;
     }
@@ -1998,7 +2131,7 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
       return true;
     case "PRVAR": {
       const nm = wantNameOf(pop1(s));
-      const v = s.vars[nm];
+      const v = lookupVar(s, nm);
       if (!v) throw err("Undefined Name");
       print(s, `${nm}: ${objToSrc(v)}`);
       return true;
@@ -2007,7 +2140,7 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
       print(s, s.msg ?? (s.stack.length ? formatObj(peek(s), s.disp, s.base) : ""));
       return true;
     case "PRUSR":
-      print(s, Object.keys(s.vars).join(" ") || "(no user variables)");
+      print(s, Object.keys(curDir(s).vars).join(" ") || "(no user variables)");
       return true;
     case "CR":
       print(s, "");
@@ -2132,8 +2265,15 @@ const MENU_OPEN: Record<string, string> = {
   CTRL: "CTRL", CONTRL: "CTRL", BRANCH: "BRANCH", TEST: "TEST", TRIG: "TRIG",
   LOGS: "LOGS", MODE: "MODE", STAT: "STAT", PLOT: "PLOT", PRINT: "PRINT",
   SOLV: "SOLVE", ALGEBRA: "ALGEBRA", ALGBRA: "ALGEBRA", CATALOG: "CATALOG",
-  USER: "USER", UNITS: "UNITS",
+  USER: "USER", UNITS: "UNITS", MEMORY: "MEMORY", CUSTOM: "CUSTOM", MENUS: "MENUS",
 };
+
+/** The 28S MENUS key: a meta-menu of every menu (softkey opens it). */
+const MENUS_INDEX = [
+  "STACK", "STORE", "REAL", "LOGS", "TRIG", "COMPLEX", "STRING", "LIST",
+  "ARRAY", "BINARY", "MODE", "TEST", "BRANCH", "CTRL", "STAT", "PLOT",
+  "PRINT", "SOLVE", "ALGEBRA", "UNITS", "MEMORY", "USER", "CATALOG",
+];
 
 /** Words the BRANCH/CTRL softkeys TYPE into the command line (program entry). */
 const TYPES_WORD = new Set([
@@ -2235,16 +2375,16 @@ export function pressSoft(s: RplEngine, i: number): void {
     append(s, `${label} `);
     return;
   }
-  if (s.menu?.name === "USER") {
+  if (s.menu?.name === "USER" || s.menu?.name === "CUSTOM") {
     if (label === "ORDER" || label === "CLUSR" || label === "MEM") {
       execTop(s, label);
       return;
     }
-    // a variable softkey evaluates the variable, like the real USER menu
+    // a softkey resolves like a typed word: command, variable, or directory
     if (s.entry !== null && !inTextMode(s.entry) && !runLine(s)) return;
     const ctx = freshCtx();
     try {
-      evalObj(s, mkName(label), ctx);
+      execToken(s, label, ctx);
     } catch (e) {
       if (e instanceof RplError) s.error = e.message;
       else if (!(e instanceof Halt)) throw e;
@@ -2253,6 +2393,19 @@ export function pressSoft(s: RplEngine, i: number): void {
   }
   if (s.menu?.name === "UNITS") {
     s.menu = { name: `U:${label}`, page: 0 };
+    return;
+  }
+  if (s.menu?.name === "MENUS") {
+    s.menu = { name: label, page: 0 };
+    return;
+  }
+  if (s.menu?.name === "MODE" && ["CMD", "UNDO", "LAST", "ML", "TRAC"].includes(label)) {
+    // the 28S single-toggle mode commands (its MODE menu variant)
+    if (label === "CMD") s.modes.cmd = !s.modes.cmd;
+    else if (label === "UNDO") s.modes.und = !s.modes.und;
+    else if (label === "LAST") s.modes.last = !s.modes.last;
+    else if (label === "ML") s.modes.ml = !s.modes.ml;
+    else s.modes.trace = !s.modes.trace;
     return;
   }
   if (s.menu?.name.startsWith("U:")) {
@@ -2291,7 +2444,7 @@ export function pressSoft(s: RplEngine, i: number): void {
       return;
     }
     const v = s.stack.pop();
-    if (v) s.vars[label] = v;
+    if (v) storeVar(s, label, v);
     return;
   }
   if (inTextMode(s.entry)) {
@@ -2308,7 +2461,17 @@ export function menuLabels(s: RplEngine): string[] {
   if (!s.menu) return [];
   const roster =
     s.menu.name === "USER"
-      ? [...Object.keys(s.vars), "ORDER", "CLUSR", "MEM"]
+      ? [
+          ...Object.keys(curDir(s).subs),
+          ...Object.keys(curDir(s).vars),
+          "ORDER", "CLUSR", "MEM",
+        ]
+      : s.menu.name === "MEMORY"
+        ? ["MEM", "MENU", "ORDER", "PATH", "HOME", "CRDIR", "VARS", "CLUSR"]
+        : s.menu.name === "CUSTOM"
+          ? s.custom
+          : s.menu.name === "MENUS"
+            ? MENUS_INDEX
       : s.menu.name === "CATALOG"
         ? CATALOG_COMMANDS
         : s.menu.name === "UNITS"
@@ -2317,7 +2480,7 @@ export function menuLabels(s: RplEngine): string[] {
             ? UNIT_MENUS[s.menu.name.slice(2)] ?? []
             : s.menu.name === "SOLVR"
               ? (() => {
-                  const eq = s.vars["EQ"];
+                  const eq = lookupVar(s, "EQ");
                   return eq && eq.k === "alg" ? exprNames(eq.src) : [];
                 })()
               : RPL_MENUS[s.menu.name] ?? [];

@@ -122,6 +122,13 @@ describe("model adapter (hp/mapping/mapping.json)", () => {
     expect(report.missing).toEqual([]);
   });
 
+  it("HP-28S: NO key remains inert — directories + deltas live (Phase-15 DoD)", async () => {
+    const rpl = await import("@/lib/engine/rpl");
+    const probe = (fn: string) => rpl.dispatchRpl(rpl.createRpl(), fn);
+    const report = coverage("HP-28S", probe);
+    expect(report.missing).toEqual([]);
+  });
+
   it("coverage reports honestly for models awaiting their engine phase", async () => {
     // the 48G's catalog/apps plane is Phase 17 — the report must SAY so
     const rpl = await import("@/lib/engine/rpl");
