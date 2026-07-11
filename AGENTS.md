@@ -53,6 +53,7 @@ Call the relevant skill **before** writing code in its area; use `find-skills` i
 | Task | Call this skill |
 |---|---|
 | Discovering which skill applies | `find-skills` |
+| **Adding a calculator model faceplate (UI + layout) to the app** | `add-calculator-model` |
 | Any Next.js work (routing, config, rendering) | `next-best-practices` — and read `node_modules/next/dist/docs/` first (see top block) |
 | Scaffolding the shadcn/Next.js layout & UI constraints | `shadcn-nextjs-setup` |
 | Adding/using shadcn components | `shadcn` |
