@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Archivo, Barlow_Semi_Condensed, IBM_Plex_Mono } from "next/font/google";
+import { Archivo, Barlow_Semi_Condensed, IBM_Plex_Mono, Silkscreen } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 // KaTeX styles at the shell level so typeset math is styled on first paint
@@ -33,6 +33,16 @@ const plexMono = IBM_Plex_Mono({
   weight: ["400", "500", "600"],
 });
 
+// Dot-matrix LCD numerals for RPL machines (the HP-48's display is a 131×64
+// pixel matrix, not seven-segment) — a 5×7-style pixel font reads exactly
+// like its character set. DSEG7 stays for the segment-display families.
+const silkscreen = Silkscreen({
+  variable: "--font-silkscreen",
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "Hello Calc",
   description: "Advanced modern calculator app",
@@ -46,7 +56,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${archivo.variable} ${barlow.variable} ${plexMono.variable} ${dseg7.variable} h-full antialiased`}
+      className={`${archivo.variable} ${barlow.variable} ${plexMono.variable} ${dseg7.variable} ${silkscreen.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

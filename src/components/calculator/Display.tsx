@@ -56,7 +56,11 @@ export interface DisplayProps {
   fmt: (n: number, dec?: number) => string;
 }
 
-const num = "font-display tracking-[0.02em] text-hp-display-fg";
+// Segment numerals (DSEG7) for the seven-segment families; dot-matrix
+// (Silkscreen) for RPL machines — the HP-48 display is a 131×64 pixel
+// matrix, never a segment readout.
+const segNum = "font-display tracking-[0.02em] text-hp-display-fg";
+const dotNum = "font-lcd-dot tracking-normal text-hp-display-fg";
 // The glass plane (§13.1): each subtree is its own glass panel.
 const glass =
   "rounded-lg border border-hp-display-border bg-hp-display p-[var(--hp-lcd-pad)] shadow-[inset_0_1px_0_rgb(255_255_255/0.22),inset_0_-10px_20px_rgb(0_0_0/0.14)]";
@@ -116,6 +120,7 @@ export function Display({
   // vice versa) — user intent, later persisted (§12.6).
   const [userForce, setUserForce] = useState<LcdMode | null>(null);
   const force = userForce ?? defaultMode ?? null;
+  const num = isRpl ? dotNum : segNum;
 
   const lineValue =
     s.entry != null
@@ -133,7 +138,11 @@ export function Display({
     : { label: "Y", value: fmt(s.Y, s.dec) };
 
   return (
-    <div className="lcd-panel w-full" data-lcd-force={force ?? undefined}>
+    <div
+      className="lcd-panel w-full"
+      data-lcd-force={force ?? undefined}
+      data-lcd-family={family}
+    >
       {/* ── State A: single line + annunciators (+ stack echo) ─────────────── */}
       <div data-lcd-mode="line" className={cn(glass, "lcd-line")}>
         <AnnunRow
@@ -169,7 +178,13 @@ export function Display({
             <span className="font-mono text-hp-lcd-reg font-semibold tracking-[0.1em] text-hp-display-dim">
               {echo.label}
             </span>
-            <span className={cn("text-hp-lcd-stack", "font-display text-hp-display-dim")}>
+            <span
+              className={cn(
+                "text-hp-lcd-stack",
+                isRpl ? "font-lcd-dot" : "font-display",
+                "text-hp-display-dim",
+              )}
+            >
               {echo.value}
             </span>
           </div>
@@ -260,7 +275,9 @@ function StackRow({
       <span className="font-mono text-hp-lcd-reg font-semibold tracking-[0.1em] text-hp-display-dim">
         {label}
       </span>
-      <span className={cn("text-hp-lcd-stack", muted ? "font-display text-hp-display-dim" : num)}>
+      <span
+        className={cn("text-hp-lcd-stack", muted ? "font-display text-hp-display-dim" : segNum)}
+      >
         {value}
       </span>
     </div>
@@ -295,13 +312,13 @@ function RplStack({
             <span className="min-w-[20px] font-mono text-hp-lcd-reg text-hp-display-dim">
               {l.lvl}:
             </span>
-            <span className={cn("flex-1 text-right text-hp-lcd-stack", num)}>{l.val}</span>
+            <span className={cn("flex-1 text-right text-hp-lcd-stack", dotNum)}>{l.val}</span>
           </div>
         ))
       )}
       <div className="mt-1.5 flex items-center gap-1.5 border-t-2 border-hp-display-border pt-1.5">
         <span className="font-mono text-hp-lcd-reg text-hp-display-dim">⊳</span>
-        <span className={cn("flex-1 text-hp-lcd-stack", num)}>{entry ?? ""}</span>
+        <span className={cn("flex-1 text-hp-lcd-stack", dotNum)}>{entry ?? ""}</span>
       </div>
     </div>
   );

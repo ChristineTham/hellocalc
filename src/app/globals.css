@@ -22,6 +22,9 @@
   --font-legend: var(--font-barlow), sans-serif; /* key legends */
   --font-mono: var(--font-plex-mono), ui-monospace, monospace; /* stack/history */
   --font-display: var(--font-dseg7), var(--font-plex-mono), monospace; /* segment LCD */
+  /* Dot-matrix LCD (RPL machines — the HP-48 display is a 131×64 pixel
+     matrix, not seven-segment) */
+  --font-lcd-dot: var(--font-silkscreen), var(--font-plex-mono), monospace;
 
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -134,6 +137,9 @@
   --text-key-shift: clamp(6px, 1.55cqi, 9px);
   /* LCD */
   --hp-lcd-aspect-mini: 4 / 3;
+  /* The real HP-48 pixel grid — also the target for the future dot-grid
+     simulation (plots render into exactly this raster). */
+  --hp-lcd-aspect-rpl: 131 / 64;
   --calc-lcd-max-w: 30rem; /* mini-glass width cap — surplus estate stays desk, not empty glass */
   --calc-lcd-line-h: 3.25rem;
   --calc-lcd-mini-min-h: 13rem;
@@ -682,6 +688,12 @@
       overflow: hidden;
       padding-block-start: var(--calc-machine-gap);
     }
+  }
+
+  /* RPL mini glass keeps the real 48-series display proportions (131×64);
+     content may still stretch it taller (aspect-ratio yields to min-content). */
+  .lcd-panel[data-lcd-family="rpl"] .lcd-mini {
+    aspect-ratio: var(--hp-lcd-aspect-rpl);
   }
 
   /* ── One home for the stack (§14.3 rev 3): when an in-plane paper stack

@@ -91,6 +91,18 @@ describe("Display — §5.3 line↔mini mechanism (prop-driven)", () => {
     expect(within(line).getByText("7.00")).toBeTruthy();
   });
 
+  it("RPL glass uses dot-matrix numerals; segment families keep DSEG7 (the 48 is a 131×64 pixel matrix)", () => {
+    const rpl = renderDisplay({ family: "rpl", state: { ...state, rpl: [5] } });
+    expect(panel(rpl.container).dataset.lcdFamily).toBe("rpl");
+    expect(rpl.container.querySelector(".font-lcd-dot")).toBeTruthy();
+    expect(rpl.container.querySelector(".font-display")).toBeNull();
+
+    const voyager = renderDisplay();
+    expect(panel(voyager.container).dataset.lcdFamily).toBe("voyager");
+    expect(voyager.container.querySelector(".font-display")).toBeTruthy();
+    expect(voyager.container.querySelector(".font-lcd-dot")).toBeNull();
+  });
+
   it("mini renders the KaTeX hero and the TVM row when registers are shown", () => {
     const { container } = renderDisplay({
       showRegisters: true,

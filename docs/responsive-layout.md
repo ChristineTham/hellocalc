@@ -1373,6 +1373,15 @@ any (model × viewport) cell. Cozy, not tight; professional with Italian whitesp
   authentic to the 48G — so RPL models get no paper StackNote and no stack
   toggle chip.
 
+### 14.4c Revision 4 — RPL glass is a dot matrix
+
+The HP-48's display is a **131×64 pixel matrix**, never a segment readout. RPL
+machines therefore render their glass numerals in a 5×7-style pixel font
+(Silkscreen, `--font-lcd-dot`) while the segment families keep DSEG7; the RPL
+mini glass takes the real `131 / 64` aspect (`--hp-lcd-aspect-rpl`). That
+raster is also the recorded target for the future dot-grid simulation — plots
+and PICT rendering draw into exactly this grid.
+
 ### 14.5 Clamshell note (HP-28, still deferred)
 
 When the 28-series lands: large displays render the two keyboard halves side by side under
