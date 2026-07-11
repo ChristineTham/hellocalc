@@ -86,6 +86,15 @@ describe("model adapter (hp/mapping/mapping.json)", () => {
     expect(resolveKey("HP-97", "I")).toBe("RC I");
   });
 
+  it("HP-41C/CV + HP-41CX: NO key remains inert, alpha presses included (Phase-6 DoD)", () => {
+    for (const model of ["HP-41C-CV", "HP-41CX"]) {
+      const report = coverage(model, rpnImplements);
+      expect(report.missing, model).toEqual([]);
+    }
+    // alpha-access presses resolve to α-append ids
+    expect(modelFunctions("HP-41C-CV").some((f) => f.fn === "αA")).toBe(true);
+  });
+
   it("coverage reports honestly for models awaiting their engine phase", () => {
     // the 12C's finance plane is Phase 7 — the report must SAY so, not hide it
     const report = coverage("HP-12C", rpnImplements);

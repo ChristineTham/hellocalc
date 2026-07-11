@@ -36,6 +36,9 @@ interface SerializedRpn {
   iReg?: TaggedValue;
   sum?: { n: TaggedValue; x: TaggedValue; x2: TaggedValue; y: TaggedValue };
   prgm?: PrgmState;
+  alpha?: string;
+  userOn?: boolean;
+  userAsn?: Record<string, string>;
   entry: string | null;
   lift: boolean;
   angle: Angle;
@@ -84,6 +87,9 @@ export function snapshot(
         y: encodeValue(rpn.sum.y),
       },
       prgm: { ...rpn.prgm, steps: [...rpn.prgm.steps] },
+      alpha: rpn.alpha,
+      userOn: rpn.userOn,
+      userAsn: { ...rpn.userAsn },
       entry: rpn.entry,
       lift: rpn.lift,
       angle: rpn.angle,
@@ -128,6 +134,9 @@ export function restore(state: EngineStateV1): {
     prgm: state.rpn.prgm
       ? { ...state.rpn.prgm, steps: [...state.rpn.prgm.steps] }
       : fresh.prgm,
+    alpha: state.rpn.alpha ?? "",
+    userOn: state.rpn.userOn ?? false,
+    userAsn: state.rpn.userAsn ? { ...state.rpn.userAsn } : {},
     entry: state.rpn.entry,
     lift: state.rpn.lift,
     angle: state.rpn.angle,

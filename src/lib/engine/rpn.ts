@@ -23,7 +23,24 @@ export interface HistEntry {
  * digits count, GTO awaits a label (digit or A–E). Transient — never
  * persisted. */
 export interface PendingArg {
-  op: "STO" | "RCL" | "FIX" | "SCI" | "ENG" | "DSP" | "GTO" | "LBL" | "GSB" | "SF" | "CF" | "F?";
+  op:
+    | "STO"
+    | "RCL"
+    | "FIX"
+    | "SCI"
+    | "ENG"
+    | "DSP"
+    | "GTO"
+    | "LBL"
+    | "GSB"
+    | "SF"
+    | "CF"
+    | "F?"
+    | "ASN"
+    | "VIEW"
+    | "ISG";
+  /** the XEQ name being assigned (ASN) */
+  name?: string;
   arith?: "+" | "−" | "×" | "÷";
 }
 
@@ -67,6 +84,9 @@ export interface RpnEngine {
   iReg: Value; // the I index register (HP-67/97 indirect addressing)
   sum: SumRegs; // Σ+ accumulation
   prgm: PrgmState; // keystroke program (P3)
+  alpha: string; // the ALPHA register (P6, HP-41) — typed via α-prefixed ids
+  userOn: boolean; // USER mode (P6): key assignments intercept dispatch
+  userAsn: Record<string, string>; // key id → XEQ name (ASN)
   pending: PendingArg | null; // argument-taking key in progress
   entry: string | null; // in-progress digit buffer (null = show x)
   lift: boolean; // stack lifts before the next number is keyed
@@ -92,6 +112,9 @@ export function createRpn(): RpnEngine {
     iReg: zero,
     sum: zeroSum(),
     prgm: freshPrgm(),
+    alpha: "",
+    userOn: false,
+    userAsn: {},
     pending: null,
     entry: null,
     lift: false,
@@ -351,6 +374,24 @@ function resolvePending(s: RpnEngine, fn: string): boolean {
     // F? outside a program: consume the digit, steer nothing
     return true;
   }
+  if (p.op === "ASN") {
+    // ANY next key becomes the assignment target (USER mode intercepts it)
+    s.pending = null;
+    if (p.name) s.userAsn = { ...s.userAsn, [fn]: p.name };
+    return true;
+  }
+  if (p.op === "VIEW" && /^[0-9]$/.test(fn)) {
+    // view a register — printed to the tape, like the 41 flashing it
+    s.pending = null;
+    const i = Number(fn);
+    s.hist = [...s.hist.slice(-49), { op: `🖨 R${i}`, raw: s.regs[i].toString() }];
+    return true;
+  }
+  if (p.op === "ISG" && /^[0-9]$/.test(fn)) {
+    s.pending = null;
+    s.regs[Number(fn)] = isgStep(s.regs[Number(fn)]);
+    return true;
+  }
   if ((p.op === "STO" || p.op === "RCL" || p.op === "GTO") && fn === "(i)") {
     // indirect addressing through I (HP-67/97): the argument comes from the
     // I register — register index for STO/RCL, a digit label for GTO
@@ -419,7 +460,7 @@ function findLabel(steps: string[], label: string): number | null {
 
 /** Steps whose next step is an argument (skip both on a false conditional). */
 const ARG_TAKERS = new Set([
-  "GTO", "LBL", "GSB", "STO n", "RCL n", "FIX", "SCI", "ENG", "DSP", "SF", "CF", "F?",
+  "GTO", "LBL", "GSB", "STO n", "RCL n", "FIX", "SCI", "ENG", "DSP", "SF", "CF", "F?", "ISG", "VIEW",
 ]);
 
 const CONDITIONALS = new Set(["x=y", "x≠y", "x≤y", "x>y", "x<y", "x≥y", "x<0", "x=0", "x≠0", "x>0", "x≥0"]);
@@ -442,6 +483,24 @@ function testCondition(s: RpnEngine, fn: string): boolean {
     case "x>0": return !x.isNegative() && !x.isZero();
     default: return true;
   }
+}
+
+/** HP loop encoding iiiii.fffcc: counter int part, fff target, cc step. */
+function isgParts(v: Value): { i: Value; target: number; step: number } {
+  const i = v.trunc();
+  const frac = v.abs().minus(v.abs().trunc());
+  const digits = frac.toFixed(5).slice(2); // "fffcc"
+  const target = Number(digits.slice(0, 3));
+  const step = Number(digits.slice(3, 5)) || 1;
+  return { i, target, step };
+}
+
+/** ISG: counter += step, keeping the encoded fraction. */
+function isgStep(v: Value): Value {
+  const { i, step } = isgParts(v);
+  const frac = v.abs().minus(v.abs().trunc());
+  const next = i.plus(step);
+  return next.isNegative() ? next.minus(frac) : next.plus(frac);
 }
 
 /** Runaway guard (NFR-9): a GTO loop without exit halts with Error instead of
@@ -474,6 +533,19 @@ function execStep(s: RpnEngine): void {
     // flag test with a digit argument: consume both, skip-on-false
     const d = Number(steps[s.prgm.pc + 1] ?? "0");
     const pass = s.prgm.flags[d] === true;
+    s.prgm.pc += 2;
+    if (!pass) {
+      const next = steps[s.prgm.pc];
+      s.prgm.pc += next !== undefined && ARG_TAKERS.has(next) ? 2 : 1;
+    }
+    return;
+  }
+  if (fn === "ISG") {
+    // increment-skip-if-greater over an encoded register (HP-41 loops)
+    const d = Number(steps[s.prgm.pc + 1] ?? "0");
+    s.regs[d] = isgStep(s.regs[d]);
+    const { i, target } = isgParts(s.regs[d]);
+    const pass = !i.gt(target); // skip when the counter passes the target
     s.prgm.pc += 2;
     if (!pass) {
       const next = steps[s.prgm.pc];
@@ -559,6 +631,11 @@ export function runLabel(s: RpnEngine, label: string): void {
  */
 export function applyFunction(s: RpnEngine, fn: string): boolean {
   if (s.pending) return resolvePending(s, fn);
+  if (fn.length === 2 && fn.startsWith("α")) {
+    // ALPHA-mode character (P6): append to the alpha register (24-char cap)
+    if (s.alpha.length < 24) s.alpha += fn.slice(1);
+    return true;
+  }
   if (/^[0-9]$/.test(fn)) {
     inputDigit(s, fn);
     return true;
@@ -924,6 +1001,57 @@ export function applyFunction(s: RpnEngine, fn: string): boolean {
     case "DEL":
       // program-edit key — meaningful in PRGM mode (dispatch); RUN no-op
       return true;
+    case "CLA":
+      s.alpha = "";
+      return true;
+    case "CL x/A":
+      // the 41's ← f-shift: clears ALPHA when it holds text, else X
+      if (s.alpha) s.alpha = "";
+      else clx(s);
+      return true;
+    case "XEQ": {
+      // execute by NAME: the typed ALPHA spells a program label or any
+      // engine function id ("SIN", "x!", …) — the whole id space is XEQable
+      if (s.alpha) {
+        const name = s.alpha;
+        s.alpha = "";
+        if (name.length === 1 && findLabel(s.prgm.steps, name) !== null) {
+          runLabel(s, name);
+          return true;
+        }
+        const ok = applyFunction(s, name);
+        if (!ok) s.error = "NONEXISTENT"; // the 41's own message
+        return true;
+      }
+      s.pending = { op: "GSB" }; // XEQ label = subroutine-style run
+      return true;
+    }
+    case "ASN":
+      // assign the typed ALPHA name to the NEXT key pressed (USER mode)
+      if (s.alpha) {
+        s.pending = { op: "ASN", name: s.alpha };
+        s.alpha = "";
+      }
+      return true;
+    case "USER":
+      s.userOn = !s.userOn;
+      return true;
+    case "VIEW":
+      s.pending = { op: "VIEW" };
+      return true;
+    case "ISG":
+      s.pending = { op: "ISG" };
+      return true;
+    case "CATALOG":
+      // the catalog browser arrives with the CX polish; the tape notes it
+      s.hist = [...s.hist.slice(-49), { op: "🖨 CATALOG", raw: String(s.prgm.steps.length) }];
+      return true;
+    case "CLΣ":
+      s.sum = zeroSum();
+      return true;
+    case "BEEP":
+    case "ON":
+      return true;
     case "PREFIX":
     case "NOP":
     case "PAUSE":
@@ -1120,6 +1248,14 @@ export function dispatch(s: RpnEngine, fn: string): boolean {
         p.pc += 1;
         return true;
     }
+  }
+  // USER mode (P6): an assigned key executes its assignment instead
+  if (s.userOn && s.pending === null && s.userAsn[fn] !== undefined) {
+    const name = s.userAsn[fn];
+    if (name.length === 1 && findLabel(s.prgm.steps, name) !== null) runLabel(s, name);
+    else if (!applyFunction(s, name)) s.error = "NONEXISTENT";
+    s.hist = [...s.hist.slice(-49), { op: `USER ${name}`, raw: xval(s).toString() }];
+    return true;
   }
   const before = s.pending;
   const handled = applyFunction(s, fn);

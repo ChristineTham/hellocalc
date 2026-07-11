@@ -36,6 +36,8 @@ export interface RpnState {
   registers?: { name: string; value: string }[];
   /** keystroke program view (P3): mode + steps + pointer for the program note */
   prgm?: { mode: "RUN" | "PRGM"; pc: number; steps: string[] };
+  /** the ALPHA register (P6, HP-41) — shown on the glass while ALPHA is armed */
+  alpha?: string;
   rpl?: Value[]; // RPL dynamic stack (bottom -> top)
   hist?: { op: string; v: string; raw?: string }[];
 }
@@ -138,13 +140,15 @@ export function Display({
   const num = isRpl || family === "pioneer" ? dotNum : segNum;
 
   const lineValue =
-    s.entry != null
-      ? s.entry
-      : isRpl
-        ? s.rpl && s.rpl.length
-          ? fmt(s.rpl[s.rpl.length - 1], s.dec)
-          : "0"
-        : fmt(s.X, s.dec);
+    s.prefix === "alpha" && !isRpl
+      ? `${s.alpha ?? ""}_` // ALPHA entry echoes the register (P6)
+      : s.entry != null
+        ? s.entry
+        : isRpl
+          ? s.rpl && s.rpl.length
+            ? fmt(s.rpl[s.rpl.length - 1], s.dec)
+            : "0"
+          : fmt(s.X, s.dec);
   // Line-state stack echo (§11 #8): the register just under the top.
   const echo = isRpl
     ? s.rpl && s.rpl.length > 1

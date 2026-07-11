@@ -107,7 +107,7 @@ export default function Home() {
   const showRegisters = model.id === "HP-12C";
   // keystroke-programmable models grow the program note (P3: the 65; later
   // phases add their models as the subsystem reaches them)
-  const showProgram = ["HP-65", "HP-25", "HP-67", "HP-97"].includes(model.id);
+  const showProgram = ["HP-65", "HP-25", "HP-67", "HP-97", "HP-41C-CV", "HP-41CX"].includes(model.id);
   const aux = (
     <AuxPanel
       state={active.state}

@@ -91,10 +91,12 @@ export function ClassicKeyboard({
           : prefix === "h"
             ? k.h || k.fn
             : prefix === "alpha"
-              ? k.al || "" // letters are inert until alpha entry lands (§12.2 guard)
+              ? k.al
+                ? `α${k.al === "SPC" ? " " : k.al}` // ALPHA entry (P6): α-append ids
+                : ""
               : k.fn;
     if (!printed) return;
-    onPress(normalizeFn(printed));
+    onPress(printed.startsWith("α") ? printed : normalizeFn(printed));
     if (arc) setArc(false);
   };
 

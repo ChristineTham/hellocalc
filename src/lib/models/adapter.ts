@@ -47,7 +47,10 @@ export function modelFunctions(
       .map((p) => ({
         key: k.primary,
         access: p.access,
-        fn: over[p.function] ?? normalizeFn(p.function),
+        fn:
+          p.access === "alpha"
+            ? `α${p.function === "SPACE" ? " " : p.function}` // α-append ids (P6)
+            : (over[p.function] ?? normalizeFn(p.function)),
       })),
   );
 }

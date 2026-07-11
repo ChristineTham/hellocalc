@@ -530,6 +530,89 @@ describe("Phase-5: subroutines, indirect I, secondary regs, printing (67/97)", (
   });
 });
 
+describe("Phase-6: ALPHA, XEQ-by-name, USER assignments (HP-41)", () => {
+  it("α ids type into the alpha register; CL x/A clears it before X", () => {
+    const s = createRpn();
+    for (const c of "SIN") applyFunction(s, `α${c}`);
+    expect(s.alpha).toBe("SIN");
+    applyFunction(s, "CL x/A");
+    expect(s.alpha).toBe("");
+    run(s, "5", "ENTER");
+    applyFunction(s, "CL x/A"); // alpha empty → behaves like CLx
+    expect(n(s.x)).toBe(0);
+  });
+
+  it("XEQ executes the typed NAME through the id space: XEQ SIN, XEQ x!", () => {
+    const s = createRpn();
+    run(s, "30", "ENTER");
+    for (const c of "SIN") applyFunction(s, `α${c}`);
+    applyFunction(s, "XEQ");
+    expect(n(xval(s))).toBeCloseTo(0.5, 12);
+    const s2 = createRpn();
+    run(s2, "5", "ENTER");
+    for (const c of "X!") applyFunction(s2, `α${c}`);
+    // names normalize like prints? ids are exact — use the engine id
+    s2.alpha = "x!";
+    applyFunction(s2, "XEQ");
+    expect(n(xval(s2))).toBe(120);
+  });
+
+  it("XEQ of an unknown name flags NONEXISTENT (the 41's message)", () => {
+    const s = createRpn();
+    s.alpha = "FROBNICATE";
+    applyFunction(s, "XEQ");
+    expect(s.error).toBe("NONEXISTENT");
+  });
+
+  it("XEQ runs a program label typed in alpha", () => {
+    const s = createRpn();
+    dispatch(s, "W/PRGM");
+    for (const k of ["LBL", "A", "2", "×", "RTN"]) dispatch(s, k);
+    dispatch(s, "W/PRGM");
+    run(s, "6", "ENTER");
+    s.alpha = "A";
+    applyFunction(s, "XEQ");
+    expect(n(s.x)).toBe(12);
+  });
+
+  it("ASN + USER: an assigned key executes its name; USER off restores it", () => {
+    const s = createRpn();
+    s.alpha = "x!";
+    applyFunction(s, "ASN"); // pending: next key takes the assignment
+    dispatch(s, "1/x"); // assign x! onto the 1/x key
+    dispatch(s, "USER");
+    run(s, "5", "ENTER");
+    dispatch(s, "1/x"); // USER mode → runs x!
+    expect(n(s.x)).toBe(120);
+    dispatch(s, "USER");
+    dispatch(s, "1/x"); // normal again
+    expect(n(s.x)).toBeCloseTo(1 / 120, 12);
+  });
+
+  it("ISG counts with the iiiii.fffcc encoding and skips past the target", () => {
+    const s = createRpn();
+    // R1 = 0.00302: loop to 3 by steps of 2 → 2.00302, 4.00302(skip)
+    dispatch(s, "W/PRGM");
+    for (const k of ["LBL", "A", "ISG", "1", "GTO", "A", "RTN"]) dispatch(s, k);
+    dispatch(s, "W/PRGM");
+    run(s, "0.00302", "STO n", "1");
+    applyFunction(s, "A");
+    expect(s.regs[1].toFixed(5)).toBe("4.00302");
+    expect(s.error).toBeNull(); // the loop exited by ISG, not the budget
+  });
+
+  it("VIEW n prints the register to the tape; CLΣ clears only Σ", () => {
+    const s = createRpn();
+    run(s, "7", "STO n", "3", "4", "Σ+");
+    dispatch(s, "VIEW");
+    dispatch(s, "3");
+    expect(s.hist.some((h) => h.op === "🖨 R3" && h.raw === "7")).toBe(true);
+    applyFunction(s, "CLΣ");
+    expect(n(s.sum.n)).toBe(0);
+    expect(n(s.regs[3])).toBe(7);
+  });
+});
+
 describe("classic-era ops (HP-25/45/65/67 planes)", () => {
   it("R↑ is the inverse of R↓ (one full cycle restores the stack)", () => {
     const s = createRpn();

@@ -46,6 +46,9 @@ const ALIAS: Record<string, string> = {
   "9→ltr/gal": "ltr/gal",
   "0→LAST x": "LSTx",
   "R→P": "→P", // HP-65 prints rect→polar this way
+  "P→R": "→R",
+  "x≷y": "x⇄y", // HP-41 print
+  "FS?": "F?",
   // HP-25 parenthetical prints + hour-angle spellings (same math as D.MS)
   "x̄ (mean)": "x̄",
   "s (std dev)": "s",

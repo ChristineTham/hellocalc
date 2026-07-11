@@ -193,7 +193,7 @@ describe("prefix promotion (§12.3 rev 6) — armed shift takes the primary slot
     expect(pressed).toEqual(["eˣ"]);
   });
 
-  it("HP-41: arming ALPHA promotes each key's letter (LN → E), letters stay inert", () => {
+  it("HP-41: arming ALPHA promotes each key's letter (LN → E) and types α-ids", () => {
     const model = MODELS["HP-41C-CV"];
     if (model.family !== "hp41") throw new Error("HP-41C-CV must be hp41");
     const pressed: string[] = [];
@@ -211,9 +211,9 @@ describe("prefix promotion (§12.3 rev 6) — armed shift takes the primary slot
     );
     if (!ln) throw new Error("no LN key");
     expect(ln.querySelector(".row-start-2")?.textContent).toBe("E");
-    // the letter dispatches its id; the engine no-ops it until alpha entry lands
+    // ALPHA entry (P6): the letter dispatches its α-append id
     fireEvent.click(ln);
-    expect(pressed).toEqual(["E"]);
+    expect(pressed).toEqual(["αE"]);
   });
 
   it("HP-67: the black h plane renders and promotes (9 → R↑)", () => {

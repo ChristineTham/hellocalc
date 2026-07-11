@@ -42,6 +42,7 @@ const clone = (e: RpnEngine): RpnEngine => ({
   disp: { ...e.disp },
   regs: [...e.regs],
   regsS: [...e.regsS],
+  userAsn: { ...e.userAsn },
   sum: { ...e.sum },
   prgm: { ...e.prgm, steps: [...e.prgm.steps], flags: [...e.prgm.flags], ret: [...e.prgm.ret] },
   pending: e.pending ? { ...e.pending } : null,
@@ -63,7 +64,9 @@ export function useRpnCalculator(): RpnCalculator {
       dispatch(next, fn);
       return next;
     });
-    setPrefix("none");
+    // ALPHA is a latched MODE on the 41/Prime (unlike one-shot f/g): it stays
+    // armed while α characters are typed and drops on any other dispatch
+    setPrefix((p) => (p === "alpha" && fn.startsWith("α") ? p : "none"));
   }, []);
 
   const recall = useCallback((raw: string) => {
@@ -104,6 +107,7 @@ export function useRpnCalculator(): RpnCalculator {
       prefix,
       latex: fmt(xval(engine)),
       err: engine.error ?? undefined,
+      alpha: engine.alpha,
       registers,
       prgm: {
         mode: engine.prgm.mode,

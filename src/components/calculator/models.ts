@@ -176,7 +176,7 @@ const HP67_ROWS: ClassicKey[][] = [
 // Row 0 is the real unit's toggle strip (ON / USER / PRGM / ALPHA) below the
 // display; the C/CV and CX share this keyplate exactly (grids diffed equal).
 const HP41_ROWS: ClassicKey[][] = [
-  [ck("ON","ON","black"),ck("USER","USER","black"),ck("PRGM","PRGM","black"),ck("ALPHA","ALPHA","black",{kind:"alpha"})],
+  [ck("ON","ON","black"),ck("USER","USER","black"),ck("PRGM","W/PRGM","black"),ck("ALPHA","ALPHA","black",{kind:"alpha"})],
   [ck("Σ+","Σ+","black",{f:"Σ−",al:"A"}),ck("1/x","1/x","black",{f:"yˣ",al:"B"}),ck("√x","√x","black",{f:"x²",al:"C"}),ck("LOG","LOG","black",{f:"10ˣ",al:"D"}),ck("LN","LN","black",{f:"eˣ",al:"E"})],
   [ck("x≷y","x⇄y","black",{f:"CLΣ",al:"F"}),ck("R↓","R↓","black",{f:"%",al:"G"}),ck("SIN","SIN","black",{f:"SIN⁻¹",al:"H"}),ck("COS","COS","black",{f:"COS⁻¹",al:"I"}),ck("TAN","TAN","black",{f:"TAN⁻¹",al:"J"})],
   [ck("","f","gold",{kind:"pf"}),ck("XEQ","XEQ","black",{f:"ASN",al:"K"}),ck("STO","STO","black",{f:"LBL",al:"L"}),ck("RCL","RCL","black",{f:"GTO",al:"M"}),ck("SST","SST","black",{f:"BST"})],
