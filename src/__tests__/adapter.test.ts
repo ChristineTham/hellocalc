@@ -95,9 +95,14 @@ describe("model adapter (hp/mapping/mapping.json)", () => {
     expect(modelFunctions("HP-41C-CV").some((f) => f.fn === "αA")).toBe(true);
   });
 
-  it("coverage reports honestly for models awaiting their engine phase", () => {
-    // the 12C's finance plane is Phase 7 — the report must SAY so, not hide it
+  it("HP-12C: NO key remains inert — the finance plane is live (Phase-7 DoD)", () => {
     const report = coverage("HP-12C", rpnImplements);
+    expect(report.missing).toEqual([]);
+  });
+
+  it("coverage reports honestly for models awaiting their engine phase", () => {
+    // the 15C's matrix/complex plane is Phase 9 — the report must SAY so
+    const report = coverage("HP-15C", rpnImplements);
     expect(report.implemented.length).toBeGreaterThan(10);
     expect(report.missing.length).toBeGreaterThan(0);
   });

@@ -34,7 +34,24 @@ interface SerializedRpn {
   regs?: TaggedValue[];
   regsS?: TaggedValue[];
   iReg?: TaggedValue;
-  sum?: { n: TaggedValue; x: TaggedValue; x2: TaggedValue; y: TaggedValue };
+  sum?: {
+    n: TaggedValue;
+    x: TaggedValue;
+    x2: TaggedValue;
+    y: TaggedValue;
+    y2?: TaggedValue;
+    xy?: TaggedValue;
+  };
+  fin?: {
+    n: TaggedValue;
+    i: TaggedValue;
+    pv: TaggedValue;
+    pmt: TaggedValue;
+    fv: TaggedValue;
+    beg: boolean;
+    dmy: boolean;
+    cfs: { amt: string; count: number }[];
+  };
   prgm?: PrgmState;
   alpha?: string;
   userOn?: boolean;
@@ -85,6 +102,18 @@ export function snapshot(
         x: encodeValue(rpn.sum.x),
         x2: encodeValue(rpn.sum.x2),
         y: encodeValue(rpn.sum.y),
+        y2: encodeValue(rpn.sum.y2),
+        xy: encodeValue(rpn.sum.xy),
+      },
+      fin: {
+        n: encodeValue(rpn.fin.n),
+        i: encodeValue(rpn.fin.i),
+        pv: encodeValue(rpn.fin.pv),
+        pmt: encodeValue(rpn.fin.pmt),
+        fv: encodeValue(rpn.fin.fv),
+        beg: rpn.fin.beg,
+        dmy: rpn.fin.dmy,
+        cfs: rpn.fin.cfs.map((c) => ({ ...c })),
       },
       prgm: { ...rpn.prgm, steps: [...rpn.prgm.steps] },
       alpha: rpn.alpha,
@@ -129,8 +158,22 @@ export function restore(state: EngineStateV1): {
           x: decodeValue(state.rpn.sum.x),
           x2: decodeValue(state.rpn.sum.x2),
           y: decodeValue(state.rpn.sum.y),
+          y2: state.rpn.sum.y2 ? decodeValue(state.rpn.sum.y2) : fresh.sum.y2,
+          xy: state.rpn.sum.xy ? decodeValue(state.rpn.sum.xy) : fresh.sum.xy,
         }
       : fresh.sum,
+    fin: state.rpn.fin
+      ? {
+          n: decodeValue(state.rpn.fin.n),
+          i: decodeValue(state.rpn.fin.i),
+          pv: decodeValue(state.rpn.fin.pv),
+          pmt: decodeValue(state.rpn.fin.pmt),
+          fv: decodeValue(state.rpn.fin.fv),
+          beg: state.rpn.fin.beg,
+          dmy: state.rpn.fin.dmy,
+          cfs: state.rpn.fin.cfs.map((c) => ({ ...c })),
+        }
+      : fresh.fin,
     prgm: state.rpn.prgm
       ? { ...state.rpn.prgm, steps: [...state.rpn.prgm.steps] }
       : fresh.prgm,

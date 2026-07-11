@@ -8,6 +8,7 @@ import { CalcKey } from "./CalcKey";
 import type { VoyagerKey } from "./models";
 import type { KeyboardGeometry } from "@/lib/layout/keyboardGeometry";
 import type { Prefix } from "@/hooks/useRpnCalculator";
+import { MODEL_FN_OVERRIDES, normalizeFn } from "@/lib/models/normalize";
 
 const toneFor = (kind: VoyagerKey["kind"]) => {
   switch (kind) {
@@ -30,17 +31,22 @@ export interface KeyboardProps {
   keys: VoyagerKey[];
   geometry: KeyboardGeometry;
   prefix: Prefix;
+  /** model id for MODEL_FN_OVERRIDES (generated legends are raw prints) */
+  modelId?: string;
   onArm: (p: Prefix) => void;
   onPress: (fn: string) => void;
 }
 
-export function Keyboard({ keys, geometry, prefix, onArm, onPress }: KeyboardProps) {
+export function Keyboard({ keys, geometry, prefix, modelId, onArm, onPress }: KeyboardProps) {
+  const over = (modelId && MODEL_FN_OVERRIDES[modelId]) || {};
   const handle = (k: VoyagerKey) => {
     if (k.kind === "pf") return onArm("f");
     if (k.kind === "pg") return onArm("g");
-    const fn =
+    const printed =
       prefix === "f" ? k.f || k.primary : prefix === "g" ? k.g || k.primary : k.primary;
-    onPress(fn);
+    // generated legends are raw mapping prints — same adapter seam as the
+    // classics: model override first, then print normalization
+    onPress(over[printed] ?? normalizeFn(printed));
   };
 
   // Priority 1 (docs/responsive-layout.md §4.3): the block is an aspect-locked

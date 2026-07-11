@@ -122,6 +122,7 @@ export function MachineUnit({ model, rpn, rpl, lcd, paper }: MachineUnitProps) {
           <Keyboard
             keys={model.keys}
             geometry={model.geometry}
+            modelId={model.id}
             prefix={rpn.prefix}
             onArm={rpn.arm}
             onPress={rpn.press}

@@ -8,6 +8,26 @@
 import { asReal, bn, math, num, PI, type Value } from "./config";
 import { DEFAULT_FORMAT, type DisplayFormat } from "./format";
 import { appendDigit, backspace, parseEntry, startExponent, toggleSign } from "./entry";
+import {
+  addDays,
+  bondPrice,
+  bondYTM,
+  daysBetween,
+  decodeDate,
+  depDB,
+  depSL,
+  depSOYD,
+  encodeDate,
+  freshFin,
+  irr,
+  npv,
+  solveFV,
+  solveI,
+  solveN,
+  solvePMT,
+  solvePV,
+  type FinRegs,
+} from "./finance";
 
 export type Angle = "DEG" | "RAD" | "GRD";
 
@@ -70,6 +90,8 @@ export interface SumRegs {
   x: Value;
   x2: Value;
   y: Value;
+  y2: Value;
+  xy: Value;
 }
 
 export interface RpnEngine {
@@ -84,6 +106,8 @@ export interface RpnEngine {
   iReg: Value; // the I index register (HP-67/97 indirect addressing)
   sum: SumRegs; // Σ+ accumulation
   prgm: PrgmState; // keystroke program (P3)
+  fin: FinRegs; // financial registers (P7, HP-12C)
+  fresh: boolean; // a value was just keyed/recalled — TVM keys STORE, not solve
   alpha: string; // the ALPHA register (P6, HP-41) — typed via α-prefixed ids
   userOn: boolean; // USER mode (P6): key assignments intercept dispatch
   userAsn: Record<string, string>; // key id → XEQ name (ASN)
@@ -96,7 +120,7 @@ export interface RpnEngine {
   hist: HistEntry[]; // engine-side history (FR-EXP-5), capped at 50
 }
 
-const zeroSum = (): SumRegs => ({ n: bn(0), x: bn(0), x2: bn(0), y: bn(0) });
+const zeroSum = (): SumRegs => ({ n: bn(0), x: bn(0), x2: bn(0), y: bn(0), y2: bn(0), xy: bn(0) });
 
 export function createRpn(): RpnEngine {
   const zero = bn(0);
@@ -112,6 +136,8 @@ export function createRpn(): RpnEngine {
     iReg: zero,
     sum: zeroSum(),
     prgm: freshPrgm(),
+    fin: freshFin(),
+    fresh: false,
     alpha: "",
     userOn: false,
     userAsn: {},
@@ -483,6 +509,18 @@ function testCondition(s: RpnEngine, fn: string): boolean {
     case "x>0": return !x.isNegative() && !x.isZero();
     default: return true;
   }
+}
+
+/** Least-squares line over the Σ registers: y = A + Bx (12C estimates). */
+function linReg(sum: SumRegs): { A: Value; B: Value; r: Value } | null {
+  if (sum.n.lt(2)) return null;
+  const dx = sum.n.times(sum.x2).minus(sum.x.times(sum.x));
+  const dy = sum.n.times(sum.y2).minus(sum.y.times(sum.y));
+  if (dx.isZero() || dy.isZero()) return null;
+  const B = sum.n.times(sum.xy).minus(sum.x.times(sum.y)).div(dx);
+  const A = sum.y.minus(B.times(sum.x)).div(sum.n);
+  const r = sum.n.times(sum.xy).minus(sum.x.times(sum.y)).div(dx.times(dy).sqrt());
+  return { A, B, r };
 }
 
 /** HP loop encoding iiiii.fffcc: counter int part, fff target, cc step. */
@@ -1072,11 +1110,14 @@ export function applyFunction(s: RpnEngine, fn: string): boolean {
       commit(s);
       s.lastX = x;
       const sign = fn === "Σ+" ? 1 : -1;
+      const sgn = (a: Value, b: Value) => (sign === 1 ? a.plus(b) : a.minus(b));
       s.sum = {
         n: s.sum.n.plus(sign),
-        x: sign === 1 ? s.sum.x.plus(x) : s.sum.x.minus(x),
-        x2: sign === 1 ? s.sum.x2.plus(x.times(x)) : s.sum.x2.minus(x.times(x)),
-        y: sign === 1 ? s.sum.y.plus(s.y) : s.sum.y.minus(s.y),
+        x: sgn(s.sum.x, x),
+        x2: sgn(s.sum.x2, x.times(x)),
+        y: sgn(s.sum.y, s.y),
+        y2: sgn(s.sum.y2, s.y.times(s.y)),
+        xy: sgn(s.sum.xy, x.times(s.y)),
       };
       s.x = s.sum.n;
       s.lift = false;
@@ -1174,6 +1215,249 @@ export function applyFunction(s: RpnEngine, fn: string): boolean {
     case "ltr/gal":
       pushX(s, bn("3.785411784"));
       return true;
+    case "n":
+    case "i":
+    case "PV":
+    case "PMT":
+    case "FV": {
+      // 12C TVM keys: a freshly keyed/recalled number STORES; otherwise SOLVE
+      const store = s.entry !== null || s.fresh;
+      commit(s);
+      const put = (v: Value) => {
+        if (fn === "n") s.fin.n = v;
+        else if (fn === "i") s.fin.i = v;
+        else if (fn === "PV") s.fin.pv = v;
+        else if (fn === "PMT") s.fin.pmt = v;
+        else s.fin.fv = v;
+      };
+      if (store) {
+        put(s.x);
+        s.lift = true;
+        return true;
+      }
+      const r =
+        fn === "n"
+          ? (() => {
+              const v = solveN(s.fin);
+              return v === null ? null : v.ceil(); // the 12C rounds n UP
+            })()
+          : fn === "i"
+            ? solveI(s.fin)
+            : fn === "PV"
+              ? tryReal(() => solvePV(s.fin))
+              : fn === "PMT"
+                ? tryReal(() => solvePMT(s.fin))
+                : tryReal(() => solveFV(s.fin));
+      if (r === null || !r.isFinite()) {
+        s.error = "Error";
+        return true;
+      }
+      put(r);
+      pushX(s, r);
+      return true;
+    }
+    case "12×":
+      // store 12·x into n and show it
+      commit(s);
+      s.fin.n = s.x.times(12);
+      s.x = s.fin.n;
+      s.lift = true;
+      return true;
+    case "12÷":
+      commit(s);
+      s.fin.i = s.x.div(12);
+      s.x = s.fin.i;
+      s.lift = true;
+      return true;
+    case "BEG":
+      s.fin.beg = true;
+      return true;
+    case "END":
+      s.fin.beg = false;
+      return true;
+    case "CFo":
+      commit(s);
+      s.fin.cfs = [{ amt: s.x.toString(), count: 1 }];
+      s.lift = true;
+      return true;
+    case "CFj":
+      commit(s);
+      s.fin.cfs = [...s.fin.cfs, { amt: s.x.toString(), count: 1 }];
+      s.lift = true;
+      return true;
+    case "Nj": {
+      commit(s);
+      const last = s.fin.cfs[s.fin.cfs.length - 1];
+      if (last) {
+        const count = Math.max(1, Math.min(99, Math.trunc(num(s.x))));
+        s.fin.cfs = [...s.fin.cfs.slice(0, -1), { ...last, count }];
+      }
+      s.lift = true;
+      return true;
+    }
+    case "NPV":
+      unary(s, () => npv(s.fin.cfs, s.fin.i));
+      return true;
+    case "IRR": {
+      const r = irr(s.fin.cfs);
+      if (r === null) {
+        s.error = "Error";
+        return true;
+      }
+      s.fin.i = r;
+      pushX(s, r);
+      return true;
+    }
+    case "AMORT": {
+      // amortize x payments against PV at i (rounded to the display, like
+      // the 12C): X = interest total, Y = principal total, PV reduced
+      commit(s);
+      const count = Math.max(0, Math.trunc(num(s.x)));
+      s.lastX = s.x;
+      let pv = s.fin.pv;
+      let intTot = bn(0);
+      let prinTot = bn(0);
+      const iFrac = s.fin.i.div(100);
+      for (let j = 0; j < count; j++) {
+        const interest = bn(pv.times(iFrac).toFixed(s.disp.digits));
+        const principal = s.fin.pmt.neg().minus(interest);
+        intTot = intTot.plus(interest);
+        prinTot = prinTot.plus(principal);
+        pv = pv.minus(principal);
+      }
+      s.fin.pv = pv;
+      s.fin.n = s.fin.n.plus(count);
+      s.y = prinTot.neg();
+      s.x = intTot.neg();
+      s.lift = true;
+      return true;
+    }
+    case "D.MY":
+      s.fin.dmy = true;
+      return true;
+    case "M.DY":
+      s.fin.dmy = false;
+      return true;
+    case "DATE": {
+      // date in Y, days in X → the future/past date (stack drops)
+      binary(s, (y, x) => {
+        const d = decodeDate(y, s.fin.dmy);
+        return d === null ? null : encodeDate(addDays(d, Math.trunc(num(x))), s.fin.dmy);
+      });
+      return true;
+    }
+    case "ΔDYS":
+      binary(s, (y, x) => {
+        const a = decodeDate(y, s.fin.dmy);
+        const b = decodeDate(x, s.fin.dmy);
+        return a === null || b === null ? null : bn(daysBetween(a, b));
+      });
+      return true;
+    case "SL":
+    case "SOYD":
+    case "DB": {
+      // cost=PV, salvage=FV, life=n (factor=i for DB); x = year number
+      commit(s);
+      const j = s.x;
+      s.lastX = j;
+      const out =
+        fn === "SL"
+          ? depSL(s.fin.pv, s.fin.fv, s.fin.n, j)
+          : fn === "SOYD"
+            ? depSOYD(s.fin.pv, s.fin.fv, s.fin.n, j)
+            : depDB(s.fin.pv, s.fin.fv, s.fin.n, s.fin.i, j);
+      s.y = out.remaining;
+      s.x = out.dep;
+      s.lift = true;
+      return true;
+    }
+    case "PRICE": {
+      // settlement in Y, maturity in X; yield=i, coupon=PMT → X=price, Y=accrued
+      commit(s);
+      const settle = decodeDate(s.y, s.fin.dmy);
+      const mat = decodeDate(s.x, s.fin.dmy);
+      if (settle === null || mat === null || mat.getTime() <= settle.getTime()) {
+        s.error = "Error";
+        return true;
+      }
+      const out = bondPrice(settle, mat, s.fin.i, s.fin.pmt);
+      s.lastX = s.x;
+      s.y = out.accrued;
+      s.x = out.price;
+      s.lift = true;
+      return true;
+    }
+    case "YTM": {
+      // dates as PRICE; price from PV → yield to X (and into i)
+      commit(s);
+      const settle = decodeDate(s.y, s.fin.dmy);
+      const mat = decodeDate(s.x, s.fin.dmy);
+      if (settle === null || mat === null || mat.getTime() <= settle.getTime()) {
+        s.error = "Error";
+        return true;
+      }
+      const r = bondYTM(settle, mat, s.fin.pv.abs(), s.fin.pmt);
+      if (r === null) {
+        s.error = "Error";
+        return true;
+      }
+      s.fin.i = r;
+      s.lastX = s.x;
+      s.y = s.z;
+      s.z = s.t;
+      s.x = r;
+      s.lift = true;
+      return true;
+    }
+    case "CLEAR FIN":
+      s.fin = { ...freshFin(), dmy: s.fin.dmy, beg: s.fin.beg };
+      return true;
+    case "%T": {
+      // percent of total: 100·x/y (Y stays)
+      const x = xval(s);
+      commit(s);
+      s.lastX = x;
+      const r = tryReal(() => (s.y.isZero() ? null : x.times(100).div(s.y)));
+      s.error = r === null ? "Error" : null;
+      s.x = r ?? bn(0);
+      s.lift = true;
+      return true;
+    }
+    case "x̄w":
+      // weighted mean: Σxy/Σy (x weighted by y)
+      unary(s, () => (s.sum.y.isZero() ? null : s.sum.xy.div(s.sum.y)));
+      return true;
+    case "ŷ,r": {
+      const lr = linReg(s.sum);
+      if (lr === null) {
+        s.error = "Error";
+        return true;
+      }
+      const x = xval(s);
+      commit(s);
+      s.lastX = x;
+      s.y = lr.r;
+      s.x = lr.A.plus(lr.B.times(x));
+      s.lift = true;
+      return true;
+    }
+    case "x̂,r": {
+      const lr = linReg(s.sum);
+      if (lr === null || lr.B.isZero()) {
+        s.error = "Error";
+        return true;
+      }
+      const y = xval(s);
+      commit(s);
+      s.lastX = y;
+      s.y = lr.r;
+      s.x = y.minus(lr.A).div(lr.B);
+      s.lift = true;
+      return true;
+    }
+    case "MEM":
+      s.hist = [...s.hist.slice(-49), { op: "🖨 MEM", raw: String(s.prgm.steps.length) }];
+      return true;
     case "%": {
       // x% of y (HP-12C leaves Y in place)
       const x = xval(s);
@@ -1208,6 +1492,11 @@ const EDIT_OPS = new Set(["W/PRGM", "SST", "BST", "DEL"]);
 
 const noTape = (fn: string): boolean =>
   /^[0-9]$/.test(fn) || ENTRY_OPS.has(fn) || PENDING_ARMS.has(fn) || EDIT_OPS.has(fn);
+
+/** Keys after which a TVM key should STORE (a value was just produced). */
+const VALUE_PRODUCERS = new Set([
+  "ENTER", "RCL", "RCL n", "LSTx", "π", "cm/in", "kg/lb", "ltr/gal", "RC I", "CHS",
+]);
 
 /**
  * Dispatch + record: applies the function and, for committed operations,
@@ -1260,6 +1549,9 @@ export function dispatch(s: RpnEngine, fn: string): boolean {
   const before = s.pending;
   const handled = applyFunction(s, fn);
   if (!handled) return false;
+  // TVM store-vs-solve context (P7): true right after digits/ENTER/recalls
+  s.fresh = /^[0-9]$/.test(fn) || ENTRY_OPS.has(fn) || VALUE_PRODUCERS.has(fn) ||
+    (before !== null && before.op === "RCL");
   if (before !== null) {
     if (s.pending === null) {
       if (/^[0-9A-E]$/.test(fn)) {

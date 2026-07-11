@@ -49,6 +49,7 @@ const ALIAS: Record<string, string> = {
   "P→R": "→R",
   "x≷y": "x⇄y", // HP-41 print
   "FS?": "F?",
+  PSE: "PAUSE",
   // HP-25 parenthetical prints + hour-angle spellings (same math as D.MS)
   "x̄ (mean)": "x̄",
   "s (std dev)": "s",
@@ -141,5 +142,12 @@ export const MODEL_FN_OVERRIDES: Record<string, Record<string, string>> = {
     DSZ: "DSZ I",
     ISZ: "ISZ I",
     I: "RC I", // the desk unit's dedicated I key recalls the index register
+  },
+  "HP-12C": {
+    "Σ": "CLΣ", // the f-row under the 12C's CLEAR bracket
+    REG: "CLEAR REG",
+    PRGM: "CLEAR PRGM",
+    FIN: "CLEAR FIN",
+    "P/R": "W/PRGM",
   },
 };

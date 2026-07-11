@@ -109,9 +109,9 @@ describe("RPN stack engine (BigNumber tower)", () => {
     expect(s2.error).toBe("Error");
   });
 
-  it("returns false for unimplemented functions (e.g. financial NPV)", () => {
+  it("returns false for unimplemented functions (e.g. the 15C's MATRIX)", () => {
     const s = createRpn();
-    expect(applyFunction(s, "NPV")).toBe(false);
+    expect(applyFunction(s, "MATRIX")).toBe(false);
   });
 
   it("x% of y: 200 ENTER 10 % = 20 (Y stays 200)", () => {
@@ -610,6 +610,142 @@ describe("Phase-6: ALPHA, XEQ-by-name, USER assignments (HP-41)", () => {
     applyFunction(s, "CLΣ");
     expect(n(s.sum.n)).toBe(0);
     expect(n(s.regs[3])).toBe(7);
+  });
+});
+
+describe("Phase-7: the 12C finance engine", () => {
+  it("TVM mortgage reference: 360 n, 0.5 i, 100000 PV → PMT −599.55", () => {
+    const s = createRpn();
+    for (const k of ["3", "6", "0", "n", "0", "•", "5", "i"]) dispatch(s, k);
+    for (const k of ["1", "0", "0", "0", "0", "0", "PV"]) dispatch(s, k);
+    dispatch(s, "PMT"); // nothing keyed → SOLVE
+    expect(xval(s).toFixed(2)).toBe("-599.55");
+  });
+
+  it("TVM keys STORE after a keyed number and SOLVE otherwise; i round-trips", () => {
+    const s = createRpn();
+    for (const k of ["3", "6", "n"]) dispatch(s, k);
+    for (const k of ["3", "0", "0", "0", "PV"]) dispatch(s, k);
+    for (const k of ["1", "0", "0", "CHS", "PMT"]) dispatch(s, k);
+    for (const k of ["0", "FV"]) dispatch(s, k);
+    dispatch(s, "i"); // solve the rate
+    const i = num(xval(s));
+    expect(i).toBeGreaterThan(0.9);
+    expect(i).toBeLessThan(1.1); // ≈1.02%/mo for 36×100 on 3000
+    // and the solved rate reproduces the payment
+    dispatch(s, "PMT");
+    expect(xval(s).toFixed(2)).toBe("-100.00");
+  });
+
+  it("12× and 12÷ store converted n and i", () => {
+    const s = createRpn();
+    for (const k of ["3", "0", "12×"]) dispatch(s, k);
+    expect(s.fin.n.toString()).toBe("360");
+    for (const k of ["6", "12÷"]) dispatch(s, k);
+    expect(s.fin.i.toString()).toBe("0.5");
+  });
+
+  it("BEG mode raises an annuity's value (annuity due)", () => {
+    const s = createRpn();
+    for (const k of ["1", "2", "n", "1", "i"]) dispatch(s, k);
+    for (const k of ["1", "0", "0", "CHS", "PMT"]) dispatch(s, k);
+    dispatch(s, "FV");
+    const end = num(xval(s));
+    dispatch(s, "BEG");
+    expect(s.fin.beg).toBe(true);
+    dispatch(s, "FV");
+    const beg = num(xval(s));
+    expect(beg).toBeCloseTo(end * 1.01, 6);
+  });
+
+  it("cash flows: NPV at the IRR is zero", () => {
+    const s = createRpn();
+    for (const k of ["1", "0", "0", "0", "CHS", "CFo"]) dispatch(s, k);
+    for (const k of ["4", "0", "0", "CFj"]) dispatch(s, k);
+    dispatch(s, "3");
+    dispatch(s, "Nj"); // 400 × 3 years
+    dispatch(s, "IRR");
+    const rate = num(xval(s));
+    expect(rate).toBeGreaterThan(9);
+    expect(rate).toBeLessThan(10.5); // ≈9.7%
+    dispatch(s, "NPV");
+    expect(Math.abs(num(xval(s)))).toBeLessThan(1e-9);
+  });
+
+  it("AMORT: interest + principal equals the payments; PV reduces", () => {
+    const s = createRpn();
+    for (const k of ["3", "6", "0", "n", "0", "•", "5", "i"]) dispatch(s, k);
+    for (const k of ["1", "0", "0", "0", "0", "0", "PV"]) dispatch(s, k);
+    dispatch(s, "PMT");
+    const pmt = num(xval(s));
+    for (const k of ["1", "2", "AMORT"]) dispatch(s, k);
+    const interest = num(s.x);
+    const principal = num(s.y);
+    expect(interest + principal).toBeCloseTo(12 * pmt, 6);
+    expect(num(s.fin.pv)).toBeCloseTo(100000 + principal, 6);
+    expect(interest).toBeLessThan(0); // payment-signed, like the 12C
+  });
+
+  it("calendar: ΔDYS and DATE (M.DY) — Jun 3 1984 → Jun 15 1984 is 12 days", () => {
+    const s = createRpn();
+    run(s, "6.031984", "ENTER", "6.151984", "ΔDYS");
+    expect(n(xval(s))).toBe(12);
+    const s2 = createRpn();
+    run(s2, "6.031984", "ENTER", "12", "DATE");
+    expect(xval(s2).toString()).toBe("6.151984");
+  });
+
+  it("depreciation: SL 1800/yr; SOYD year-1 3000; DB(200%) year-1 4000", () => {
+    const s = createRpn();
+    for (const k of ["1", "0", "0", "0", "0", "PV"]) dispatch(s, k);
+    for (const k of ["1", "0", "0", "0", "FV"]) dispatch(s, k);
+    for (const k of ["5", "n"]) dispatch(s, k);
+    run(s, "1", "SL");
+    expect(n(s.x)).toBe(1800);
+    run(s, "1", "SOYD");
+    expect(n(s.x)).toBe(3000);
+    for (const k of ["2", "0", "0", "i"]) dispatch(s, k);
+    run(s, "1", "DB");
+    expect(n(s.x)).toBe(4000);
+  });
+
+  it("bond price/yield round-trip; one-period bond prices exactly", () => {
+    const s = createRpn();
+    // yield 6, coupon 6, settle exactly one period before maturity:
+    // price = (100+3)/(1.03) − 0 accrued = 100 exactly (par)
+    for (const k of ["6", "i"]) dispatch(s, k);
+    for (const k of ["6", "PMT"]) dispatch(s, k);
+    run(s, "12.011999", "ENTER", "6.012000", "PRICE"); // Dec 1 1999 → Jun 1 2000
+    expect(xval(s).toFixed(6)).toBe("100.000000");
+    // YTM recovers the yield from the price
+    for (const k of ["1", "0", "0", "PV"]) dispatch(s, k);
+    run(s, "12.011999", "ENTER", "6.012000", "YTM");
+    expect(num(xval(s))).toBeCloseTo(6, 6);
+  });
+
+  it("%T: 300 total, 75 part → 25 percent of total", () => {
+    const s = createRpn();
+    run(s, "300", "ENTER", "75", "%T");
+    expect(n(s.x)).toBe(25);
+    expect(n(s.y)).toBe(300);
+  });
+
+  it("linear estimate ŷ,r on a perfect line y=2x: ŷ(3)=6, r=1", () => {
+    const s = createRpn();
+    run(s, "2", "ENTER", "1", "Σ+"); // y=2, x=1
+    run(s, "4", "ENTER", "2", "Σ+");
+    run(s, "6", "ENTER", "3", "Σ+");
+    run(s, "3", "ŷ,r");
+    expect(n(s.x)).toBeCloseTo(6, 12);
+    expect(n(s.y)).toBeCloseTo(1, 12);
+  });
+
+  it("CLEAR FIN zeroes the financial registers, keeping modes", () => {
+    const s = createRpn();
+    for (const k of ["1", "2", "n", "BEG"]) dispatch(s, k);
+    applyFunction(s, "CLEAR FIN");
+    expect(n(s.fin.n)).toBe(0);
+    expect(s.fin.beg).toBe(true);
   });
 });
 
