@@ -394,6 +394,24 @@
     container: kbdmod / inline-size;
   }
 
+  /* ── Rhythm (§14.4): one spacing beat everywhere ─────────────────────────
+     At md+ the machine top-aligns with the paper column (captions level with
+     the bezel top) and both keep a region-gap of air from the viewport edges.
+     Phones keep the machine centred — cosier for one-handed use. */
+  @media (width >= 48rem) {
+    .calc-shell .machine {
+      margin-block: 0 auto;
+    }
+    .calc-shell > [data-region="machine"] {
+      padding-block-end: var(--calc-region-gap);
+    }
+    .calc-shell > [data-region="aux"] {
+      padding-inline: var(--calc-region-gap);
+      padding-block-end: var(--calc-region-gap);
+      min-block-size: 0;
+    }
+  }
+
   /* ── Paper aux (§14.3) ───────────────────────────────────────────────────
      History is a printing-calculator tape: straight top, perforated bottom
      (the zigzag gradient), figures in mono. Notes are ruled cards. The aux
@@ -460,11 +478,11 @@
      informative exactly when it matters (§12.3). Threshold literal ~30rem —
      container queries cannot read custom properties. */
   @container kbdmod (max-width: 30rem) {
-    [data-slot="calc-key"] .key-shift {
+    .machine-kbd .key-shift {
       display: none;
     }
-    [data-slot="calc-key"] .key-shift.key-hot {
-      display: block;
+    .machine-kbd .key-shift.key-hot {
+      display: flex;
     }
   }
 

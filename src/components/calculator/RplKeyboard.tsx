@@ -95,7 +95,14 @@ export function RplKeyboard({ rows, geometry, prefix, onArm, onPress }: RplKeybo
                   prefix shifts the plane (§12.3): armed side glows, the other
                   side and the primaries dim */}
               {(k.ls || k.rs) && (
-                <span className="pointer-events-none absolute inset-x-1 top-0.5 flex justify-between text-key-shift leading-none font-semibold">
+                <span
+                  className={cn(
+                    // `key-shift` auto-hides at narrow module widths except
+                    // while a shift is armed (globals.css @container kbdmod)
+                    "key-shift pointer-events-none absolute inset-x-1 top-0.5 flex justify-between text-key-shift leading-none font-semibold",
+                    (prefix === "ls" || prefix === "rs") && "key-hot",
+                  )}
+                >
                   <span
                     className={cn(
                       "text-hp-shift-ls transition-all",
@@ -132,8 +139,8 @@ export function RplKeyboard({ rows, geometry, prefix, onArm, onPress }: RplKeybo
               {k.al && (
                 <span
                   className={cn(
-                    "pointer-events-none absolute right-1 bottom-0.5 text-key-shift leading-none text-hp-key-fg transition-all",
-                    prefix === "alpha" ? "opacity-100 font-bold" : "opacity-45",
+                    "key-shift pointer-events-none absolute right-1 bottom-0.5 text-key-shift leading-none text-hp-key-fg transition-all",
+                    prefix === "alpha" ? "key-hot opacity-100 font-bold" : "opacity-45",
                   )}
                 >
                   {k.al}

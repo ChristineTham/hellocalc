@@ -85,9 +85,12 @@ export function Topbar({ activeModel, onSelectModel, nav, panels }: TopbarProps)
         </SheetContent>
       </Sheet>
 
-      <h1 className="min-w-0 flex-1 truncate text-xl font-extrabold tracking-tight text-primary">
+      {/* the brand yields its room to the panel chips on phones (§14.4) —
+          the nav sheet still carries the full wordmark */}
+      <h1 className="hidden min-w-0 flex-1 truncate text-xl font-extrabold tracking-tight text-primary sm:block">
         Hello Calc
       </h1>
+      <div aria-hidden className="flex-1 sm:hidden" />
 
       {/* individual paper-panel toggles (§14.3) — sheet-hosted below md */}
       <PanelSheet label="Toggle stack" title="Stack" icon={<Layers className="size-4" />}>

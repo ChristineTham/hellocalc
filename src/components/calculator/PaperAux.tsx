@@ -29,26 +29,32 @@ export function HistoryTape({
   return (
     <section data-slot="history-tape" className={cn("flex min-h-0 flex-col", className)}>
       <h3 className={CAPTION}>History</h3>
-      <div className="paper-tape flex min-h-0 flex-1 flex-col overflow-y-auto rounded-t-sm border border-b-0 border-paper-line px-3 py-2">
-        {rows.length === 0 ? (
-          <p className="py-3 text-center font-mono text-[11px] text-muted-foreground/70">
-            — no entries yet —
-          </p>
-        ) : (
-          rows.map((e, i) => (
-            <div
-              key={i}
-              className="flex items-baseline justify-between gap-3 border-b border-paper-line py-1.5 last:border-0"
-            >
-              <span className="font-legend text-[12px] font-semibold text-muted-foreground">
-                {e.op}
-              </span>
-              <span className="font-mono text-[13px] tabular-nums text-foreground">{e.v}</span>
-            </div>
-          ))
-        )}
+      {/* outer strip owns the perforated ::after; the INNER div scrolls, so
+          the zigzag edge is never clipped by the scroll container */}
+      <div className="paper-tape flex min-h-0 flex-1 flex-col rounded-t-sm border border-b-0 border-paper-line">
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
+          {rows.length === 0 ? (
+            <p className="py-3 text-center font-mono text-[11px] text-muted-foreground/70">
+              — no entries yet —
+            </p>
+          ) : (
+            rows.map((e, i) => (
+              <div
+                key={i}
+                className="flex items-baseline justify-between gap-3 border-b border-paper-line py-1.5 last:border-0"
+              >
+                <span className="font-legend text-[12px] font-semibold text-muted-foreground">
+                  {e.op}
+                </span>
+                <span className="font-mono text-[13px] tabular-nums text-foreground">
+                  {e.v}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
       </div>
-      {/* the perforated edge is the tape's ::after — leave room for it */}
+      {/* room for the perforation */}
       <div className="h-2 shrink-0" />
     </section>
   );
