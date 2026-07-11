@@ -843,7 +843,27 @@ test.describe("hellocalc — smoke", () => {
     const sidebar = page.locator('[data-region="sidebar"]');
     await expect(sidebar).toBeVisible();
     await expect(sidebar.getByRole("button", { name: /Export state/ })).toBeVisible();
-    await expect(sidebar.getByRole("button", { name: "About" })).toBeVisible();
+    await expect(sidebar.getByRole("link", { name: "About" })).toBeVisible();
+  });
+
+  test("About: the sidebar links to a full project page describing the status", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1366, height: 800 });
+    await page.goto("/");
+    const sidebar = page.locator('[data-region="sidebar"]');
+    await sidebar.getByRole("link", { name: "About" }).click();
+
+    // a real route — heading, the status stats, the fleet, and a way back
+    await expect(page.getByRole("heading", { name: "Hello Calc", level: 1 })).toBeVisible();
+    await expect(page.getByText("all 23 build phases complete")).toBeVisible();
+    await expect(page.getByText("models emulated")).toBeVisible();
+    await expect(page.getByText("inert keys")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "HP Prime" })).toHaveCount(0); // it's a chip, not a heading
+    await expect(page.getByText("HP-35", { exact: true })).toBeVisible();
+
+    await page.getByRole("link", { name: "Back to calculator" }).click();
+    await expect(page.getByRole("button", { name: "Select calculator model" })).toBeVisible();
   });
 
   test("KaTeX hero renders a .katex node in the mini LCD (AGENTS §6)", async ({ page }) => {

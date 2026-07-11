@@ -1,8 +1,8 @@
 // Step-4 chrome tests: CalcNav is ONE component rendered in two hosts (left
 // sheet below lg, persistent sidebar at lg+); it must surface the FR-STATE-4
-// entry points and open the About dialog.
+// entry points and link to the About page.
 import { describe, expect, it } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { CalcNav } from "@/components/calculator/CalcNav";
 
 describe("CalcNav", () => {
@@ -13,12 +13,12 @@ describe("CalcNav", () => {
       expect(btn).toBeTruthy();
       expect(btn).toHaveProperty("disabled", true); // wired in the persistence phase
     }
-    expect(screen.getByRole("button", { name: "About" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "About" })).toBeTruthy();
   });
 
-  it("About opens a dialog describing the app", async () => {
+  it("About links to the /about page", () => {
     render(<CalcNav />);
-    fireEvent.click(screen.getByRole("button", { name: "About" }));
-    expect(await screen.findByText(/HP calculator emulator/)).toBeTruthy();
+    const link = screen.getByRole("link", { name: "About" });
+    expect(link.getAttribute("href")).toBe("/about");
   });
 });

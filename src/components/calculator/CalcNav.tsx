@@ -7,6 +7,7 @@
 "use client";
 
 import { useRef } from "react";
+import Link from "next/link";
 import {
   Download,
   Info,
@@ -14,14 +15,6 @@ import {
   Settings,
   Upload,
 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 const ITEM =
@@ -97,37 +90,10 @@ export function CalcNav({ className, onExport, onImportFile, onReset }: CalcNavP
         Settings
         <Soon />
       </button>
-      <Dialog>
-        <DialogTrigger className={ITEM}>
-          <Info className="size-4 shrink-0" />
-          About
-        </DialogTrigger>
-        <DialogContent aria-describedby={undefined}>
-          <DialogHeader>
-            <DialogTitle>Hello Calc</DialogTitle>
-            <DialogDescription>
-              An HP calculator emulator — one shared math engine, faithful
-              per-model keyboards. The keyboard always keeps the real
-              machine&apos;s proportions; the display and panels adapt to your
-              screen.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-1 font-mono text-[11px] text-muted-foreground">
-            <p>All 21 classic models, HP-35 (1972) → HP Prime (2013).</p>
-            <p>
-              Built with Next.js, math.js and KaTeX ·{" "}
-              <a
-                className="underline underline-offset-2 hover:text-foreground"
-                href="https://github.com/ChristineTham/hellocalc"
-                target="_blank"
-                rel="noreferrer"
-              >
-                source
-              </a>
-            </p>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <Link href="/about" className={ITEM}>
+        <Info className="size-4 shrink-0" />
+        About
+      </Link>
     </nav>
   );
 }
