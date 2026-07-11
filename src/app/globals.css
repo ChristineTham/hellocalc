@@ -240,6 +240,7 @@
   --hp-shift-rs-49: #a84440;
   --hp-shift-ls-50: #b5ac97;
   --hp-shift-rs-50: #c07a2e;
+  --hp-shift-ls-28: #a84440; /* HP-28 single RED shift */
 }
 
 /* ---------- DARK — graphite chassis + olive LCD ---------- */
@@ -309,6 +310,7 @@
   --hp-shift-rs-49: #c4635f;
   --hp-shift-ls-50: #d8d2c5;
   --hp-shift-rs-50: #d3924a;
+  --hp-shift-ls-28: #c4635f;
 }
 
 @layer base {

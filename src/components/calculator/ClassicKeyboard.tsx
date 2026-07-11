@@ -104,6 +104,17 @@ export function ClassicKeyboard({
       {rows.map((row, ri) =>
         row.map((k, ki) => {
           const spanCols = subgridSpan(k, rowUnits[ri], subcols);
+          // bare-plate spacer (HP-97 hinge/cluster gaps): consumes its grid
+          // slots but renders no key
+          if (k.kind === "gap") {
+            return (
+              <div
+                key={`${ri}-${ki}`}
+                aria-hidden
+                style={{ gridColumn: `span ${spanCols} / span ${spanCols}` }}
+              />
+            );
+          }
           // §12.3 rev 6 promotion. HP-35 arc: while `arc` is armed the trig
           // keys show their inverse via the f slot (the 35 prints no shift
           // legends, so the small plane rows are empty either way). Shifted

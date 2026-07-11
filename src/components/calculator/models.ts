@@ -44,7 +44,7 @@ export interface ClassicKey {
   g?: string; // blue g-shift legend, as printed
   h?: string; // black h-shift legend, as printed (HP-67)
   al?: string; // ALPHA character (HP-41), printed lower-right like h
-  kind?: "pf" | "pfi" | "pg" | "ph" | "alpha"; // prefix/toggle keys
+  kind?: "pf" | "pfi" | "pg" | "ph" | "alpha" | "gap"; // prefix/toggle keys · gap = bare plate
 }
 
 /** RPL (HP-48G): purple left-shift / green right-shift / white ALPHA. */
@@ -219,7 +219,7 @@ const HPPRIME_ROWS: ClassicKey[][] = [
   [ck("On","On","black",{g:"Off"}),ck("0","0","black",{g:"Notes",al:"\" \""}),ck(".",".","black",{g:"="}),ck("␣","SPC","black",{g:"_"}),ck("+","+","black",{g:"Ans",al:";"})],
 ];
 
-// ---- HP-48G (RPL, graphing) --------------------------------------------------
+/** RPL key helper (shared by every RPL-family board). */
 const r = (
   p: string,
   ls: string,
@@ -228,6 +228,40 @@ const r = (
   w = 1,
   kind: RplKey["kind"] = "std",
 ): RplKey => ({ p, ls, rs, al, w, kind });
+
+// ---- HP-28C / HP-28S (RPL clamshell; hp/layouts/HP-28C.md, HP-28S.md) --------
+// Two physical keypads under one lid. Modelled as ONE aspect-locked grid:
+// each row pairs the left (alpha/menu) half with the right (numeric) half
+// across a bare-plate hinge gap whose width absorbs the halves' differing
+// row units — every merged row is exactly 13 units, so both halves keep
+// internally uniform columns. Single RED shift = the ls plane.
+const g28 = (w: number): RplKey => r("", "", "", "", w, "gap");
+const hp28Rows = (v: "C" | "S"): RplKey[][] => [
+  [g28(7),r("","INS","","",1,"soft"),r("","DEL","","",1,"soft"),r("","▲","","",1,"soft"),r("","▼","","",1,"soft"),r("","◄","","",1,"soft"),r("","►","","",1,"soft")],
+  [r("A",v==="C"?"ARRAY":"ARRAY","","" ),r("B","BINARY","",""),r("C",v==="C"?"CMPLX":"COMPLX","",""),r("D","STRING","",""),r("E","LIST","",""),r("F","REAL","",""),g28(1),r("◄","","","",1,"ls"),r("◄▶","MODE","",""),r("TRIG","LOGS","",""),r("SOLV",v==="C"?"STAT":"PLOT","",""),r("USER",v==="C"?"PLOT":"CUSTOM","",""),r("NEXT","PREV","","")],
+  [r("G","STACK","",""),r("H","STORE","",""),r("I",v==="C"?"":"MEMORY","",""),r("J",v==="C"?"ALGEBRA":"ALGBRA","",""),r("K",v==="C"?"":"STAT","",""),r("L","PRINT","",""),g28(1),r("ENTER","EDIT","","",2,"enter"),r("CHS","VIEW▲","",""),r("EEX","VIEW▼","",""),r("DROP","ROLL","",""),r("◆","SWAP","","")],
+  [r("M",v==="C"?"CTRL":"CONTRL","",""),r("N","BRANCH","",""),r("O","TEST","",""),r("P","","",""),r("Q","CATALOG","",""),r("R","UNITS","",""),g28(2),r("|","VISIT","",""),r("7","COMMAND","","",1,"digit"),r("8","UNDO","","",1,"digit"),r("9","LAST","","",1,"digit"),r("÷","1/x","","",1,"arith")],
+  [r("S","≤","",""),r("T","≥","",""),r("U","→","",""),r("V","Σ","",""),r("W","°","",""),r("X","µ","",""),g28(2),r("STO","RCL","",""),r("4","PURGE","","",1,"digit"),r("5","∫","","",1,"digit"),r("6","d/dx","","",1,"digit"),r("×","^","","",1,"arith")],
+  [r("Y","<","",""),r("Z",">","",""),r("#","\"","",""),r("{","}","",""),r("[","]","",""),r("(",")","",""),g28(2),r("EVAL","→NUM","",""),r("1","CONT","","",1,"digit"),r("2","%","","",1,"digit"),r("3","%CH","","",1,"digit"),r("−",v==="C"?"√":"√x","","",1,"arith")],
+  [r("SPACE","NEWLINE","","",2),r("«","≫","",""),r("=","≠","",""),r("LC","?","",""),r("α",v==="C"?"α LOCK":"MENUS","",""),g28(2),r("ON","OFF","","",1,"on"),r("0","CLEAR","","",1,"digit"),r(".","π","",""),r(",","CONVERT","",""),r("+","x²","","",1,"arith")],
+];
+const HP28C_ROWS = hp28Rows("C");
+const HP28S_ROWS = hp28Rows("S");
+
+// ---- HP-97 (desktop printer; hp/layouts/HP-97.md) ----------------------------
+// Two side-by-side clusters merged the same way (every row 12 units); the
+// right block's double-height + is modelled single-height and 0 is wide
+// [judgment]. Single gold f prefix; printing keys stay inert.
+const HP97_ROWS: ClassicKey[][] = [
+  [ck("A","A","black",{f:"a"}),ck("B","B","black",{f:"b"}),ck("C","C","black",{f:"c"}),ck("D","D","black",{f:"d"}),ck("E","E","black",{f:"e"}),ck("","f","gold",{kind:"pf"}),ck("","","black",{kind:"gap",flex:2}),ck("FIX","FIX","black",{f:"PRINT SPACE"}),ck("SCI","SCI","black",{f:"PRINT PRGM"}),ck("ENG","ENG","black",{f:"PRINT REG"}),ck("PRINT x","PRINT x","black",{f:"PRINT STACK"})],
+  [ck("LBL","LBL","black",{f:"STF"}),ck("GTO","GTO","black",{f:"CLF"}),ck("GSB","GSB","black",{f:"F?"}),ck("RTN","RTN","black",{f:"RND"}),ck("BST","BST","black",{f:"DSZ"}),ck("SST","SST","black",{f:"ISZ"}),ck("","","black",{kind:"gap"}),ck("ENTER↑","ENTER","blue",{flex:2,f:"DEG"}),ck("CHS","CHS","blue",{f:"RAD"}),ck("EEX","EEX","blue",{f:"GRD"}),ck("÷","÷","blue",{f:"π"})],
+  [ck("yˣ","yˣ","black",{f:"ABS"}),ck("LN","LN","black",{f:"LOG"}),ck("eˣ","eˣ","black",{f:"10ˣ"}),ck("→P","→P","black",{f:"INT"}),ck("STO","STO","black",{f:"→H.MS"}),ck("RCL","RCL","black",{f:"H.MS→"}),ck("","","black",{kind:"gap"}),ck("R↓","R↓","black",{f:"R↑"}),ck("7","7","beige",{f:"x≠y?"}),ck("8","8","beige",{f:"x=y?"}),ck("9","9","beige",{f:"x>y?"}),ck("×","×","blue",{f:"x≤y?"})],
+  [ck("SIN","SIN","black",{f:"SIN⁻¹"}),ck("COS","COS","black",{f:"COS⁻¹"}),ck("TAN","TAN","black",{f:"TAN⁻¹"}),ck("→R","→R","black",{f:"FRAC"}),ck("(i)","(i)","black",{f:"D→R"}),ck("I","I","black",{f:"R→D"}),ck("","","black",{kind:"gap"}),ck("x⇄y","x⇄y","black",{f:"x⇄I"}),ck("4","4","beige",{f:"x≠0?"}),ck("5","5","beige",{f:"x=0?"}),ck("6","6","beige",{f:"x>0?"}),ck("−","−","blue",{f:"x<0?"})],
+  [ck("R/S","R/S","black",{f:"PAUSE"}),ck("1/x","1/x","black",{f:"N!"}),ck("x²","x²","black",{f:"x̄"}),ck("√x","√x","black",{f:"s"}),ck("%","%","black",{f:"%CH"}),ck("Σ+","Σ+","black",{f:"Σ−"}),ck("","","black",{kind:"gap"}),ck("CL X","CLx","black",{f:"P⇄S"}),ck("1","1","beige",{f:"DEL"}),ck("2","2","beige",{f:"CL REG"}),ck("3","3","beige",{f:"CL PRGM"}),ck("+","+","blue",{f:"H.MS+"})],
+  [ck("","","black",{kind:"gap",flex:8}),ck("0","0","beige",{flex:2,f:"WRITE DATA"}),ck(".",".","beige",{f:"MERGE"}),ck("DSP","DSP","beige",{f:"LAST X"})],
+];
+
+// ---- HP-48G (RPL, graphing) --------------------------------------------------
 const HP48G_ROWS: RplKey[][] = [
   [r("","","","A",1,"soft"),r("","","","B",1,"soft"),r("","","","C",1,"soft"),r("","","","D",1,"soft"),r("","","","E",1,"soft"),r("","","","F",1,"soft")],
   [r("MTH","","","G"),r("PRG","I/O","I/O","H"),r("CST","MODES","MODES","I"),r("VAR","MEM","MEM","J"),r("▲","LIB","LIB","K",1,"cur"),r("NXT","PREV","","L")],
@@ -294,6 +328,11 @@ const GEOM = {
   // is a classic handheld — half-height toggles inflate the computed height.
   // Deliberate portrait override keeps the LCD-above-keys posture (§11 #4).
   "HP-41": computeKeyboardGeometry({ rows: HP41_ROWS }, "hp41", { aspectClass: "portrait" }),
+  // Merged two-block machines derive LANDSCAPE naturally — the open
+  // clamshell / desk posture (§14.5): wide machine band, LCD above.
+  "HP-97": computeKeyboardGeometry({ rows: HP97_ROWS }, "classic"),
+  "HP-28C": computeKeyboardGeometry({ rows: HP28C_ROWS }, "rpl"),
+  "HP-28S": computeKeyboardGeometry({ rows: HP28S_ROWS }, "rpl"),
   "HP-42S": computeKeyboardGeometry({ rows: HP42S_ROWS }, "pioneer"),
   "HP-35s": computeKeyboardGeometry({ rows: HP35S_ROWS }, "pioneer"),
   "HP-Prime": computeKeyboardGeometry({ rows: HPPRIME_ROWS }, "pioneer"),
@@ -319,12 +358,17 @@ export const MODELS: Record<string, Model> = {
   "HP-65":  { id: "HP-65",  name: "HP-65",  family: "classic", sub: "RPN · MAG CARD",   angle: true,  geometry: GEOM["HP-65"],  rows: HP65_ROWS },
   "HP-25":  { id: "HP-25",  name: "HP-25",  family: "classic", sub: "RPN · PROGRAM",    angle: true,  geometry: GEOM["HP-25"],  rows: HP25_ROWS },
   "HP-67":  { id: "HP-67",  name: "HP-67",  family: "classic", sub: "RPN · MAG CARD",   angle: true,  geometry: GEOM["HP-67"],  rows: HP67_ROWS },
+  "HP-97":  { id: "HP-97",  name: "HP-97",  family: "classic", sub: "RPN · PRINTER",  angle: true, geometry: GEOM["HP-97"],  rows: HP97_ROWS },
   "HP-41C-CV": { id: "HP-41C-CV", name: "HP-41C/CV", family: "hp41", sub: "RPN · ALPHA", angle: true, geometry: GEOM["HP-41"], rows: HP41_ROWS },
   "HP-41CX":   { id: "HP-41CX",   name: "HP-41CX",   family: "hp41", sub: "RPN · ALPHA · TIME", angle: true, geometry: GEOM["HP-41"], rows: HP41_ROWS },
   "HP-11C": { id: "HP-11C", name: "HP-11C", family: "voyager", sub: "RPN · SCIENTIFIC", angle: true,  geometry: GEOM["HP-11C"], keys: GENERATED_VOYAGER["HP-11C"] },
   "HP-12C": { id: "HP-12C", name: "HP-12C", family: "voyager", sub: "RPN · FINANCIAL",  angle: false, geometry: GEOM["HP-12C"], keys: GENERATED_VOYAGER["HP-12C"] },
   "HP-15C": { id: "HP-15C", name: "HP-15C", family: "voyager", sub: "RPN · SCIENTIFIC", angle: true,  geometry: GEOM["HP-15C"], keys: GENERATED_VOYAGER["HP-15C"] },
   "HP-16C": { id: "HP-16C", name: "HP-16C", family: "voyager", sub: "RPN · PROGRAMMER", angle: false, geometry: GEOM["HP-16C"], keys: GENERATED_VOYAGER["HP-16C"] },
+  "HP-28C": { id: "HP-28C", name: "HP-28C", family: "rpl", sub: "RPL · CLAMSHELL", angle: true, geometry: GEOM["HP-28C"], rows: HP28C_ROWS,
+    shift: { ls: "var(--hp-shift-ls-28)", rs: "var(--hp-shift-ls-28)" } },
+  "HP-28S": { id: "HP-28S", name: "HP-28S", family: "rpl", sub: "RPL · CLAMSHELL", angle: true, geometry: GEOM["HP-28S"], rows: HP28S_ROWS,
+    shift: { ls: "var(--hp-shift-ls-28)", rs: "var(--hp-shift-ls-28)" } },
   "HP-42S":  { id: "HP-42S",  name: "HP-42S",  family: "pioneer", sub: "RPN · MENU",       angle: true, geometry: GEOM["HP-42S"],  rows: HP42S_ROWS },
   "HP-35s":  { id: "HP-35s",  name: "HP-35s",  family: "pioneer", sub: "RPN · SCIENTIFIC", angle: true, geometry: GEOM["HP-35s"],  rows: HP35S_ROWS },
   "HP-Prime":{ id: "HP-Prime",name: "HP Prime",family: "pioneer", sub: "CAS · TOUCH",      angle: true, geometry: GEOM["HP-Prime"],rows: HPPRIME_ROWS },
@@ -338,10 +382,10 @@ export const MODELS: Record<string, Model> = {
 };
 
 export const MODEL_ORDER = [
-  "HP-35", "HP-45", "HP-65", "HP-25", "HP-67",
+  "HP-35", "HP-45", "HP-65", "HP-25", "HP-67", "HP-97",
   "HP-41C-CV", "HP-41CX",
   "HP-11C", "HP-12C", "HP-15C", "HP-16C",
-  "HP-42S",
+  "HP-28C", "HP-28S", "HP-42S",
   "HP-48SX", "HP-48G", "HP-49G", "HP-50g",
   "HP-35s", "HP-Prime",
 ] as const;

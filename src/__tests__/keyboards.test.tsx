@@ -232,6 +232,67 @@ describe("prefix promotion (§12.3 rev 6) — armed shift takes the primary slot
   });
 });
 
+describe("merged two-block machines (28C clamshell / 97 desk)", () => {
+  it("HP-28C: every merged row fills exactly 13 units across the hinge gaps", () => {
+    const model = MODELS["HP-28C"];
+    if (model.family !== "rpl") throw new Error("HP-28C must be rpl");
+    const { container } = render(
+      <RplKeyboard
+        rows={model.rows}
+        geometry={model.geometry}
+        prefix="none"
+        onArm={noop}
+        onPress={noop}
+      />,
+    );
+    const root = keyboardRoot(container);
+    expect(root.style.gridTemplateColumns).toBe("repeat(13, minmax(0, 1fr))");
+    const children = Array.from(root.children) as HTMLElement[];
+    let i = 0;
+    for (const row of model.rows) {
+      let units = 0;
+      for (let k = 0; k < row.length; k++, i++) {
+        const m = /span (\d+)/.exec(children[i].style.gridColumn);
+        if (!m) throw new Error(`cell ${i} has no span`);
+        units += Number(m[1]);
+      }
+      expect(units).toBe(13);
+    }
+    // the red single shift arms ls; letters are primaries on the left half
+    expect(container.querySelector('[data-kind="ls"]')).not.toBeNull();
+    expect(
+      Array.from(container.querySelectorAll<HTMLElement>("button")).find(
+        (b) => b.getAttribute("aria-label") === "A",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("HP-97: gap cells render no button; classic merged rows fill 12 units", () => {
+    const model = MODELS["HP-97"];
+    if (model.family !== "classic") throw new Error("HP-97 must be classic");
+    const { container } = render(
+      <ClassicKeyboard rows={model.rows} geometry={model.geometry} onPress={noop} />,
+    );
+    const keyCount = model.rows.reduce(
+      (n, r) => n + r.filter((k) => k.kind !== "gap").length,
+      0,
+    );
+    expect(container.querySelectorAll("button")).toHaveLength(keyCount);
+    const root = keyboardRoot(container);
+    const children = Array.from(root.children) as HTMLElement[];
+    let i = 0;
+    for (const row of model.rows) {
+      let units = 0;
+      for (let k = 0; k < row.length; k++, i++) {
+        const m = /span (\d+)/.exec(children[i].style.gridColumn);
+        if (!m) throw new Error(`cell ${i} has no span`);
+        units += Number(m[1]);
+      }
+      expect(units).toBe(12);
+    }
+  });
+});
+
 describe("shifted-classic row fill (HP-25 5-over-4 dual pitch)", () => {
   it("every HP-25 row fills the lcm(5,4)=20 subgrid exactly", () => {
     const model = MODELS["HP-25"];

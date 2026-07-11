@@ -123,6 +123,7 @@ export function applyRplFunction(s: RplEngine, fn: string): boolean {
       enter(s);
       return true;
     case "+/−":
+    case "CHS": // HP-28 prints CHS
       chs(s);
       return true;
     case "+":
@@ -138,6 +139,7 @@ export function applyRplFunction(s: RplEngine, fn: string): boolean {
       binary(s, (a, b) => a / b);
       return true;
     case "yˣ":
+    case "^": // HP-28 red shift of ×
       binary(s, (a, b) => Math.pow(a, b));
       return true;
     case "DUP":
@@ -156,6 +158,7 @@ export function applyRplFunction(s: RplEngine, fn: string): boolean {
       unary(s, (a) => 1 / a);
       return true;
     case "√x":
+    case "√": // HP-28C prints bare √
       unary(s, Math.sqrt);
       return true;
     case "x²":

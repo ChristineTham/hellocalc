@@ -38,6 +38,10 @@ describe("per-model geometry (MODELS registry, derived not hand-tuned)", () => {
     ["HP-42S", 6, 7, 0.970, "portrait"], // stubby Pioneer
     ["HP-35s", 6, 8, 0.847, "portrait"],
     ["HP-Prime", 6, 9, 0.751, "portrait"], // two view rows + 7 keypad rows
+    // merged two-block machines: landscape by derivation (open lid / desk)
+    ["HP-97", 12, 6, 2.290, "landscape"],
+    ["HP-28C", 13, 7, 2.038, "landscape"],
+    ["HP-28S", 13, 7, 2.038, "landscape"],
     ["HP-48SX", 6, 9, 0.722, "tall"], // per-model override, same posture as 48G
     ["HP-48G", 6, 9, 0.722, "tall"], // per-model override: 9-row kbd behaves tall (§14 rev 5)
     ["HP-49G", 6, 10, 0.649, "tall"], // 10 rows → tall by derivation
