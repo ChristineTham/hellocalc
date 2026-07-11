@@ -21,10 +21,10 @@ export const RPL_MENUS: Record<string, string[]> = {
   TEST: ["SF", "CF", "FS?", "FC?", "FS?C", "FC?C", "AND", "OR", "XOR", "NOT", "SAME", "==", "STOF", "RCLF", "TYPE"],
   BRANCH: ["IF", "IFERR", "THEN", "ELSE", "END", "START", "FOR", "NEXT", "STEP", "IFT", "IFTE", "DO", "UNTIL", "WHILE", "REPEAT"],
   CTRL: ["SST", "HALT", "ABORT", "KILL", "WAIT", "KEY", "BEEP", "CLLCD", "DISP", "CLMF", "ERRN", "ERRM"],
-  STAT: ["Σ+", "Σ−", "NΣ", "CLΣ", "STOΣ", "RCLΣ", "TOT", "MEAN", "SDEV", "VAR", "MAXΣ", "MINΣ", "COLΣ", "CORR", "COV", "LR", "PREDV", "UTPC", "UTPF", "UTPN", "UTPT", "COMB", "PERM"],
-  PLOT: ["STEQ", "RCEQ", "PMIN", "PMAX", "INDEP", "DRAW", "PPAR", "RES", "AXES", "CENTR", "*W", "*H", "STOΣ", "RCLΣ", "COLΣ", "SCLΣ", "DRWΣ", "CLLCD", "DISP", "PRLCD"],
+  STAT: ["Σ+", "Σ−", "NΣ", "CLΣ", "STOΣ", "RCLΣ", "TOT", "MEAN", "SDEV", "VAR", "MAXΣ", "MINΣ", "COLΣ", "CORR", "COV", "LR", "PREDV", "UTPC", "UTPF", "UTPN", "UTPT", "COMB", "PERM", "LINFIT", "LOGFIT", "EXPFIT", "PWRFIT", "BESTFIT", "PREDX", "PREDY", "SCATRPLOT", "BARPLOT", "HISTPLOT"],
+  PLOT: ["STEQ", "RCEQ", "PMIN", "PMAX", "INDEP", "DRAW", "PPAR", "RES", "AXES", "CENTR", "*W", "*H", "STOΣ", "RCLΣ", "COLΣ", "SCLΣ", "DRWΣ", "CLLCD", "DISP", "PRLCD", "XRNG", "YRNG", "AUTO", "WIREFRAME", "ERASE"],
   PRINT: ["PR1", "PRST", "PRVAR", "PRLCD", "TRACE", "NORM", "PRSTC", "PRUSR", "PRMD", "CR"],
-  SOLVE: ["STEQ", "RCEQ", "SOLVR", "ISOL", "QUAD", "SHOW", "ROOT"],
+  SOLVE: ["STEQ", "RCEQ", "SOLVR", "ISOL", "QUAD", "SHOW", "ROOT", "TVM", "AMORT"],
   // labels render; execution defers to the P14 CAS (delivery note)
   ALGEBRA: ["COLCT", "EXPAN", "SIZE", "FORM", "OBSUB", "EXSUB", "TAYLR", "ISOL", "QUAD", "SHOW", "OBGET", "EXGET"],
   // ---- 48-series menus (P17) — labels naming another roster OPEN it ----------
@@ -37,11 +37,15 @@ export const RPL_MENUS: Record<string, string[]> = {
   BASE: ["HEX", "DEC", "OCT", "BIN", "STWS", "RCWS", "R→B", "B→R"],
   PRG: ["STACK", "OBJ", "DSPL", "CTRL", "BRANCH", "TEST"],
   OBJ: ["→STR", "STR→", "→LIST", "LIST→", "→ARRY", "ARRY→", "OBJ→", "TYPE", "→Q"],
+  LIST48: ["DOLIST", "STREAM", "SEQ", "SORT", "REVLIST", "ΣLIST", "ΠLIST", "ΔLIST"],
+  MATR48: ["RREF", "RANK", "LU", "QR", "SVD", "EGV", "EGVL"],
+  TVMM: ["TVMROOT", "TVMBEG", "TVMEND", "AMORT"],
   DSPL: ["PIXON", "PIXOFF", "LINE", "BOX", "→GROB", "PVIEW", "CLLCD", "DISP", "→LCD", "LCD→"],
   IO: ["SEND", "RECV", "SERVER", "KGET", "FINISH"],
   LIBRARY: ["PORTS", "ATTACH", "DETACH"],
   TIME48: ["DATE", "TIME", "DDAYS", "TSTR", "→DATE", "→TIME"],
   PLOTP: ["STEQ", "RCEQ", "PTYPE", "DRAW", "ERASE", "PVIEW"],
+  SYMBOLIC: ["COLCT", "EXPAN", "ISOL", "QUAD", "TAYLR", "SHOW", "d/dx", "∫"],
 };
 
 /** Every command the static rosters mention — the CATALOG's inventory. */

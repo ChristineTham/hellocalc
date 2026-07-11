@@ -69,6 +69,32 @@ solver, and built-in TVM finance — all wired into the live HP-48G faceplate.
   chunk** (verify the build output); the existing UI suites (geometry, promotion, typing)
   stay green.
 
+## Delivery notes (as shipped)
+- **No Plotly.** The 48G's own display is a 131×64 monochrome matrix — every
+  plot the machine draws is lines and dots. HISTPLOT/BARPLOT render as
+  segment columns and WIREFRAME as REAL projected 3D polylines through the
+  P17 function-plot panel, which is period-accurate and keeps 3 MB out of
+  the app. Richer smooth-surface types (PARSURFACE/PCONTOUR/GRIDMAP/
+  YSLICE/SLOPEFIELD, "3D") defer to the heavy-graphing era (P19 notes) —
+  the FR-PLOT-2 flagship (wireframe surfaces) ships now.
+- STAT app: SCLΣ autoscale, DRWΣ/SCATRPLOT scatter, BARPLOT/HISTPLOT;
+  LINFIT/LOGFIT/EXPFIT/PWRFIT/BESTFIT + PREDX/PREDY ride the P16 CFIT core
+  over the ΣDAT column pair.
+- Lists: DOLIST (per-element program), STREAM (pairwise fold), SEQ, SORT,
+  REVLIST, ΣLIST/ΠLIST/ΔLIST. DOSUBS stays out (needs NSUB/ENDSUB context).
+- Linear algebra tokens on ml-matrix: RREF/RANK/LU/QR/SVD/EGV/EGVL.
+- Built-in TVM on the P7 decimal engine: vars N/I%YR/PV/PMT/FV (annual rate,
+  12/yr — documented), TVMROOT solves any of them, TVMBEG/TVMEND, AMORT
+  returns principal/interest/balance in the positive-retirement convention.
+  Names may contain % (I%YR) — the identifier grammar widened.
+- The right-shift APPLICATION launchers ("SOLVE (cmd menu)" prints) open
+  their menus; SYMBOLIC gets a roster over the P14 CAS.
+- INFORM/CHOOSE/NOVAL/DGTIZ report "Interactive forms need the async UI
+  bridge" honestly (the sync interpreter cannot block on dialogs);
+  MSOLVR/MROOT/MINIT/MCALC and the RKF/RRK ODE suite defer with messages.
+  MSGBOX is real (drives the message line).
+- HP-48G coverage oracle: GREEN — no key remains inert (17 models live).
+
 ## Notes / risks
 - Plotly is large and DOM-bound — one dynamic `import()` behind the 3D/stat panel; never in a
   shared/eager module. Measure cold-start against the NFR-3 budget (open question §8.4).

@@ -56,7 +56,7 @@ function bareToken(r: Reader): string {
   return r.s.slice(start, r.i);
 }
 
-const IDENT_RE = /^[A-Za-zΣσαβ→∂π][A-Za-z0-9Σσ.]*$/u;
+const IDENT_RE = /^[A-Za-zΣσαβ→∂π][A-Za-z0-9Σσ.%]*$/u; // % rides in names (I%YR)
 
 function parseNumber(tok: string): Value | null {
   if (!NUM_RE.test(tok)) return null;

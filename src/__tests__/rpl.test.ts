@@ -680,6 +680,120 @@ describe("P17 the 48SX: plotting, polynomials, 48 keys", () => {
   });
 });
 
+describe("P18 the 48G: stat plots, fits, lists, linear algebra, TVM", () => {
+  it("the right-shift APP launchers open their menus (oracle ids)", () => {
+    const s = createRpl();
+    dispatchRpl(s, "SOLVE (cmd menu)");
+    expect(s.menu?.name).toBe("SOLVE");
+    dispatchRpl(s, "SYMBOLIC (cmd menu)");
+    expect(menuLabels(s)[0]).toBe("COLCT");
+  });
+
+  it("list processing: SORT/REVLIST/ΣLIST/ΠLIST/ΔLIST, DOLIST, STREAM, SEQ", () => {
+    const s = createRpl();
+    line(s, "{ 3 1 2 } SORT");
+    expect(fmtTop(s)).toBe("{ 1 2 3 }");
+    line(s, "REVLIST");
+    expect(fmtTop(s)).toBe("{ 3 2 1 }");
+    line(s, "ΣLIST");
+    expect(nums(s.stack)).toEqual([6]);
+    line(s, "CLEAR { 1 2 3 4 } ΠLIST");
+    expect(nums(s.stack)).toEqual([24]);
+    line(s, "CLEAR { 1 4 9 } ΔLIST");
+    expect(fmtTop(s)).toBe("{ 3 5 }");
+    line(s, "CLEAR { 1 2 3 } « 2 × » DOLIST");
+    expect(fmtTop(s)).toBe("{ 2 4 6 }");
+    line(s, "CLEAR { 1 2 3 4 } « + » STREAM");
+    expect(nums(s.stack)).toEqual([10]);
+    line(s, "CLEAR 'X^2' 'X' 1 4 1 SEQ");
+    expect(fmtTop(s)).toBe("{ 1 4 9 16 }");
+  });
+
+  it("linear algebra tokens: RREF, RANK, LU, QR, SVD, EGVL", () => {
+    const s = createRpl();
+    line(s, "[ [ 1 2 ] [ 2 4 ] ] RANK");
+    expect(nums(s.stack)).toEqual([1]);
+    line(s, "CLEAR [ [ 1 2 ] [ 3 4 ] ] RREF");
+    expect(fmtTop(s)).toBe("[[ 1 0 ][ 0 1 ]]");
+    line(s, "CLEAR [ [ 4 3 ] [ 6 3 ] ] LU");
+    expect(s.stack).toHaveLength(2); // L and U
+    line(s, "CLEAR [ [ 2 0 ] [ 0 3 ] ] EGVL");
+    const vals = s.stack[0];
+    expect(vals.k === "list" && vals.items.length).toBe(2);
+    line(s, "CLEAR [ [ 3 0 ] [ 0 4 ] ] SVD");
+    expect(s.stack).toHaveLength(3); // U, S, V
+  });
+
+  it("48G curve fits ride the P16 core: EXPFIT recovers 2·e^(0.5x); PREDY forecasts", () => {
+    const s = createRpl();
+    for (const [x, y] of [[1, 2 * Math.exp(0.5)], [2, 2 * Math.exp(1)], [3, 2 * Math.exp(1.5)]]) {
+      line(s, `{ ${x} ${y} } Σ+`);
+    }
+    dispatchRpl(s, "BESTFIT");
+    expect(s.fitModel).toBe("EXPFIT");
+    line(s, "4 PREDY");
+    expect(nums(s.stack)[0]).toBeCloseTo(2 * Math.exp(2), 6);
+    line(s, `CLEAR ${2 * Math.exp(2)} PREDX`);
+    expect(nums(s.stack)[0]).toBeCloseTo(4, 6);
+  });
+
+  it("FR-PLOT-3: SCLΣ autoscales, DRWΣ scatters, BARPLOT/HISTPLOT draw segments", () => {
+    const s = createRpl();
+    for (const [x, y] of [[1, 2], [2, 4], [3, 6]]) line(s, `{ ${x} ${y} } Σ+`);
+    dispatchRpl(s, "SCLΣ");
+    dispatchRpl(s, "DRWΣ");
+    expect(s.plot?.kind).toBe("pict");
+    expect(s.plot?.points).toHaveLength(3);
+    dispatchRpl(s, "BARPLOT");
+    expect(s.plot?.kind).toBe("fn");
+    // one segment (2 points + gap) per bar
+    expect(s.plot?.points.length).toBe(9);
+    dispatchRpl(s, "HISTPLOT");
+    expect(s.plot?.points.length).toBeGreaterThan(0);
+  });
+
+  it("XRNG/YRNG/AUTO control the window", () => {
+    const s = createRpl();
+    line(s, "'X^2' STEQ -2 2 XRNG AUTO");
+    expect(s.ppar.pmin[0]).toBe(-2);
+    expect(s.ppar.pmax[1]).toBeCloseTo(4, 6);
+    line(s, "0 10 YRNG");
+    expect(s.ppar.pmax[1]).toBe(10);
+  });
+
+  it("FR-PLOT-2: WIREFRAME projects a 3D surface to polylines", () => {
+    const s = createRpl();
+    line(s, "'X+Y' STEQ WIREFRAME");
+    expect(s.plot?.kind).toBe("polar"); // free-extent projection
+    const finite = (s.plot?.points ?? []).filter((p) => p.y !== null);
+    expect(finite.length).toBeGreaterThan(200); // 2×15 polylines × 15 samples
+  });
+
+  it("FR-FIN: TVMROOT solves PMT on the P7 engine; AMORT splits payments", () => {
+    const s = createRpl();
+    // the P7 reference mortgage: 360 months, 6%/yr, 100k → PMT ≈ −599.55
+    line(s, "360 'N' STO 6 'I%YR' STO 100000 'PV' STO 0 'FV' STO");
+    line(s, "'PMT' TVMROOT");
+    expect(nums(s.stack)[0]).toBeCloseTo(-599.55, 2);
+    line(s, "CLEAR 12 AMORT");
+    // positive convention: principal retired + interest paid; balance falls
+    const [pr, iTot, bal] = nums(s.stack);
+    expect(pr + iTot).toBeCloseTo(599.55 * 12, 1);
+    expect(bal).toBeCloseTo(100000 - pr, 1);
+    expect(iTot).toBeGreaterThan(5900); // first-year interest ≈ 5967
+  });
+
+  it("MSGBOX shows; INFORM/CHOOSE and MSOLVR/RKF defer honestly", () => {
+    const s = createRpl();
+    line(s, '"HI" MSGBOX');
+    expect(s.msg).toBe("HI");
+    dispatchRpl(s, "INFORM");
+    expect(s.error).toMatch(/async UI bridge/);
+    dispatchRpl(s, "MSOLVR");
+    expect(s.error).toMatch(/deferred/);
+  });
+});
+
 describe("P12 command line, editing, and recovery", () => {
   it("the ◆ key types the algebraic delimiter; operators append in text mode", () => {
     const s = createRpl();

@@ -327,6 +327,42 @@ test.describe("hellocalc — smoke", () => {
     await expect(glass().getByText("'X'").first()).toBeVisible();
   });
 
+  test("Phase 18 on the live HP-48G: STAT app scatter-plots ΣDAT (FR-PLOT-3)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await selectModel(page, "HP-48G");
+    const key = (name: string) =>
+      page.getByRole("button", { name, exact: true }).click();
+    const glass = () => page.locator('[data-lcd-mode]:visible');
+    const soft = (i: number) => page.getByRole("button", { name: "menu" }).nth(i).click();
+    const rs = () => page.locator('button[data-kind="rs"]').click();
+
+    // three data pairs through the STAT application (right-shift 5)
+    for (const [x, y] of [[1, 2], [2, 4], [3, 6]] as const) {
+      await rs();
+      await key("+"); // → { }
+      await key(String(x));
+      await key("SPC");
+      await key(String(y));
+      await key("ENTER");
+      await rs();
+      await key("5"); // → STAT app
+      await soft(0); // Σ+
+    }
+    // autoscale + scatter: SCLΣ/DRWΣ live on the PLOT menu's later pages —
+    // reach the STAT roster's plot page instead (NXT ×5 → SCATRPLOT)
+    await rs();
+    await key("5");
+    for (let i = 0; i < 5; i++) await key("NXT");
+    await soft(0); // SCATRPLOT
+    await expect(glass().locator('[data-slot="plot-panel"] svg').first()).toBeVisible({
+      timeout: 15000,
+    });
+    await key("ON");
+    await expect(glass().locator('[data-slot="plot-panel"]')).toHaveCount(0);
+  });
+
   test("persistence: the session survives a reload (FR-STATE-1)", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "7", exact: true }).click();

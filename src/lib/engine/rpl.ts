@@ -8,7 +8,17 @@
 // documented). Reals compute on the BigNumber tower; complex numbers and
 // array elements are float64 like the P9 modules. Pure TS — no React/DOM.
 
-import { determinant as det, EigenvalueDecomposition, inverse, Matrix } from "ml-matrix";
+import {
+  determinant as det,
+  EigenvalueDecomposition,
+  inverse,
+  LuDecomposition,
+  Matrix,
+  QrDecomposition,
+  SingularValueDecomposition,
+} from "ml-matrix";
+import { bestFit, fit as cfit, type FitModel, forecastX, forecastY } from "./stats-fit";
+import { type FinRegs, freshFin, solveFV, solveI, solveN, solvePMT, solvePV } from "./finance";
 import { bn, math, num, PI, type Value } from "./config";
 import type { DisplayFormat } from "./format";
 import type { HistEntry } from "./rpn";
@@ -101,6 +111,7 @@ export interface RplEngine {
   ptype: "FUNCTION" | "POLAR";
   pict: string[]; // lit pixels as "x,y" keys (GROB-lite)
   menuStack48: string[]; // submenu nesting (MTH → PROB …)
+  fitModel: "LINFIT" | "LOGFIT" | "EXPFIT" | "PWRFIT"; // the 48G ΣPAR model
   error: string | null;
   errN: number; // ERRN / ERRM (IFERR)
   errM: string;
@@ -135,6 +146,7 @@ export function createRpl(): RplEngine {
     ptype: "FUNCTION",
     pict: [],
     menuStack48: [],
+    fitModel: "LINFIT",
     error: null,
     errN: 0,
     errM: "",
@@ -731,6 +743,41 @@ function print(s: RplEngine, text: string): void {
   s.hist = [...s.hist.slice(-49), { op: `🖨 ${text}`, raw: "" }];
 }
 
+/** ΣDAT as (x,y) float pairs over the COLΣ columns (48G fits/plots). */
+function sdatPairs(s: RplEngine): [number, number][] {
+  if (s.sdat.length < 2) throw err("Insufficient Data");
+  return s.sdat.map((r) => [r[s.cols[0] - 1] ?? 0, r[s.cols[1] - 1] ?? 0]);
+}
+const fitModelOf = (s: RplEngine): FitModel =>
+  s.fitModel.replace("FIT", "F") as FitModel;
+
+/** The 48G TVM variables (N, I%YR, PV, PMT, FV) → a P7 FinRegs view.
+ * I%YR is annual; the monthly rate drives the P7 solvers (12/yr, documented). */
+function tvmFrom(s: RplEngine): FinRegs {
+  const rd = (nm: string): Value => {
+    const v = lookupVar(s, nm);
+    return v && v.k === "real" ? v.v : bn(0);
+  };
+  return {
+    ...freshFin(),
+    n: rd("N"),
+    i: rd("I%YR").div(12), // percent per month — the P7 solvers divide by 100
+    pv: rd("PV"),
+    pmt: rd("PMT"),
+    fv: rd("FV"),
+    beg: tvmRegs(s).beg,
+  };
+}
+const tvmState: WeakMap<RplEngine, { beg: boolean }> = new WeakMap();
+function tvmRegs(s: RplEngine): { beg: boolean } {
+  let t = tvmState.get(s);
+  if (!t) {
+    t = { beg: false };
+    tvmState.set(s, t);
+  }
+  return t;
+}
+
 // ---- statistics helpers -------------------------------------------------------------
 
 const colOf = (rows: number[][], c: number): number[] =>
@@ -815,8 +862,8 @@ const fPdf = (n1: number, n2: number) => (t: number): number =>
 const DEFERRED: Record<string, string> = {
   // positional subexpression editing needs the FORM UI — heavy-tier era
   FORM: "P19", OBSUB: "P19", EXSUB: "P19", OBGET: "P19", EXGET: "P19",
-  // 3D + statistical plotting and interactive digitizing arrive with the 48G
-  "3D": "P18", SCLΣ: "P18", DRWΣ: "P18", DGTIZ: "P18",
+  // richer 3D plot types wait for the heavy-graphing era (WIREFRAME ships)
+  "3D": "P19", PARSURFACE: "P19", PCONTOUR: "P19", GRIDMAP: "P19", YSLICE: "P19", SLOPEFIELD: "P19",
 };
 
 function binaryNum(s: RplEngine, f: (a: Value, b: Value) => unknown): void {
@@ -2528,6 +2575,375 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
     case "CLR": // the 48 prints CLR for CLEAR
       s.stack = [];
       return true;
+    // ---- 48G additions (P18) ----------------------------------------------------------------------
+    // list processing
+    case "SORT": {
+      const items = wantList(pop1(s));
+      const sorted = [...items].sort((a, b) => {
+        if (a.k === "real" && b.k === "real") return a.v.cmp(b.v);
+        if (a.k === "str" && b.k === "str") return a.v < b.v ? -1 : a.v > b.v ? 1 : 0;
+        return 0;
+      });
+      s.stack.push({ k: "list", items: sorted });
+      return true;
+    }
+    case "REVLIST":
+      s.stack.push({ k: "list", items: [...wantList(pop1(s))].reverse() });
+      return true;
+    case "ΣLIST": {
+      const items = wantList(pop1(s)).map(wantReal);
+      s.stack.push(real(items.reduce((a, b) => a.plus(b), bn(0))));
+      return true;
+    }
+    case "ΠLIST": {
+      const items = wantList(pop1(s)).map(wantReal);
+      s.stack.push(real(items.reduce((a, b) => a.times(b), bn(1))));
+      return true;
+    }
+    case "ΔLIST": {
+      const items = wantList(pop1(s)).map(wantReal);
+      s.stack.push({
+        k: "list",
+        items: items.slice(1).map((v, i) => real(v.minus(items[i]))),
+      });
+      return true;
+    }
+    case "DOLIST": {
+      // { list } prog DOLIST — run the program per element, collect results
+      const [lO, pO] = popN(s, 2);
+      const items = wantList(lO);
+      if (pO.k !== "prog") throw err("Bad Argument Type");
+      const out: RplObj[] = [];
+      for (const it of items) {
+        const before = s.stack.length;
+        s.stack.push(it);
+        runBody(s, pO.body, ctx);
+        out.push(...s.stack.splice(before));
+      }
+      s.stack.push({ k: "list", items: out });
+      return true;
+    }
+    case "STREAM": {
+      // { list } prog STREAM — fold pairwise left to right
+      const [lO, pO] = popN(s, 2);
+      const items = wantList(lO);
+      if (pO.k !== "prog") throw err("Bad Argument Type");
+      if (!items.length) throw err("Bad Argument Value");
+      s.stack.push(items[0]);
+      for (const it of items.slice(1)) {
+        s.stack.push(it);
+        runBody(s, pO.body, ctx);
+      }
+      return true;
+    }
+    case "SEQ": {
+      // expr var start end step SEQ → list of expr evaluated over the range
+      const [eO, vO, aO, bO, stO] = popN(s, 5);
+      const nm = varNameOf(vO);
+      const src2 = algSrcOf(eO);
+      const a = num(wantReal(aO));
+      const b = num(wantReal(bO));
+      const st = num(wantReal(stO));
+      if (st === 0) throw err("Bad Argument Value");
+      const out: RplObj[] = [];
+      for (let x = a; st > 0 ? x <= b + 1e-12 : x >= b - 1e-12; x += st) {
+        const y = evalAtPoint(s, src2, nm, x);
+        if (y === null) throw err("Undefined Name");
+        out.push(realOf(y));
+        if (out.length > 10000) throw err("Bad Argument Value");
+      }
+      s.stack.push({ k: "list", items: out });
+      return true;
+    }
+    // linear algebra (ml-matrix decompositions as 48G tokens)
+    case "RREF": {
+      const a = wantArr(pop1(s));
+      s.stack.push(arrOf(new Matrix(a.rows).reducedEchelonForm().to2DArray(), false));
+      return true;
+    }
+    case "RANK": {
+      const a = wantArr(pop1(s));
+      s.stack.push(realOf(new SingularValueDecomposition(new Matrix(a.rows)).rank));
+      return true;
+    }
+    case "LU": {
+      const a = wantArr(pop1(s));
+      const luD = new LuDecomposition(new Matrix(a.rows));
+      s.stack.push(
+        arrOf(luD.lowerTriangularMatrix.to2DArray(), false),
+        arrOf(luD.upperTriangularMatrix.to2DArray(), false),
+      );
+      return true;
+    }
+    case "QR": {
+      const a = wantArr(pop1(s));
+      const qr = new QrDecomposition(new Matrix(a.rows));
+      s.stack.push(
+        arrOf(qr.orthogonalMatrix.to2DArray(), false),
+        arrOf(qr.upperTriangularMatrix.to2DArray(), false),
+      );
+      return true;
+    }
+    case "SVD": {
+      const a = wantArr(pop1(s));
+      const svd = new SingularValueDecomposition(new Matrix(a.rows));
+      s.stack.push(
+        arrOf(svd.leftSingularVectors.to2DArray(), false),
+        arrOf([svd.diagonal], true),
+        arrOf(svd.rightSingularVectors.to2DArray(), false),
+      );
+      return true;
+    }
+    case "EGV":
+    case "EGVL": {
+      const a = wantArr(pop1(s));
+      const [r, c] = dimsOf(a);
+      if (a.vec || r !== c) throw err("Invalid Dimension");
+      const ev = new EigenvalueDecomposition(new Matrix(a.rows));
+      const vals: RplObj[] = ev.realEigenvalues.map((re, i) =>
+        Math.abs(ev.imaginaryEigenvalues[i]) < 1e-12 ? realOf(re) : cpx(re, ev.imaginaryEigenvalues[i]),
+      );
+      if (w === "EGV") s.stack.push(arrOf(ev.eigenvectorMatrix.to2DArray(), false));
+      s.stack.push({ k: "list", items: vals });
+      return true;
+    }
+    // the 48G STAT app: curve fits over the ΣDAT column pair (P16 core)
+    case "LINFIT":
+    case "LOGFIT":
+    case "EXPFIT":
+    case "PWRFIT":
+      s.fitModel = w;
+      return true;
+    case "BESTFIT": {
+      s.fitModel = (bestFit(sdatPairs(s)).model.replace("F", "FIT") as RplEngine["fitModel"]);
+      return true;
+    }
+    case "PREDY": {
+      const f = cfit(sdatPairs(s), fitModelOf(s));
+      s.stack.push(realOf(forecastY(f, fRe(pop1(s)))));
+      return true;
+    }
+    case "PREDX": {
+      const f = cfit(sdatPairs(s), fitModelOf(s));
+      s.stack.push(realOf(forecastX(f, fRe(pop1(s)))));
+      return true;
+    }
+    // statistical plots (FR-PLOT-3) — drawn through the P17 panel
+    case "SCATRPLOT":
+    case "DRWΣ": {
+      const pts = sdatPairs(s);
+      s.plot = {
+        kind: "pict",
+        points: pts.map(([x, y]) => ({ x, y })),
+        pmin: [...s.ppar.pmin],
+        pmax: [...s.ppar.pmax],
+        axes: true,
+      };
+      return true;
+    }
+    case "SCLΣ": {
+      // autoscale the window to the ΣDAT extent
+      const pts = sdatPairs(s);
+      if (!pts.length) throw err("No Statistics Data");
+      const xs = pts.map((p) => p[0]);
+      const ys = pts.map((p) => p[1]);
+      s.ppar = {
+        ...s.ppar,
+        pmin: [Math.min(...xs) - 1, Math.min(...ys) - 1],
+        pmax: [Math.max(...xs) + 1, Math.max(...ys) + 1],
+      };
+      return true;
+    }
+    case "BARPLOT":
+    case "HISTPLOT": {
+      // period-accurate segment bars on the 2D panel (the 48 draws pixel
+      // columns; Plotly stays out of the bundle — delivery note)
+      const col = s.sdat.map((r) => r[s.cols[0] - 1] ?? 0);
+      if (!col.length) throw err("No Statistics Data");
+      let bars: [number, number][];
+      if (w === "BARPLOT") {
+        bars = col.map((v, i) => [i + 1, v]);
+      } else {
+        const bins = 13;
+        const lo = Math.min(...col);
+        const hi = Math.max(...col);
+        const width = (hi - lo || 1) / bins;
+        const counts = Array.from({ length: bins }, () => 0);
+        for (const v of col) counts[Math.min(bins - 1, Math.floor((v - lo) / width))]++;
+        bars = counts.map((n2, i) => [lo + (i + 0.5) * width, n2]);
+      }
+      const points: PlotPoint[] = [];
+      for (const [x, h] of bars) {
+        points.push({ x, y: 0 }, { x, y: h }, { x, y: null }); // one segment per bar
+      }
+      const xs = bars.map((b) => b[0]);
+      const hs = bars.map((b) => b[1]);
+      s.plot = {
+        kind: "fn",
+        points,
+        pmin: [Math.min(...xs) - 1, 0],
+        pmax: [Math.max(...xs) + 1, Math.max(...hs) + 1],
+        axes: true,
+      };
+      return true;
+    }
+    // window control
+    case "XRNG": {
+      const [a, b] = popN(s, 2);
+      s.ppar = { ...s.ppar, pmin: [fRe(a), s.ppar.pmin[1]], pmax: [fRe(b), s.ppar.pmax[1]] };
+      return true;
+    }
+    case "YRNG": {
+      const [a, b] = popN(s, 2);
+      s.ppar = { ...s.ppar, pmin: [s.ppar.pmin[0], fRe(a)], pmax: [s.ppar.pmax[0], fRe(b)] };
+      return true;
+    }
+    case "AUTO": {
+      // autoscale Y from the current equation over the X window
+      const eq = lookupVar(s, "EQ");
+      if (!eq || (eq.k !== "alg" && eq.k !== "name")) throw err("No Current Equation");
+      const srcTxt = eq.k === "alg" ? eq.src : eq.v;
+      const ys: number[] = [];
+      for (let i = 0; i <= 40; i++) {
+        const x = s.ppar.pmin[0] + ((s.ppar.pmax[0] - s.ppar.pmin[0]) * i) / 40;
+        const y = evalAtPoint(s, srcTxt, s.ppar.indep, x);
+        if (y !== null && Number.isFinite(y)) ys.push(y);
+      }
+      if (!ys.length) throw err("Invalid PPAR / Undefined Name");
+      s.ppar = {
+        ...s.ppar,
+        pmin: [s.ppar.pmin[0], Math.min(...ys)],
+        pmax: [s.ppar.pmax[0], Math.max(...ys)],
+      };
+      return true;
+    }
+    case "ATICK":
+      pop1(s); // tick spacing accepted (the panel draws its own grid)
+      return true;
+    // WIREFRAME: real 3D → 2D projection polylines, exactly how the 48G's
+    // mono LCD draws surfaces (FR-PLOT-2; richer types defer to Plotly-era)
+    case "WIREFRAME": {
+      const eq = lookupVar(s, "EQ");
+      if (!eq || eq.k !== "alg") throw err("No Current Equation");
+      const N = 14;
+      const [x0, y0] = s.ppar.pmin;
+      const [x1, y1] = s.ppar.pmax;
+      const cosA = Math.cos(Math.PI / 6);
+      const sinA = Math.sin(Math.PI / 6);
+      const project = (gx: number, gy: number, gz: number): PlotPoint => ({
+        x: (gx - (x0 + x1) / 2) * cosA + ((gy - (y0 + y1) / 2) * cosA) / 2,
+        y: gz + (gy - (y0 + y1) / 2) * sinA - (gx - (x0 + x1) / 2) * sinA * 0.3,
+      });
+      const zAt = (gx: number, gy: number): number | null => {
+        const env = envOf(s, freshCtx());
+        const inner = env.get.bind(env);
+        try {
+          return num(
+            evalExpr(parseExpr(eq.src), {
+              ...env,
+              get: (q: string) =>
+                q === s.ppar.indep ? bn(String(gx)) : q === "Y" ? bn(String(gy)) : inner(q),
+            }),
+          );
+        } catch {
+          return null;
+        }
+      };
+      const points: PlotPoint[] = [];
+      for (let i = 0; i <= N; i++) {
+        const gx = x0 + ((x1 - x0) * i) / N;
+        for (let j = 0; j <= N; j++) {
+          const gy = y0 + ((y1 - y0) * j) / N;
+          const z = zAt(gx, gy);
+          points.push(z === null ? { x: gx, y: null } : project(gx, gy, z));
+        }
+        points.push({ x: 0, y: null });
+      }
+      for (let j = 0; j <= N; j++) {
+        const gy = y0 + ((y1 - y0) * j) / N;
+        for (let i = 0; i <= N; i++) {
+          const gx = x0 + ((x1 - x0) * i) / N;
+          const z = zAt(gx, gy);
+          points.push(z === null ? { x: gx, y: null } : project(gx, gy, z));
+        }
+        points.push({ x: 0, y: null });
+      }
+      if (points.every((p) => p.y === null)) throw err("Invalid PPAR / Undefined Name");
+      const fin = points.filter((p) => p.y !== null) as { x: number; y: number }[];
+      s.plot = {
+        kind: "polar", // free-extent rendering (the panel autoscales this kind)
+        points,
+        src: eq.src,
+        pmin: [Math.min(...fin.map((p) => p.x)), Math.min(...fin.map((p) => p.y))],
+        pmax: [Math.max(...fin.map((p) => p.x)), Math.max(...fin.map((p) => p.y))],
+        axes: false,
+      };
+      return true;
+    }
+    // built-in TVM over the P7 decimal.js finance engine (FR-FIN-1/5)
+    case "TVMBEG":
+      tvmRegs(s).beg = true;
+      return true;
+    case "TVMEND":
+      tvmRegs(s).beg = false;
+      return true;
+    case "TVMROOT": {
+      const nm = wantNameOf(pop1(s));
+      const f = tvmFrom(s);
+      const solvers: Record<string, () => Value | null> = {
+        N: () => solveN(f),
+        "I%YR": () => {
+          const r = solveI({ ...f, i: f.i });
+          return r === null ? null : r.times(12);
+        },
+        PV: () => solvePV(f),
+        PMT: () => solvePMT(f),
+        FV: () => solveFV(f),
+      };
+      const solver = solvers[nm];
+      if (!solver) throw err("Bad Argument Value");
+      const v = solver();
+      if (v === null) throw err("No Solution");
+      storeVar(s, nm, real(v));
+      s.stack.push(real(v));
+      return true;
+    }
+    case "AMORT": {
+      // n AMORT → principal, interest, balance for the next n payments
+      const n2 = wantInt(pop1(s));
+      const f = tvmFrom(s);
+      let bal = f.pv;
+      let pTot = bn(0);
+      let iTot = bn(0);
+      const i = f.i.div(100); // fraction per period
+      for (let k2 = 0; k2 < n2; k2++) {
+        const interest = bal.times(i);
+        const principal = f.pmt.neg().minus(interest);
+        pTot = pTot.plus(principal);
+        iTot = iTot.plus(interest);
+        bal = bal.minus(principal);
+      }
+      s.stack.push(real(pTot), real(iTot), real(bal));
+      return true;
+    }
+    // dialogs: MSGBOX is real; interactive forms need an async UI bridge
+    case "MSGBOX":
+      s.msg = wantStr(pop1(s));
+      return true;
+    case "INFORM":
+    case "CHOOSE":
+    case "NOVAL":
+    case "DGTIZ":
+      throw err("Interactive forms need the async UI bridge (documented)");
+    case "MSOLVR":
+    case "MROOT":
+    case "MINIT":
+    case "MCALC":
+      throw err("Multiple-equation solver deferred (documented)");
+    case "RKF":
+    case "RRK":
+    case "RKFSTEP":
+      throw err("ODE suite deferred (documented)");
     // ---- UNITS (P13, FR-UNIT-1/2/3) ----------------------------------------------------------------
     case "CONVERT": {
       const [q, t] = popN(s, 2);
@@ -2573,7 +2989,7 @@ const MENU_OPEN: Record<string, string> = {
   USER: "USER", UNITS: "UNITS", MEMORY: "MEMORY", CUSTOM: "CUSTOM", MENUS: "MENUS",
   // 48-series keys (P17)
   MTH: "MTH", PRG: "PRG", VAR: "USER", CST: "CUSTOM", USR: "USER", MODES: "MODE",
-  SOLVE: "SOLVE", "I/O": "IO", LIBRARY: "LIBRARY", MATRIX: "MATR",
+  SOLVE: "SOLVE", "I/O": "IO", LIBRARY: "LIBRARY", MATRIX: "MATR", SYMBOLIC: "SYMBOLIC",
   TIMEMENU: "TIME48",
 };
 
@@ -2606,6 +3022,11 @@ const PRINT48: Record<string, string> = {
   "′ (tick)": "'", "↵ (newline)": "NEWLINE", "∡ (angle)": "∡", "( )": "(",
   "[ ]": "[", "{ }": "{", "«  »": "«", '"  "': '"', "« »": "«", '" "': '"',
   TIME: "TIMEMENU", // the TIME KEY opens the menu; the TIME command stays typed
+  // the 48G's right-shift APPLICATION launchers print "(cmd menu)" (P18)
+  "I/O (cmd menu)": "I/O", "MODES (cmd menu)": "MODES", "MEMORY (cmd menu)": "MEMORY",
+  "LIBRARY (cmd menu)": "LIBRARY", "SOLVE (cmd menu)": "SOLVE", "PLOT (cmd menu)": "PLOT",
+  "SYMBOLIC (cmd menu)": "SYMBOLIC", "TIME (cmd menu)": "TIMEMENU", "STAT (cmd menu)": "STAT",
+  "STACK (cmd menu)": "STACK",
 };
 
 /** Ops that shouldn't print a history line (typing, paging, editing). */
