@@ -500,19 +500,38 @@
   }
 
   /* ── Key shift-plane legibility (§13.5) ──────────────────────────────────
-     At narrow machine-module widths the 6px f/g legends are noise and their
-     min-content clips the aspect-locked band — hide the planes and give the
-     primary the whole face (like the real device at arm's length). An ARMED
-     plane (`key-hot`, set while f/g is armed) always shows: quiet by default,
-     informative exactly when it matters (§12.3). Threshold literal ~36rem —
-     container queries cannot read custom properties; sized so the enlarged
-     (§13.5) three-plane Voyager face always fits its aspect box. */
+     Shift planes get their display ONLY here (never utilities — the cascade
+     would beat the hide rules). RPL rows are flex pairs; everything else is
+     a centred block. */
+  .machine-kbd .key-shift-row {
+    display: flex;
+    justify-content: space-between;
+  }
+  .machine-kbd .key-shift-row-center {
+    display: flex;
+    justify-content: center;
+  }
+  /* Hide thresholds are PER FAMILY (the intent is "key pitch too small",
+     and pitch = module ÷ cols — container queries cannot divide by a var):
+     · voyager (10 cols): ≤36rem — also the fit bound for its three-plane
+       face at the §13.5 sizes.
+     · rpl (6 cols, big keys): ≤15rem — effectively always visible; the 48G's
+       module never drops that low, so its corner alpha letters stay on.
+     Classic prints no shift legends (arc promotes instead). An armed plane
+     promotes into the primary slot, so no reveal exception is needed. */
   @container kbdmod (max-width: 36rem) {
-    .machine-kbd .key-shift {
+    .machine[data-family="voyager"] .key-shift,
+    .machine[data-family="voyager"] .key-shift-row,
+    .machine[data-family="voyager"] .key-shift-row-center,
+    .machine[data-family="classic"] .key-shift {
       display: none;
     }
-    .machine-kbd .key-shift.key-hot {
-      display: flex;
+  }
+  @container kbdmod (max-width: 15rem) {
+    .machine[data-family="rpl"] .key-shift,
+    .machine[data-family="rpl"] .key-shift-row,
+    .machine[data-family="rpl"] .key-shift-row-center {
+      display: none;
     }
   }
 

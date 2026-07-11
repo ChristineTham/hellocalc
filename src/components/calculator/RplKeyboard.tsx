@@ -58,10 +58,10 @@ export function RplKeyboard({ rows, geometry, prefix, onArm, onPress }: RplKeybo
     if (fn) onPress(fn);
   };
 
-  // §12.3 rev 6 — promotion: while a shift is armed, the shifted function
-  // takes the key's PRIMARY slot in its shift colour.
+  // §12.3 rev 6 — promotion: while a shift (or alpha) is armed, the shifted
+  // function / alpha letter takes the key's PRIMARY slot in its colour.
   const promotedOf = (k: RplKey): string =>
-    prefix === "ls" ? k.ls : prefix === "rs" ? k.rs : "";
+    prefix === "ls" ? k.ls : prefix === "rs" ? k.rs : prefix === "alpha" ? k.al : "";
 
   // Dual-pitch grid (§4.4 caveat): the 48G's 5-key digit rows span the SAME
   // width as its 6-key function rows — digit keys are genuinely wider. Model
@@ -103,7 +103,7 @@ export function RplKeyboard({ rows, geometry, prefix, onArm, onPress }: RplKeybo
                   (CST → MODES/MODES) it prints ONCE, spanning both colours —
                   as on the real 48G. */}
               {k.ls && k.ls === k.rs && !promoted ? (
-                <span className="key-shift pointer-events-none absolute inset-x-1 top-0.5 flex justify-center text-key-shift leading-none font-semibold">
+                <span className="key-shift-row-center pointer-events-none absolute inset-x-1 top-0.5 text-key-shift leading-none font-semibold">
                   <span
                     className={cn(
                       "bg-gradient-to-r from-hp-shift-ls to-hp-shift-rs bg-clip-text text-transparent transition-opacity",
@@ -114,7 +114,7 @@ export function RplKeyboard({ rows, geometry, prefix, onArm, onPress }: RplKeybo
                   </span>
                 </span>
               ) : (k.ls || k.rs) && (
-                <span className="key-shift pointer-events-none absolute inset-x-1 top-0.5 flex justify-between text-key-shift leading-none font-semibold">
+                <span className="key-shift-row pointer-events-none absolute inset-x-1 top-0.5 text-key-shift leading-none font-semibold">
                   {/* the armed side's word is PROMOTED to the primary slot —
                       its small copy empties; the other side dims */}
                   <span
@@ -141,10 +141,13 @@ export function RplKeyboard({ rows, geometry, prefix, onArm, onPress }: RplKeybo
                   promoted
                     ? cn(
                         "text-key-promoted font-bold tracking-tight whitespace-nowrap",
-                        prefix === "ls" ? "text-hp-shift-ls" : "text-hp-shift-rs",
+                        prefix === "ls"
+                          ? "text-hp-shift-ls"
+                          : prefix === "rs"
+                            ? "text-hp-shift-rs"
+                            : "text-hp-key-fg",
                       )
                     : prefix !== "none" &&
-                        prefix !== "alpha" &&
                         !["ls", "rs", "alpha", "on"].includes(k.kind) &&
                         "opacity-40",
                 )}
@@ -152,13 +155,8 @@ export function RplKeyboard({ rows, geometry, prefix, onArm, onPress }: RplKeybo
                 {promoted || k.p}
               </span>
               {k.al && (
-                <span
-                  className={cn(
-                    "key-shift pointer-events-none absolute right-1 bottom-0.5 text-key-shift leading-none text-hp-key-fg transition-all",
-                    prefix === "alpha" ? "key-hot opacity-100 font-bold" : "opacity-45",
-                  )}
-                >
-                  {k.al}
+                <span className="key-shift pointer-events-none absolute right-1 bottom-0.5 text-key-shift leading-none text-hp-key-fg opacity-45 transition-all">
+                  {prefix === "alpha" ? null : k.al}
                 </span>
               )}
             </ButtonPrimitive>

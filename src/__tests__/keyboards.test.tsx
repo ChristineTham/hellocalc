@@ -103,6 +103,28 @@ describe("prefix promotion (§12.3 rev 6) — armed shift takes the primary slot
     expect(seven.querySelector(".z-10")?.textContent).toBe("SOLVE");
   });
 
+  it("rpl: arming alpha shows the letter AS the key label (SIN → S), small copy empties", () => {
+    const { container } = render(
+      <RplKeyboard rows={rplModel.rows} geometry={rplModel.geometry} prefix="alpha" onArm={noop} onPress={noop} />,
+    );
+    const sin = Array.from(container.querySelectorAll<HTMLElement>("button")).find(
+      (b) => b.getAttribute("aria-label") === "SIN",
+    );
+    if (!sin) throw new Error("no SIN key");
+    expect(sin.querySelector(".z-10")?.textContent).toBe("S");
+    expect(sin.querySelector(".key-shift")?.textContent).toBe("");
+  });
+
+  it("rpl: alpha letters are visible at rest (the 48G prints them on every key)", () => {
+    const { container } = render(
+      <RplKeyboard rows={rplModel.rows} geometry={rplModel.geometry} prefix="none" onArm={noop} onPress={noop} />,
+    );
+    const sin = Array.from(container.querySelectorAll<HTMLElement>("button")).find(
+      (b) => b.getAttribute("aria-label") === "SIN",
+    );
+    expect(sin?.querySelector(".key-shift")?.textContent).toBe("S");
+  });
+
   it("classic: arming arc shows the inverse AS the trig key label (sin → SIN⁻¹)", () => {
     const model = MODELS["HP-35"];
     if (model.family !== "classic") throw new Error("HP-35 must be classic");
