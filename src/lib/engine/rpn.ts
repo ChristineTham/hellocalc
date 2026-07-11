@@ -144,6 +144,17 @@ export function rollDown(s: RpnEngine): void {
   s.lift = true;
 }
 
+/** R↑: inverse roll — X→Y, Y→Z, Z→T, T→X (HP-65g / HP-67h / HP-97f). */
+export function rollUp(s: RpnEngine): void {
+  commit(s);
+  const a = s.t;
+  s.t = s.z;
+  s.z = s.y;
+  s.y = s.x;
+  s.x = a;
+  s.lift = true;
+}
+
 export function lastx(s: RpnEngine): void {
   pushValue(s, s.lastX);
 }
@@ -240,11 +251,47 @@ export function applyFunction(s: RpnEngine, fn: string): boolean {
     case "R↓":
       rollDown(s);
       return true;
+    case "R↑":
+      rollUp(s);
+      return true;
     case "LSTx":
       lastx(s);
       return true;
     case "π":
       pushValue(s, Math.PI);
+      return true;
+    case "ABS":
+      unary(s, Math.abs);
+      return true;
+    case "INT":
+      unary(s, Math.trunc);
+      return true;
+    case "FRAC":
+      unary(s, (x) => x - Math.trunc(x));
+      return true;
+    case "x!":
+      // integer factorial (HP-45/65/67 x!: non-negative integers only)
+      unary(s, (x) => {
+        if (x < 0 || !Number.isInteger(x)) return NaN;
+        let r = 1;
+        for (let i = 2; i <= x; i++) r *= i;
+        return r;
+      });
+      return true;
+    case "ˣ√y":
+      // x-th root of y — the HP-65 f⁻¹ of yˣ
+      binary(s, (y, x) => Math.pow(y, 1 / x));
+      return true;
+    case "D→R":
+      unary(s, (x) => (x * Math.PI) / 180);
+      return true;
+    case "R→D":
+      unary(s, (x) => (x * 180) / Math.PI);
+      return true;
+    case "DEG":
+    case "RAD":
+    case "GRD":
+      s.angle = fn;
       return true;
     case "%": {
       // x% of y (HP-12C leaves Y in place)
@@ -252,6 +299,17 @@ export function applyFunction(s: RpnEngine, fn: string): boolean {
       commit(s);
       s.lastX = x;
       s.x = (s.y * x) / 100;
+      s.lift = true;
+      return true;
+    }
+    case "Δ%": {
+      // percent change from y to x (Y stays, like %)
+      const x = xval(s);
+      commit(s);
+      s.lastX = x;
+      const r = ((x - s.y) / s.y) * 100;
+      s.error = Number.isFinite(r) ? null : "Error";
+      s.x = Number.isFinite(r) ? r : 0;
       s.lift = true;
       return true;
     }

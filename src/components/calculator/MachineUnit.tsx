@@ -104,7 +104,13 @@ export function MachineUnit({ model, rpn, rpl, lcd, paper }: MachineUnitProps) {
           />
         )}
         {model.family === "classic" && (
-          <ClassicKeyboard rows={model.rows} geometry={model.geometry} onPress={rpn.press} />
+          <ClassicKeyboard
+            rows={model.rows}
+            geometry={model.geometry}
+            prefix={rpn.prefix}
+            onArm={rpn.arm}
+            onPress={rpn.press}
+          />
         )}
         {model.family === "rpl" && (
           <RplKeyboard

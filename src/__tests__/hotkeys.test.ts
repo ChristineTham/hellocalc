@@ -17,15 +17,24 @@ describe("hotkeyTarget", () => {
     }
   });
 
-  it("Backspace is CLx on RPN families and DROP (by kind) on RPL", () => {
-    expect(hotkeyTarget("Backspace", "voyager")).toEqual({ type: "key", labels: ["CLx"] });
-    expect(hotkeyTarget("Backspace", "classic")).toEqual({ type: "key", labels: ["CLx"] });
+  it("Backspace is CLx (any era spelling) on RPN families and DROP (by kind) on RPL", () => {
+    expect(hotkeyTarget("Backspace", "voyager")).toEqual({
+      type: "key",
+      labels: ["CLx", "CLX", "CL X"],
+    });
+    expect(hotkeyTarget("Backspace", "classic")).toEqual({
+      type: "key",
+      labels: ["CLx", "CLX", "CL X"],
+    });
     expect(hotkeyTarget("Backspace", "rpl")).toEqual({ type: "kind", kind: "bksp" });
   });
 
-  it("f/g arm only on Voyager; [/] arm shifts only on RPL", () => {
+  it("f/g arm on RPN families (no-op when the model lacks the key); h on classic; [/] on RPL", () => {
     expect(hotkeyTarget("f", "voyager")).toEqual({ type: "key", labels: ["f"] });
-    expect(hotkeyTarget("f", "classic")).toBeNull();
+    expect(hotkeyTarget("f", "classic")).toEqual({ type: "key", labels: ["f"] });
+    expect(hotkeyTarget("h", "classic")).toEqual({ type: "key", labels: ["h"] });
+    expect(hotkeyTarget("h", "voyager")).toBeNull();
+    expect(hotkeyTarget("f", "rpl")).toBeNull();
     expect(hotkeyTarget("[", "rpl")).toEqual({ type: "kind", kind: "ls" });
     expect(hotkeyTarget("]", "rpl")).toEqual({ type: "kind", kind: "rs" });
     expect(hotkeyTarget("[", "voyager")).toBeNull();

@@ -141,6 +141,93 @@ describe("prefix promotion (§12.3 rev 6) — armed shift takes the primary slot
     );
     expect(sin?.querySelector(".row-start-2")?.textContent).toBe("SIN⁻¹");
   });
+
+  it("shifted classic (HP-25): arming f promotes the gold word (SST → FIX) and dispatch normalizes print → engine id", () => {
+    const model = MODELS["HP-25"];
+    if (model.family !== "classic") throw new Error("HP-25 must be classic");
+    const pressed: string[] = [];
+    const { container } = render(
+      <ClassicKeyboard
+        rows={model.rows}
+        geometry={model.geometry}
+        prefix="f"
+        onArm={noop}
+        onPress={(fn) => pressed.push(fn)}
+      />,
+    );
+    const byLabel = (label: string) => {
+      const b = Array.from(container.querySelectorAll<HTMLElement>("button")).find(
+        (x) => x.getAttribute("aria-label") === label,
+      );
+      if (!b) throw new Error(`no ${label} key`);
+      return b;
+    };
+    expect(byLabel("SST").querySelector(".row-start-2")?.textContent).toBe("FIX");
+    // printed "ln" (f of 7) dispatches the canonical engine id "LN"
+    fireEvent.click(byLabel("7"));
+    expect(pressed).toEqual(["LN"]);
+  });
+
+  it("HP-65: arming f⁻¹ promotes the INVERSE of each gold word (7's LN → eˣ)", () => {
+    const model = MODELS["HP-65"];
+    if (model.family !== "classic") throw new Error("HP-65 must be classic");
+    const pressed: string[] = [];
+    const { container } = render(
+      <ClassicKeyboard
+        rows={model.rows}
+        geometry={model.geometry}
+        prefix="fi"
+        onArm={noop}
+        onPress={(fn) => pressed.push(fn)}
+      />,
+    );
+    const seven = Array.from(container.querySelectorAll<HTMLElement>("button")).find(
+      (b) => b.getAttribute("aria-label") === "7",
+    );
+    if (!seven) throw new Error("no 7 key");
+    expect(seven.querySelector(".row-start-2")?.textContent).toBe("eˣ");
+    fireEvent.click(seven);
+    expect(pressed).toEqual(["eˣ"]);
+  });
+
+  it("HP-67: the black h plane renders and promotes (9 → R↑)", () => {
+    const model = MODELS["HP-67"];
+    if (model.family !== "classic") throw new Error("HP-67 must be classic");
+    const { container } = render(
+      <ClassicKeyboard
+        rows={model.rows}
+        geometry={model.geometry}
+        prefix="h"
+        onArm={noop}
+        onPress={noop}
+      />,
+    );
+    const nine = Array.from(container.querySelectorAll<HTMLElement>("button")).find(
+      (b) => b.getAttribute("aria-label") === "9",
+    );
+    expect(nine?.querySelector(".row-start-2")?.textContent).toBe("R↑");
+  });
+});
+
+describe("shifted-classic row fill (HP-25 5-over-4 dual pitch)", () => {
+  it("every HP-25 row fills the lcm(5,4)=20 subgrid exactly", () => {
+    const model = MODELS["HP-25"];
+    if (model.family !== "classic") throw new Error("HP-25 must be classic");
+    const { container } = render(
+      <ClassicKeyboard rows={model.rows} geometry={model.geometry} onPress={noop} />,
+    );
+    const buttons = Array.from(container.querySelectorAll<HTMLElement>("button"));
+    let i = 0;
+    for (const row of model.rows) {
+      let units = 0;
+      for (let k = 0; k < row.length; k++, i++) {
+        const m = /span (\d+)/.exec(buttons[i].style.gridColumn);
+        if (!m) throw new Error(`key ${i} has no span`);
+        units += Number(m[1]);
+      }
+      expect(units).toBe(20);
+    }
+  });
 });
 
 describe("ClassicKeyboard (HP-35) — dual-pitch subcolumn grid", () => {

@@ -29,6 +29,10 @@ describe("per-model geometry (MODELS registry, derived not hand-tuned)", () => {
     ["HP-15C", 10, 4, 2.887, "landscape"],
     ["HP-16C", 10, 4, 2.887, "landscape"],
     ["HP-35", 5, 8, 0.703, "portrait"],
+    ["HP-45", 5, 8, 0.703, "portrait"],
+    ["HP-65", 5, 8, 0.703, "portrait"],
+    ["HP-25", 5, 7, 0.805, "portrait"], // stubbier Woodstock: 7 rows
+    ["HP-67", 5, 8, 0.703, "portrait"],
     ["HP-48G", 6, 9, 0.722, "tall"], // per-model override: 9-row kbd behaves tall (§14 rev 5)
   ] as const)(
     "%s → %d×%d, A≈%f (±0.02), %s",

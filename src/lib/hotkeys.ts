@@ -35,7 +35,7 @@ export function hotkeyTarget(key: string, family: Family): HotkeyTarget | null {
     case "Backspace":
       return family === "rpl"
         ? { type: "kind", kind: "bksp" }
-        : { type: "key", labels: ["CLx"] };
+        : { type: "key", labels: ["CLx", "CLX", "CL X"] }; // era spellings
     case "e":
     case "E":
       return { type: "key", labels: ["EEX"] };
@@ -50,11 +50,15 @@ export function hotkeyTarget(key: string, family: Family): HotkeyTarget | null {
     case "r":
     case "R":
       return family === "rpl" ? null : { type: "key", labels: ["R↓"] };
-    // prefix arming — the delightful ones (§12.2)
+    // prefix arming — the delightful ones (§12.2). Classic-era models carry
+    // f (45+), g (25+) and h (67); models without the key simply have no
+    // matching button, so the dispatch no-ops (the HP-35 stays inert).
     case "f":
-      return family === "voyager" ? { type: "key", labels: ["f"] } : null;
+      return family !== "rpl" ? { type: "key", labels: ["f"] } : null;
     case "g":
-      return family === "voyager" ? { type: "key", labels: ["g"] } : null;
+      return family !== "rpl" ? { type: "key", labels: ["g"] } : null;
+    case "h":
+      return family === "classic" ? { type: "key", labels: ["h"] } : null;
     case "[":
       return family === "rpl" ? { type: "kind", kind: "ls" } : null;
     case "]":
@@ -84,6 +88,9 @@ export function cheatsheetRows(family: Family): CheatsheetRow[] {
   }
   if (family === "voyager") {
     rows.push({ keys: "F / G", action: "arm the gold f / blue g prefix" });
+  }
+  if (family === "classic") {
+    rows.push({ keys: "F / G / H", action: "arm a shift prefix (models that have one)" });
   }
   if (family === "rpl") {
     rows.push({ keys: "[ / ]", action: "arm left (purple) / right (green) shift" });

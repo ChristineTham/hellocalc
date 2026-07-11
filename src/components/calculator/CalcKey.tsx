@@ -25,6 +25,7 @@ export const calcKeyVariants = cva(
         enter: "bg-hp-enter text-hp-enter-fg",
         f: "bg-hp-shift-f text-hp-shift-f-fg", // gold prefix key
         g: "bg-hp-shift-g text-white", // blue prefix key
+        h: "bg-hp-key text-hp-key-fg ring-1 ring-inset ring-hp-key-border", // black prefix key (HP-67)
         ls: "bg-hp-shift-ls text-white", // RPL left-shift (purple)
         rs: "bg-hp-shift-rs text-white", // RPL right-shift (green)
         on: "bg-hp-key text-destructive",
@@ -43,10 +44,12 @@ export interface CalcKeyProps
   primary: string;
   /** gold f-shift legend, rendered top-center */
   f?: string;
-  /** blue g-shift legend, rendered bottom-center */
+  /** blue g-shift legend, rendered bottom (left when h is present) */
   g?: string;
-  /** which prefix is currently armed — lifts + glows the matching legend */
-  armed?: "none" | "f" | "g";
+  /** black h-shift legend (HP-67 key front), rendered bottom-right */
+  h?: string;
+  /** which prefix is currently armed — promotes the matching legend */
+  armed?: "none" | "f" | "g" | "h";
   /** grid placement for Voyager 4x10 layouts */
   col?: number;
   row?: number;
@@ -59,6 +62,7 @@ export function CalcKey({
   primary,
   f,
   g,
+  h,
   armed = "none",
   col,
   row,
@@ -68,6 +72,8 @@ export function CalcKey({
 }: CalcKeyProps) {
   const fHot = armed === "f" && !!f;
   const gHot = armed === "g" && !!g;
+  const hHot = armed === "h" && !!h;
+  const hot = fHot || gHot || hHot;
   const gridStyle =
     col != null && row != null
       ? {
@@ -81,8 +87,8 @@ export function CalcKey({
     <ButtonPrimitive
       data-slot="calc-key"
       className={cn(
-        calcKeyVariants({ tone, active: fHot || gHot }),
-        (fHot || gHot) && (fHot ? "ring-hp-shift-f" : "ring-hp-shift-g"),
+        calcKeyVariants({ tone, active: hot }),
+        hot && (fHot ? "ring-hp-shift-f" : gHot ? "ring-hp-shift-g" : "ring-hp-key-fg"),
         className,
       )}
       style={gridStyle}
@@ -91,14 +97,14 @@ export function CalcKey({
       {/* §12.3 rev 6 — PROMOTION: while a prefix is armed, the shifted
           function takes the PRIMARY slot (big, in its shift colour), so every
           key literally shows what it will do. The promoted plane's small row
-          empties (its word moved down); the other plane dims. Keys without a
+          empties (its word moved down); the other planes dim. Keys without a
           function for the armed prefix keep their dimmed primary — that is
           what they still execute. */}
       {/* row 1 — gold f plane */}
       <span
         className={cn(
           "key-shift pointer-events-none row-start-1 text-center text-key-shift text-hp-shift-f transition-all",
-          armed === "g" ? "opacity-25" : "opacity-90",
+          armed !== "none" && armed !== "f" ? "opacity-25" : "opacity-90",
         )}
       >
         {fHot ? null : f}
@@ -107,27 +113,39 @@ export function CalcKey({
       <span
         className={cn(
           "row-start-2 self-center text-center transition-opacity",
-          fHot || gHot
+          hot
             ? cn(
                 "text-key-promoted font-bold tracking-tight whitespace-nowrap",
-                fHot ? "text-hp-shift-f" : "text-hp-shift-g",
+                fHot ? "text-hp-shift-f" : gHot ? "text-hp-shift-g" : "text-hp-key-fg",
               )
             : cn(
                 "text-key-primary",
-                armed !== "none" && tone !== "f" && tone !== "g" && "opacity-40",
+                armed !== "none" && tone !== "f" && tone !== "g" && tone !== "h" && "opacity-40",
               ),
         )}
       >
-        {fHot ? f : gHot ? g : tone === "f" ? "f" : tone === "g" ? "g" : primary}
+        {fHot ? f : gHot ? g : hHot ? h : primary}
       </span>
-      {/* row 3 — blue g plane */}
-      <span
-        className={cn(
-          "key-shift pointer-events-none row-start-3 text-center text-key-shift text-hp-shift-g transition-all",
-          armed === "f" ? "opacity-25" : "opacity-90",
+      {/* row 3 — blue g plane (left) + black h plane (right, HP-67 key front) */}
+      <span className="pointer-events-none row-start-3 flex items-baseline justify-center gap-1.5">
+        <span
+          className={cn(
+            "key-shift text-center text-key-shift text-hp-shift-g transition-all",
+            armed !== "none" && armed !== "g" ? "opacity-25" : "opacity-90",
+          )}
+        >
+          {gHot ? null : g}
+        </span>
+        {h && (
+          <span
+            className={cn(
+              "key-shift text-center text-key-shift text-hp-key-fg transition-all",
+              armed !== "none" && armed !== "h" ? "opacity-25" : "opacity-70",
+            )}
+          >
+            {hHot ? null : h}
+          </span>
         )}
-      >
-        {gHot ? null : g}
       </span>
     </ButtonPrimitive>
   );

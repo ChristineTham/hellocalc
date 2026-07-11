@@ -515,14 +515,21 @@
      and pitch = module ÷ cols — container queries cannot divide by a var):
      · voyager (10 cols): ≤36rem — also the fit bound for its three-plane
        face at the §13.5 sizes.
+     · classic (5 cols, chunky keys): the same ~3.6rem pitch bound → ≤18rem.
+       The 35 prints no shift legends anyway; the 45/65/25/67 planes stay
+       readable down to a very narrow module.
      · rpl (6 cols, big keys): ≤15rem — effectively always visible; the 48G's
        module never drops that low, so its corner alpha letters stay on.
-     Classic prints no shift legends (arc promotes instead). An armed plane
-     promotes into the primary slot, so no reveal exception is needed. */
+     An armed plane promotes into the primary slot, so no reveal exception
+     is needed. */
   @container kbdmod (max-width: 36rem) {
     .machine[data-family="voyager"] .key-shift,
     .machine[data-family="voyager"] .key-shift-row,
-    .machine[data-family="voyager"] .key-shift-row-center,
+    .machine[data-family="voyager"] .key-shift-row-center {
+      display: none;
+    }
+  }
+  @container kbdmod (max-width: 18rem) {
     .machine[data-family="classic"] .key-shift {
       display: none;
     }

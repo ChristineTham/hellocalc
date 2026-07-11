@@ -24,7 +24,7 @@ export interface RpnState {
   entry: string | null; // in-progress keyed number, or null
   dec: number; // FIX digits
   ang?: "DEG" | "RAD" | "GRD";
-  prefix: "none" | "f" | "g" | "ls" | "rs" | "arc" | "alpha";
+  prefix: "none" | "f" | "g" | "h" | "fi" | "ls" | "rs" | "arc" | "alpha";
   beg?: boolean; // 12C begin/end
   err?: string;
   latex: string; // last result, as KaTeX source
@@ -93,8 +93,9 @@ function AnnunRow({
   const isRpl = family === "rpl";
   return (
     <div className="mb-1.5 flex items-center justify-end gap-3">
-      <Annunciator label="f" hot={s.prefix === "f"} />
+      <Annunciator label="f" hot={s.prefix === "f" || s.prefix === "fi"} />
       <Annunciator label="g" hot={s.prefix === "g"} />
+      {s.prefix === "h" && <Annunciator label="h" hot />}
       {showAngle && s.ang && <Annunciator label={s.ang} hot />}
       <Annunciator label={isRpl ? "RPL" : "RPN"} hot />
       {family === "voyager" && <Annunciator label={s.beg ? "BEG" : "END"} hot />}

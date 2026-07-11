@@ -100,3 +100,67 @@ describe("RPN stack engine", () => {
     expect(s.y).toBe(200);
   });
 });
+
+describe("classic-era ops (HP-25/45/65/67 planes)", () => {
+  it("R↑ is the inverse of R↓ (one full cycle restores the stack)", () => {
+    const s = createRpn();
+    run(s, "1", "ENTER", "2", "ENTER", "3", "ENTER", "4"); // T1 Z2 Y3 X4
+    applyFunction(s, "R↑"); // X gets old T
+    expect([s.t, s.z, s.y, xval(s)]).toEqual([2, 3, 4, 1]);
+    applyFunction(s, "R↓");
+    expect([s.t, s.z, s.y, xval(s)]).toEqual([1, 2, 3, 4]);
+  });
+
+  it("ABS / INT / FRAC (HP-25 g-plane reference: 3.7)", () => {
+    const s = createRpn();
+    run(s, "3.7", "CHS", "ABS");
+    expect(xval(s)).toBeCloseTo(3.7, 12);
+    applyFunction(s, "INT");
+    expect(xval(s)).toBe(3);
+    const s2 = createRpn();
+    run(s2, "3.7", "FRAC");
+    expect(xval(s2)).toBeCloseTo(0.7, 12);
+  });
+
+  it("x! = 120 for 5 (HP-45 n!); non-integers flag Error", () => {
+    const s = createRpn();
+    run(s, "5", "x!");
+    expect(xval(s)).toBe(120);
+    const s2 = createRpn();
+    run(s2, "2.5", "x!");
+    expect(s2.error).toBe("Error");
+  });
+
+  it("Δ%: from y=200 to x=250 is +25 (Y stays)", () => {
+    const s = createRpn();
+    run(s, "200", "ENTER", "250", "Δ%");
+    expect(xval(s)).toBe(25);
+    expect(s.y).toBe(200);
+  });
+
+  it("ˣ√y: cube root of 8 is 2 (HP-65 f⁻¹ of yˣ) — stack drops", () => {
+    const s = createRpn();
+    run(s, "8", "ENTER", "3", "ˣ√y");
+    expect(xval(s)).toBeCloseTo(2, 12);
+  });
+
+  it("D→R / R→D convert degrees↔radians", () => {
+    const s = createRpn();
+    run(s, "180", "D→R");
+    expect(xval(s)).toBeCloseTo(Math.PI, 12);
+    applyFunction(s, "R→D");
+    expect(xval(s)).toBeCloseTo(180, 12);
+  });
+
+  it("DEG/RAD/GRD set the angle mode used by trig (sin 100 grads = 1)", () => {
+    const s = createRpn();
+    applyFunction(s, "RAD");
+    expect(s.angle).toBe("RAD");
+    run(s, "90", "SIN");
+    expect(xval(s)).toBeCloseTo(Math.sin(90), 12);
+    const s2 = createRpn();
+    applyFunction(s2, "GRD");
+    run(s2, "100", "SIN");
+    expect(xval(s2)).toBeCloseTo(1, 12);
+  });
+});
