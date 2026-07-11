@@ -50,6 +50,7 @@ const ALIAS: Record<string, string> = {
   "x≷y": "x⇄y", // HP-41 print
   "FS?": "F?",
   PSE: "PAUSE",
+  "← (backspace)": "←",
   // HP-25 parenthetical prints + hour-angle spellings (same math as D.MS)
   "x̄ (mean)": "x̄",
   "s (std dev)": "s",
@@ -149,5 +150,12 @@ export const MODEL_FN_OVERRIDES: Record<string, Record<string, string>> = {
     PRGM: "CLEAR PRGM",
     FIN: "CLEAR FIN",
     "P/R": "W/PRGM",
+  },
+  "HP-11C": {
+    "Σ": "CLΣ",
+    REG: "CLEAR REG",
+    PRGM: "CLEAR PRGM",
+    "P/R": "W/PRGM",
+    I: "RC I",
   },
 };

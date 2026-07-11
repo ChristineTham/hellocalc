@@ -749,6 +749,69 @@ describe("Phase-7: the 12C finance engine", () => {
   });
 });
 
+describe("Phase-8: probability + 11C extras", () => {
+  it("Cy,x: 52 choose 5 = 2 598 960; Py,x: 5 pick 2 = 20 (exact)", () => {
+    const s = createRpn();
+    run(s, "52", "ENTER", "5", "Cy,x");
+    expect(xval(s).toString()).toBe("2598960");
+    const s2 = createRpn();
+    run(s2, "5", "ENTER", "2", "Py,x");
+    expect(xval(s2).toString()).toBe("20");
+  });
+
+  it("RAN# is deterministic, seeded, and uniform in [0,1)", () => {
+    const a = createRpn();
+    const b = createRpn();
+    applyFunction(a, "RAN#");
+    applyFunction(b, "RAN#");
+    expect(a.x.toString()).toBe(b.x.toString()); // same seed → same draw
+    const first = a.x;
+    applyFunction(a, "RAN#");
+    expect(a.x.toString()).not.toBe(first.toString()); // sequence advances
+    expect(num(a.x)).toBeGreaterThanOrEqual(0);
+    expect(num(a.x)).toBeLessThan(1);
+  });
+
+  it("HYP arms hyperbolics: HYP SIN, HYP⁻¹ TAN; domain errors flag", () => {
+    const s = createRpn();
+    run(s, "1", "HYP", "SIN");
+    expect(n(xval(s))).toBeCloseTo(Math.sinh(1), 12);
+    const s2 = createRpn();
+    run(s2, "2", "HYP⁻¹", "TAN"); // atanh(2) is out of domain
+    expect(s2.error).toBe("Error");
+  });
+
+  it("L.R. puts the intercept in X and slope in Y (y = 1 + 2x)", () => {
+    const s = createRpn();
+    run(s, "3", "ENTER", "1", "Σ+");
+    run(s, "5", "ENTER", "2", "Σ+");
+    run(s, "7", "ENTER", "3", "Σ+");
+    applyFunction(s, "L.R.");
+    expect(n(s.x)).toBeCloseTo(1, 12); // A
+    expect(n(s.y)).toBeCloseTo(2, 12); // B
+  });
+
+  it("DSE counts down and program-skips at the target", () => {
+    const s = createRpn();
+    dispatch(s, "W/PRGM");
+    for (const k of ["LBL", "A", "2", "×", "DSE", "1", "GTO", "A", "RTN"]) dispatch(s, k);
+    dispatch(s, "W/PRGM");
+    run(s, "3", "STO n", "1"); // count 3 → skips when ≤ 0
+    run(s, "1", "ENTER");
+    applyFunction(s, "A");
+    expect(n(s.x)).toBe(8); // ×2 three times
+  });
+
+  it("x⇄(i) swaps X with the register I points at", () => {
+    const s = createRpn();
+    run(s, "5", "ST I", "CLx", "9", "STO n", "5", "CLx", "3");
+    applyFunction(s, "x⇄(i)");
+    expect(n(s.x)).toBe(9);
+    run(s, "RCL n", "5");
+    expect(n(s.x)).toBe(3);
+  });
+});
+
 describe("classic-era ops (HP-25/45/65/67 planes)", () => {
   it("R↑ is the inverse of R↓ (one full cycle restores the stack)", () => {
     const s = createRpn();

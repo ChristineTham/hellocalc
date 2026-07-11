@@ -100,6 +100,11 @@ describe("model adapter (hp/mapping/mapping.json)", () => {
     expect(report.missing).toEqual([]);
   });
 
+  it("HP-11C: NO key remains inert (Phase-8 DoD)", () => {
+    const report = coverage("HP-11C", rpnImplements);
+    expect(report.missing).toEqual([]);
+  });
+
   it("coverage reports honestly for models awaiting their engine phase", () => {
     // the 15C's matrix/complex plane is Phase 9 — the report must SAY so
     const report = coverage("HP-15C", rpnImplements);

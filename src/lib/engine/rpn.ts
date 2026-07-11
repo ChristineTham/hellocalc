@@ -58,7 +58,10 @@ export interface PendingArg {
     | "F?"
     | "ASN"
     | "VIEW"
-    | "ISG";
+    | "ISG"
+    | "DSE"
+    | "HYP"
+    | "HYP⁻¹";
   /** the XEQ name being assigned (ASN) */
   name?: string;
   arith?: "+" | "−" | "×" | "÷";
@@ -107,6 +110,7 @@ export interface RpnEngine {
   sum: SumRegs; // Σ+ accumulation
   prgm: PrgmState; // keystroke program (P3)
   fin: FinRegs; // financial registers (P7, HP-12C)
+  rng: number; // RAN# LCG seed (deterministic, persisted)
   fresh: boolean; // a value was just keyed/recalled — TVM keys STORE, not solve
   alpha: string; // the ALPHA register (P6, HP-41) — typed via α-prefixed ids
   userOn: boolean; // USER mode (P6): key assignments intercept dispatch
@@ -137,6 +141,7 @@ export function createRpn(): RpnEngine {
     sum: zeroSum(),
     prgm: freshPrgm(),
     fin: freshFin(),
+    rng: 12345,
     fresh: false,
     alpha: "",
     userOn: false,
@@ -413,9 +418,25 @@ function resolvePending(s: RpnEngine, fn: string): boolean {
     s.hist = [...s.hist.slice(-49), { op: `🖨 R${i}`, raw: s.regs[i].toString() }];
     return true;
   }
-  if (p.op === "ISG" && /^[0-9]$/.test(fn)) {
+  if ((p.op === "ISG" || p.op === "DSE") && /^[0-9]$/.test(fn)) {
     s.pending = null;
-    s.regs[Number(fn)] = isgStep(s.regs[Number(fn)]);
+    const i = Number(fn);
+    s.regs[i] = p.op === "ISG" ? isgStep(s.regs[i]) : dseStep(s.regs[i]);
+    return true;
+  }
+  if ((p.op === "HYP" || p.op === "HYP⁻¹") && (fn === "SIN" || fn === "COS" || fn === "TAN")) {
+    // hyperbolic prefix (11C/15C): HYP SIN → sinh, HYP⁻¹ TAN → atanh …
+    const inv = p.op === "HYP⁻¹";
+    s.pending = null;
+    unary(s, (x) =>
+      fn === "SIN"
+        ? (inv ? math.asinh(x) : math.sinh(x))
+        : fn === "COS"
+          ? (inv ? math.acosh(x) : math.cosh(x))
+          : inv
+            ? math.atanh(x)
+            : math.tanh(x),
+    );
     return true;
   }
   if ((p.op === "STO" || p.op === "RCL" || p.op === "GTO") && fn === "(i)") {
@@ -486,7 +507,7 @@ function findLabel(steps: string[], label: string): number | null {
 
 /** Steps whose next step is an argument (skip both on a false conditional). */
 const ARG_TAKERS = new Set([
-  "GTO", "LBL", "GSB", "STO n", "RCL n", "FIX", "SCI", "ENG", "DSP", "SF", "CF", "F?", "ISG", "VIEW",
+  "GTO", "LBL", "GSB", "STO n", "RCL n", "FIX", "SCI", "ENG", "DSP", "SF", "CF", "F?", "ISG", "DSE", "VIEW",
 ]);
 
 const CONDITIONALS = new Set(["x=y", "x≠y", "x≤y", "x>y", "x<y", "x≥y", "x<0", "x=0", "x≠0", "x>0", "x≥0"]);
@@ -541,6 +562,14 @@ function isgStep(v: Value): Value {
   return next.isNegative() ? next.minus(frac) : next.plus(frac);
 }
 
+/** DSE: counter −= step, keeping the encoded fraction (skip when ≤ target). */
+function dseStep(v: Value): Value {
+  const { i, step } = isgParts(v);
+  const frac = v.abs().minus(v.abs().trunc());
+  const next = i.minus(step);
+  return next.isNegative() ? next.minus(frac) : next.plus(frac);
+}
+
 /** Runaway guard (NFR-9): a GTO loop without exit halts with Error instead of
  * freezing — the interpreter is pure TS and Web-Worker-ready, and this hard
  * budget guarantees the UI thread can never hang before that isolation lands
@@ -578,12 +607,12 @@ function execStep(s: RpnEngine): void {
     }
     return;
   }
-  if (fn === "ISG") {
-    // increment-skip-if-greater over an encoded register (HP-41 loops)
+  if (fn === "ISG" || fn === "DSE") {
+    // increment/decrement loop control over an encoded register
     const d = Number(steps[s.prgm.pc + 1] ?? "0");
-    s.regs[d] = isgStep(s.regs[d]);
+    s.regs[d] = fn === "ISG" ? isgStep(s.regs[d]) : dseStep(s.regs[d]);
     const { i, target } = isgParts(s.regs[d]);
-    const pass = !i.gt(target); // skip when the counter passes the target
+    const pass = fn === "ISG" ? !i.gt(target) : i.gt(target); // skip past target
     s.prgm.pc += 2;
     if (!pass) {
       const next = steps[s.prgm.pc];
@@ -1080,6 +1109,57 @@ export function applyFunction(s: RpnEngine, fn: string): boolean {
     case "ISG":
       s.pending = { op: "ISG" };
       return true;
+    case "DSE":
+      s.pending = { op: "DSE" };
+      return true;
+    case "HYP":
+      s.pending = { op: "HYP" };
+      return true;
+    case "HYP⁻¹":
+      s.pending = { op: "HYP⁻¹" };
+      return true;
+    case "Py,x":
+      // permutations of y items taken x at a time: y!/(y−x)!
+      binary(s, (y, x) =>
+        y.isNegative() || x.isNegative() || !y.isInteger() || !x.isInteger() || x.gt(y)
+          ? null
+          : math.factorial(y).div(math.factorial(y.minus(x))),
+      );
+      return true;
+    case "Cy,x":
+      binary(s, (y, x) =>
+        y.isNegative() || x.isNegative() || !y.isInteger() || !x.isInteger() || x.gt(y)
+          ? null
+          : math.factorial(y).div(math.factorial(x).times(math.factorial(y.minus(x)))),
+      );
+      return true;
+    case "RAN#": {
+      // deterministic LCG (Numerical Recipes constants) — seeded, persisted,
+      // test-stable; a uniform in [0, 1)
+      s.rng = (Math.imul(1664525, s.rng) + 1013904223) >>> 0;
+      pushX(s, bn(s.rng).div(bn(4294967296)));
+      return true;
+    }
+    case "L.R.": {
+      // linear regression: intercept A to X, slope B to Y (11C convention)
+      const lr = linReg(s.sum);
+      if (lr === null) {
+        s.error = "Error";
+        return true;
+      }
+      pushX(s, lr.B);
+      pushX(s, lr.A);
+      return true;
+    }
+    case "x⇄(i)": {
+      commit(s);
+      const idx = Math.abs(Math.trunc(num(s.iReg))) % 10;
+      const a = s.x;
+      s.x = s.regs[idx];
+      s.regs[idx] = a;
+      s.lift = true;
+      return true;
+    }
     case "CATALOG":
       // the catalog browser arrives with the CX polish; the tape notes it
       s.hist = [...s.hist.slice(-49), { op: "🖨 CATALOG", raw: String(s.prgm.steps.length) }];

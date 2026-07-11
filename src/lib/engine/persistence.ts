@@ -54,6 +54,7 @@ interface SerializedRpn {
   };
   prgm?: PrgmState;
   alpha?: string;
+  rng?: number;
   userOn?: boolean;
   userAsn?: Record<string, string>;
   entry: string | null;
@@ -117,6 +118,7 @@ export function snapshot(
       },
       prgm: { ...rpn.prgm, steps: [...rpn.prgm.steps] },
       alpha: rpn.alpha,
+      rng: rpn.rng,
       userOn: rpn.userOn,
       userAsn: { ...rpn.userAsn },
       entry: rpn.entry,
@@ -178,6 +180,7 @@ export function restore(state: EngineStateV1): {
       ? { ...state.rpn.prgm, steps: [...state.rpn.prgm.steps] }
       : fresh.prgm,
     alpha: state.rpn.alpha ?? "",
+    rng: state.rpn.rng ?? 12345,
     userOn: state.rpn.userOn ?? false,
     userAsn: state.rpn.userAsn ? { ...state.rpn.userAsn } : {},
     entry: state.rpn.entry,
