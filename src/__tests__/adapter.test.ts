@@ -48,6 +48,31 @@ describe("model adapter (hp/mapping/mapping.json)", () => {
     expect(report.missing).toEqual([]);
   });
 
+  it("HP-25: NO key remains inert — every mapped function dispatches (Phase-4 DoD)", () => {
+    const report = coverage("HP-25", rpnImplements);
+    expect(report.total).toBeGreaterThan(45);
+    expect(report.missing).toEqual([]);
+  });
+
+  it("model-specific overrides: the faceplate data mirrors MODEL_FN_OVERRIDES", async () => {
+    // the 25's CLEAR bracket: mapping resolution and the authored fFn fields
+    // must agree, or the oracle would pass while the live keys dispatch wrong
+    expect(resolveKey("HP-25", "CHS", "f")).toBe("CLEAR PRGM");
+    expect(resolveKey("HP-25", "EEX", "f")).toBe("CLEAR REG");
+    expect(resolveKey("HP-25", "CLX", "f")).toBe("CLEAR STK");
+    const { MODELS } = await import("@/components/calculator/models");
+    const hp25 = MODELS["HP-25"];
+    if (hp25.family !== "classic") throw new Error("HP-25 must be classic");
+    const byLegend = (legend: string) => {
+      const k = hp25.rows.flat().find((x) => x.legend === legend);
+      if (!k) throw new Error(`no ${legend} key`);
+      return k;
+    };
+    expect(byLegend("CHS").fFn).toBe("CLEAR PRGM");
+    expect(byLegend("EEX").fFn).toBe("CLEAR REG");
+    expect(byLegend("CLX").fFn).toBe("CLEAR STK");
+  });
+
   it("coverage reports honestly for models awaiting their engine phase", () => {
     // the 12C's finance plane is Phase 7 — the report must SAY so, not hide it
     const report = coverage("HP-12C", rpnImplements);

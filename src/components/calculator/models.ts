@@ -44,6 +44,12 @@ export interface ClassicKey {
   g?: string; // blue g-shift legend, as printed
   h?: string; // black h-shift legend, as printed (HP-67)
   al?: string; // ALPHA character (HP-41), printed lower-right like h
+  /** dispatch overrides for prints whose meaning is model-specific (e.g. the
+   * 25's PRGM/REG/STK under its CLEAR bracket) — must mirror
+   * MODEL_FN_OVERRIDES in lib/models/normalize.ts (guarded by adapter.test) */
+  fFn?: string;
+  gFn?: string;
+  hFn?: string;
   kind?: "pf" | "pfi" | "pg" | "ph" | "alpha" | "gap"; // prefix/toggle keys · gap = bare plate
 }
 
@@ -104,7 +110,9 @@ const ck = (
   legend: string,
   fn: string,
   cat: ClassicKey["cat"],
-  opts: Partial<Pick<ClassicKey, "f" | "g" | "h" | "al" | "kind" | "flex">> = {},
+  opts: Partial<
+    Pick<ClassicKey, "f" | "g" | "h" | "al" | "fFn" | "gFn" | "hFn" | "kind" | "flex">
+  > = {},
 ): ClassicKey => ({ legend, fn, cat, flex: 1, ...opts });
 const HP35_ROWS: ClassicKey[][] = [
   [c("xʸ","yˣ","black"),c("log","LOG","black"),c("ln","LN","black"),c("eˣ","eˣ","black"),c("CLR","CLR","blue")],
@@ -144,8 +152,8 @@ const HP65_ROWS: ClassicKey[][] = [
 // ---- HP-25 (Woodstock: gold f above, blue g on the key slant) ----------------
 const HP25_ROWS: ClassicKey[][] = [
   [ck("SST","SST","black",{f:"FIX"}),ck("BST","BST","black",{f:"SCI"}),ck("GTO","GTO","black",{f:"ENG"}),ck("f","f","gold",{kind:"pf"}),ck("g","g","blue",{kind:"pg"})],
-  [ck("x⇄y","x⇄y","black",{f:"x̄",g:"%"}),ck("R↓","R↓","black",{f:"s",g:"1/x"}),ck("STO","STO","black"),ck("RCL","RCL","black"),ck("Σ+","Σ+","black",{f:"Σ−"})],
-  [ck("ENTER↑","ENTER","black",{flex:2,f:"PREFIX"}),ck("CHS","CHS","black",{f:"PRGM",g:"DEG"}),ck("EEX","EEX","black",{f:"REG",g:"RAD"}),ck("CLX","CLx","black",{f:"STK",g:"GRD"})],
+  [ck("x⇄y","x⇄y","black",{f:"x̄",g:"%"}),ck("R↓","R↓","black",{f:"s",g:"1/x"}),ck("STO","STO n","black"),ck("RCL","RCL n","black"),ck("Σ+","Σ+","black",{f:"Σ−"})],
+  [ck("ENTER↑","ENTER","black",{flex:2,f:"PREFIX"}),ck("CHS","CHS","black",{f:"PRGM",fFn:"CLEAR PRGM",g:"DEG"}),ck("EEX","EEX","black",{f:"REG",fFn:"CLEAR REG",g:"RAD"}),ck("CLX","CLx","black",{f:"STK",fFn:"CLEAR STK",g:"GRD"})],
   [ck("−","−","black",{f:"x<y",g:"x<0"}),ck("7","7","black",{f:"ln",g:"eˣ"}),ck("8","8","black",{f:"log",g:"10ˣ"}),ck("9","9","black",{f:"→R",g:"→P"})],
   [ck("+","+","black",{f:"x≥y",g:"x≥0"}),ck("4","4","black",{f:"sin",g:"sin⁻¹"}),ck("5","5","black",{f:"cos",g:"cos⁻¹"}),ck("6","6","black",{f:"tan",g:"tan⁻¹"})],
   [ck("×","×","black",{f:"x≠y",g:"x≠0"}),ck("1","1","black",{f:"INT",g:"FRAC"}),ck("2","2","black",{f:"√x",g:"x²"}),ck("3","3","black",{f:"yˣ",g:"ABS"})],

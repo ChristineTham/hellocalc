@@ -68,6 +68,21 @@ export function ClassicKeyboard({
       setArc(false);
       return;
     }
+    // explicit per-key dispatch ids (model-specific prints, e.g. the 25's
+    // CLEAR bracket) win over print normalization
+    const explicit =
+      prefix === "f" && k.f
+        ? k.fFn
+        : prefix === "g" && k.g
+          ? k.gFn
+          : prefix === "h" && k.h
+            ? k.hFn
+            : undefined;
+    if (explicit) {
+      onPress(explicit);
+      if (arc) setArc(false);
+      return;
+    }
     const printed =
       prefix === "f" || prefix === "fi"
         ? fWordFor(k, prefix) || k.fn

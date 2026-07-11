@@ -287,6 +287,8 @@ describe("Phase-2: registers, statistics, conversions (HP-45)", () => {
     expect(s.entry).toBeNull(); // the 4 was an argument, not entry
     run(s, "SCI", "1");
     expect(s.disp).toEqual({ mode: "SCI", digits: 1 });
+    run(s, "ENG", "3");
+    expect(s.disp).toEqual({ mode: "ENG", digits: 3 }); // HP-25
   });
 
   it("the tape prints argument sequences composed: STO + 1, FIX 4", () => {

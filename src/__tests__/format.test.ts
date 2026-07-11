@@ -28,6 +28,13 @@ describe("formatValue", () => {
     expect(formatValue(bn("0.005"), { mode: "FIX", digits: 2 })).toBe("0.01");
   });
 
+  it("ENG snaps the exponent to a multiple of 3 (HP-25)", () => {
+    expect(formatValue(bn(12345), { mode: "ENG", digits: 2 })).toBe("12.35e3");
+    expect(formatValue(bn("0.0042"), { mode: "ENG", digits: 2 })).toBe("4.20e-3");
+    expect(formatValue(bn("1e5"), { mode: "ENG", digits: 2 })).toBe("100.00e3");
+    expect(formatValue(bn(0), { mode: "ENG", digits: 2 })).toBe("0.00e0");
+  });
+
   it("non-finite values render as Error", () => {
     expect(formatValue(bn(1).div(bn(0)), { mode: "FIX", digits: 2 })).toBe("Error");
   });

@@ -11,7 +11,7 @@
 // live keyboards keep dispatching their authored/generated key data.
 
 import mapping from "../../../hp/mapping/mapping.json";
-import { normalizeFn } from "./normalize";
+import { MODEL_FN_OVERRIDES, normalizeFn } from "./normalize";
 
 export interface MappedPress {
   access: string; // "none" | "f" | "g" | "h" | "arc" | model-specific shifts
@@ -40,10 +40,15 @@ export function modelKeys(model: string): MappedKey[] {
 export function modelFunctions(
   model: string,
 ): { key: string; access: string; fn: string }[] {
+  const over = MODEL_FN_OVERRIDES[model] ?? {};
   return modelKeys(model).flatMap((k) =>
     k.presses
       .filter((p) => p.function && p.function !== "—")
-      .map((p) => ({ key: k.primary, access: p.access, fn: normalizeFn(p.function) })),
+      .map((p) => ({
+        key: k.primary,
+        access: p.access,
+        fn: over[p.function] ?? normalizeFn(p.function),
+      })),
   );
 }
 
@@ -55,9 +60,9 @@ export function resolveKey(
 ): string | null {
   const key = modelKeys(model).find((k) => k.primary === primary);
   const press = key?.presses.find((p) => p.access === access);
-  return press && press.function && press.function !== "—"
-    ? normalizeFn(press.function)
-    : null;
+  if (!press || !press.function || press.function === "—") return null;
+  const over = MODEL_FN_OVERRIDES[model] ?? {};
+  return over[press.function] ?? normalizeFn(press.function);
 }
 
 /** Ids the KEYBOARD layer consumes (prefix/mode modifiers) — they never reach

@@ -23,7 +23,7 @@ export interface HistEntry {
  * digits count, GTO awaits a label (digit or A–E). Transient — never
  * persisted. */
 export interface PendingArg {
-  op: "STO" | "RCL" | "FIX" | "SCI" | "DSP" | "GTO" | "LBL";
+  op: "STO" | "RCL" | "FIX" | "SCI" | "ENG" | "DSP" | "GTO" | "LBL";
   arith?: "+" | "−" | "×" | "÷";
 }
 
@@ -331,7 +331,7 @@ function resolvePending(s: RpnEngine, fn: string): boolean {
   if (/^[0-9]$/.test(fn)) {
     const i = Number(fn);
     s.pending = null;
-    if (p.op === "FIX" || p.op === "SCI") {
+    if (p.op === "FIX" || p.op === "SCI" || p.op === "ENG") {
       s.disp = { mode: p.op, digits: i };
       return true;
     }
@@ -549,6 +549,10 @@ export function applyFunction(s: RpnEngine, fn: string): boolean {
       s.disp = { ...s.disp, mode: "SCI" };
       s.pending = { op: "SCI" };
       return true;
+    case "ENG":
+      s.disp = { ...s.disp, mode: "ENG" };
+      s.pending = { op: "ENG" };
+      return true;
     case "+":
       binary(s, (y, x) => math.add(y, x));
       return true;
@@ -736,6 +740,9 @@ export function applyFunction(s: RpnEngine, fn: string): boolean {
       return true;
     case "PREFIX":
     case "NOP":
+    case "PAUSE":
+      // PAUSE shows the intermediate result ~1s on hardware; the tape and
+      // synchronous runs make it a no-op here
       return true;
     case "CLEAR":
       // HP-45 gold CLEAR: stack + registers + Σ (M stays — it's the 35's)
@@ -881,7 +888,7 @@ export function applyFunction(s: RpnEngine, fn: string): boolean {
 /** Entry-editing keys that shouldn't print a history line. */
 const ENTRY_OPS = new Set(["•", ".", "EEX", "←", "CHS"]);
 /** Argument-taking arms — the tape prints the RESOLVED composite instead. */
-const PENDING_ARMS = new Set(["STO n", "RCL n", "FIX", "SCI", "DSP", "GTO", "LBL"]);
+const PENDING_ARMS = new Set(["STO n", "RCL n", "FIX", "SCI", "ENG", "DSP", "GTO", "LBL"]);
 /** Mode/edit keys that shouldn't print either. */
 const EDIT_OPS = new Set(["W/PRGM", "SST", "BST", "DEL"]);
 

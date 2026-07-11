@@ -46,6 +46,12 @@ const ALIAS: Record<string, string> = {
   "9→ltr/gal": "ltr/gal",
   "0→LAST x": "LSTx",
   "R→P": "→P", // HP-65 prints rect→polar this way
+  // HP-25 parenthetical prints + hour-angle spellings (same math as D.MS)
+  "x̄ (mean)": "x̄",
+  "s (std dev)": "s",
+  "% (percent)": "%",
+  "→H.MS": "→D.MS",
+  "→H": "D.MS→",
   // 42S/35s/Prime spellings
   ASIN: "SIN⁻¹",
   ACOS: "COS⁻¹",
@@ -90,4 +96,18 @@ export const INVERSE_OF: Record<string, string> = {
   INT: "FRAC",
   "→R": "→P",
   "→P": "→R",
+};
+
+/**
+ * Per-MODEL dispatch overrides for prints whose meaning differs across
+ * machines and therefore must NOT get a global alias (the "STK" rule above).
+ * The faceplate data mirrors these via per-key `fFn`/`gFn`/`hFn` fields —
+ * adapter.test.ts guards that the two stay in sync.
+ */
+export const MODEL_FN_OVERRIDES: Record<string, Record<string, string>> = {
+  "HP-25": {
+    PRGM: "CLEAR PRGM", // the f-row under the 25's CLEAR bracket
+    REG: "CLEAR REG",
+    STK: "CLEAR STK",
+  },
 };
