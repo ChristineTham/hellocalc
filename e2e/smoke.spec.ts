@@ -30,8 +30,8 @@ test.describe("hellocalc — smoke", () => {
     await page.goto("/");
     await page.getByRole("button", { name: "Select calculator model" }).click();
     await expect(page.getByText("Voyager", { exact: true })).toBeVisible();
-    // a planned-but-unimplemented model is shown disabled
-    await expect(page.getByRole("option", { name: "HP-16C", exact: true })).toBeDisabled();
+    // a planned-but-unimplemented model is shown disabled (native = Phase 23)
+    await expect(page.getByRole("option", { name: "Native mode", exact: true })).toBeDisabled();
     // search narrows the grouped list
     await page.getByRole("textbox", { name: "Search models" }).fill("48");
     await expect(page.getByRole("option", { name: "HP-48G", exact: true })).toBeVisible();
@@ -262,8 +262,10 @@ test.describe("hellocalc — smoke", () => {
     // src/__tests__/keyboardGeometry.test.ts pins the same values (±0.02).
     // Guards the old RPL flex layout bug that stretched 48G keys ~1.9× wide.
     const EXPECTED: Record<string, number> = {
+      "HP-11C": 2.887,
       "HP-12C": 2.887,
       "HP-15C": 2.887,
+      "HP-16C": 2.887,
       "HP-35": 0.703,
       "HP-48G": 0.722,
     };

@@ -114,8 +114,10 @@ const HP48G_ROWS: RplKey[][] = [
 // (both portrait — just above the 0.68 tall threshold).
 const GEOM = {
   "HP-35": computeKeyboardGeometry({ rows: HP35_ROWS }, "classic"),
+  "HP-11C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-11C"] }, "voyager"),
   "HP-12C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-12C"] }, "voyager"),
   "HP-15C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-15C"] }, "voyager"),
+  "HP-16C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-16C"] }, "voyager"),
   // Per-model aspectClass override (§11 #4, §14 rev 5): at A≈0.722 the 48G is
   // numerically just above the 0.68 tall threshold, but its 9-row keyboard
   // BEHAVES tall — stacked on a desktop it starves the glass. Classing it
@@ -126,9 +128,11 @@ const GEOM = {
 
 export const MODELS: Record<string, Model> = {
   "HP-35":  { id: "HP-35",  name: "HP-35",  family: "classic", sub: "RPN · LED",        angle: false, geometry: GEOM["HP-35"],  rows: HP35_ROWS },
+  "HP-11C": { id: "HP-11C", name: "HP-11C", family: "voyager", sub: "RPN · SCIENTIFIC", angle: true,  geometry: GEOM["HP-11C"], keys: GENERATED_VOYAGER["HP-11C"] },
   "HP-12C": { id: "HP-12C", name: "HP-12C", family: "voyager", sub: "RPN · FINANCIAL",  angle: false, geometry: GEOM["HP-12C"], keys: GENERATED_VOYAGER["HP-12C"] },
   "HP-15C": { id: "HP-15C", name: "HP-15C", family: "voyager", sub: "RPN · SCIENTIFIC", angle: true,  geometry: GEOM["HP-15C"], keys: GENERATED_VOYAGER["HP-15C"] },
+  "HP-16C": { id: "HP-16C", name: "HP-16C", family: "voyager", sub: "RPN · PROGRAMMER", angle: false, geometry: GEOM["HP-16C"], keys: GENERATED_VOYAGER["HP-16C"] },
   "HP-48G": { id: "HP-48G", name: "HP-48G", family: "rpl",     sub: "RPL · GRAPHING",   angle: true,  geometry: GEOM["HP-48G"], rows: HP48G_ROWS },
 };
 
-export const MODEL_ORDER = ["HP-35", "HP-12C", "HP-15C", "HP-48G"] as const;
+export const MODEL_ORDER = ["HP-35", "HP-11C", "HP-12C", "HP-15C", "HP-16C", "HP-48G"] as const;

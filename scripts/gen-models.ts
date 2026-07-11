@@ -28,7 +28,7 @@ const mapping: Mapping = JSON.parse(
   readFileSync(resolve(ROOT, "hp/mapping/mapping.json"), "utf8"),
 );
 
-const VOYAGER_MODELS = ["HP-12C", "HP-15C"] as const;
+const VOYAGER_MODELS = ["HP-11C", "HP-12C", "HP-15C", "HP-16C"] as const;
 
 const pick = (presses: Press[], access: string) =>
   presses.find((p) => p.access === access)?.function ?? "";

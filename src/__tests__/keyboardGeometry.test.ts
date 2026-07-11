@@ -24,8 +24,10 @@ describe("keyboardAspect — the §4.2 formula", () => {
 
 describe("per-model geometry (MODELS registry, derived not hand-tuned)", () => {
   it.each([
+    ["HP-11C", 10, 4, 2.887, "landscape"],
     ["HP-12C", 10, 4, 2.887, "landscape"],
     ["HP-15C", 10, 4, 2.887, "landscape"],
+    ["HP-16C", 10, 4, 2.887, "landscape"],
     ["HP-35", 5, 8, 0.703, "portrait"],
     ["HP-48G", 6, 9, 0.722, "tall"], // per-model override: 9-row kbd behaves tall (§14 rev 5)
   ] as const)(
