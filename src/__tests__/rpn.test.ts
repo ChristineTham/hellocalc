@@ -1272,6 +1272,58 @@ describe("Phase-21: the HP-35s modern pioneer", () => {
   });
 });
 
+describe("Phase-22: the HP Prime touch-era plane", () => {
+  it("prints translate: Enter/Eval/Sto▸/x⁻¹/xʸ/Clear/Ans", () => {
+    const s = createRpn();
+    run(s, "5");
+    dispatch(s, "Enter");
+    run(s, "4");
+    dispatch(s, "x⁻¹");
+    expect(n(xval(s))).toBe(0.25);
+    dispatch(s, "Clear");
+    expect(n(xval(s))).toBe(0);
+    run(s, "2", "ENTER", "3");
+    dispatch(s, "xʸ");
+    expect(n(xval(s))).toBe(8);
+    dispatch(s, "Ans"); // LSTx
+    expect(n(xval(s))).toBe(3);
+  });
+
+  it("launchers open menus: Apps/Vars/Units/Base/Program; e i π pushes", () => {
+    const s = createRpn();
+    dispatch(s, "Apps");
+    expect(s.menu?.name).toBe("CATALOG");
+    dispatch(s, "Units");
+    expect(s.menu?.name).toBe("CONVERT");
+    dispatch(s, "Base");
+    expect(s.menu?.name).toBe("BASE");
+    dispatch(s, "e i π");
+    expect(menu42Labels(s).slice(0, 3)).toEqual(["π", "e", "i"]);
+    pressSoft42(s, 1); // e
+    expect(n(xval(s))).toBeCloseTo(Math.E, 12);
+    pressSoft42(s, 0); // π
+    expect(n(xval(s))).toBeCloseTo(Math.PI, 12);
+  });
+
+  it("Esc clears entry+menus; Copy/Paste round-trips the entry", () => {
+    const s = createRpn();
+    run(s, "1", "2");
+    dispatch(s, "Copy");
+    dispatch(s, "Esc");
+    expect(s.entry).toBeNull();
+    dispatch(s, "Paste");
+    expect(s.entry).toBe("12");
+  });
+
+  it("app-view keys accept with the native-era note (no inert keys)", () => {
+    const s = createRpn();
+    for (const k of ["Symb", "Plot", "Num", "CAS", "Home (house icon)", "x t θ n"]) {
+      expect(dispatch(s, k)).toBe(true);
+    }
+    expect(s.error).toBeNull();
+  });
+});
+
 describe("classic-era ops (HP-25/45/65/67 planes)", () => {
   it("R↑ is the inverse of R↓ (one full cycle restores the stack)", () => {
     const s = createRpn();

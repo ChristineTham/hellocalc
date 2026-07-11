@@ -27,6 +27,7 @@ export const MENUS42: Record<string, string[]> = {
   TESTX0: ["x<0", "x≤0", "x=0", "x≠0", "x>0", "x≥0"],
   SUMS: ["nΣ", "Σx", "Σy", "Σx²", "Σy²", "Σxy"],
   CONST: ["c", "g", "G", "NA", "k", "h", "e", "me"],
+  EIP: ["π", "e", "i"], // the Prime's constants key (P22)
   // SOLVER / ∫f(x) / CATALOG / CUSTOM / ALPHA / VARMENU resolve dynamically
 };
 

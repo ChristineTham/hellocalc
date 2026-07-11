@@ -178,6 +178,7 @@ export interface RpnEngine {
   /** CUSTOM row assignments (ASSIGN); assignPend captures the next key */
   custom42: string[];
   assignPend: boolean;
+  clip42: string | null; // the Prime's Copy/Paste buffer (P22)
   /** CFIT state: active model + the raw Σ points behind the fits */
   fit: "LINF" | "LOGF" | "EXPF" | "PWRF";
   pts: [number, number][];
@@ -208,6 +209,7 @@ export function createRpn(): RpnEngine {
     menuStack: [],
     custom42: [],
     assignPend: false,
+    clip42: null,
     fit: "LINF",
     pts: [],
     prgm: freshPrgm(),
@@ -1117,7 +1119,7 @@ export function applyFunction(s: RpnEngine, fn: string): boolean {
     inputDigit(s, fn);
     return true;
   }
-  if (fn.length === 2 && fn.startsWith("α")) {
+  if (fn.length >= 2 && fn.startsWith("α")) { // α-append (the Prime types multi-char glyphs too)
     // ALPHA-mode character (P6): append to the alpha register (24-char cap)
     if (s.alpha.length < 24) s.alpha += fn.slice(1);
     return true;
@@ -2605,6 +2607,15 @@ export function pressSoft42(s: RpnEngine, i: number): void {
     pushX(s, bn(CONST_VALUES[label] ?? "0"));
     return;
   }
+  if (s.menu?.name === "EIP") {
+    if (label === "π") dispatch(s, "π");
+    else if (label === "e") {
+      const ev = math.exp(bn(1));
+      if (math.isBigNumber(ev)) pushX(s, ev);
+    }
+    else dispatch(s, "I"); // i — form a complex from Y,X (P9)
+    return;
+  }
   if (s.menu?.name === "SOLVER") {
     dispatch(s, "SOLVE");
     dispatch(s, label);
@@ -2625,6 +2636,11 @@ const RPN_PRINTS: Record<string, string> = {
   "x↔y": "x⇄y", "HMS→": "D.MS→", "→HMS": "→D.MS", nCr: "Cy,x", nPr: "Py,x",
   RAND: "RAN#", "!": "x!", "L.R": "L.R.", "→RAD": "D→R", "→DEG": "R→D",
   "%CHG": "Δ%", LASTx: "LSTx", INTG: "INT", "x√y": "ˣ√y",
+  // the Prime's touch-era prints (P22)
+  Enter: "ENTER", Eval: "ENTER", "Sto▸": "STO", "x⁻¹": "1/x", "xʸ": "yˣ",
+  "x\\": "ˣ√y", Del: "←", "⌫ (backspace)": "←", Clear: "CLx", Ans: "LSTx",
+  "√": "√x", "≈": "→NUM35", On: "ON", "|x|": "ABS", Home: "Home (house icon)",
+  Tool: "[toolbox/box icon]", Tmpl: "[template icons: fraction/√/matrix]",
 };
 
 /** 35s affordances tied to EQUATION mode / fraction display — accepted, with
@@ -2634,9 +2650,37 @@ const ACCEPTED_35S = new Set([
   "/c", "FDISP", "SPACE", "◄", "►", "PSE",
 ]);
 
+/** Prime app-model keys (P22): views/dialogs of the native touch UI —
+ * accepted; the app model itself is the native phase's subject (P23). */
+const ACCEPTED_PRIME = new Set([
+  "Symb", "Plot", "Num", "Notes", "Info", "Help", "Settings", "Setup",
+  "View", "User", "Define", "List", "CAS", "Home (house icon)", "SPC",
+  "! ≠ →", "≤ ≥ ≠",
+  "[toolbox/box icon]", "[template icons: fraction/√/matrix]", "x t θ n",
+  "a b/c", "\\", "!,≠,→", "≤,≥,≠", ";", ":", "#", '" "', " ", "␣ (space)",
+  "Off", "∡ (angle)", "α\" \"", "_ (underscore)", ",",
+]);
+
 export function dispatch(s: RpnEngine, fn: string): boolean {
   fn = RPN_PRINTS[fn] ?? fn;
-  if (ACCEPTED_35S.has(fn)) return true;
+  if (ACCEPTED_35S.has(fn) || ACCEPTED_PRIME.has(fn)) return true;
+  if (fn === "Esc") {
+    s.entry = null;
+    s.menu = null;
+    s.menuStack = [];
+    return true;
+  }
+  if (fn === "Copy") {
+    s.clip42 = s.entry;
+    return true;
+  }
+  if (fn === "Paste") {
+    if (s.clip42 && (s.entry === null || /^[0-9.eE+-]*$/.test(s.entry))) {
+      s.entry = (s.entry ?? "") + s.clip42;
+    }
+    return true;
+  }
+  if (fn === "→NUM35") return true; // the Prime's ≈ (approx) — RPN is numeric
   // ---- the 42S RPN menu layer (P16) — navigation never records as steps ----
   if (fn === "EXIT") {
     s.assignPend = false;
@@ -2661,7 +2705,13 @@ export function dispatch(s: RpnEngine, fn: string): boolean {
     }
     return true;
   }
-  const menu35 = { MODE: "MODES", DISPLAY: "DISP", "x?y": "TESTXY", "x?0": "TESTX0", "x≤?": "TESTXY" }[fn];
+  const menu35 = {
+    MODE: "MODES", DISPLAY: "DISP", "x?y": "TESTXY", "x?0": "TESTX0", "x≤?": "TESTXY",
+    // the Prime's launcher keys (P22)
+    Apps: "CATALOG", Vars: "VARMENU", Units: "CONVERT", Base: "BASE",
+    Matrix: "MATRIX", Program: "PGM.FCN", Chars: "ALPHA", Mem: "CLEAR",
+    Menu: "CATALOG", "e i π": "EIP",
+  }[fn];
   if (menu35) {
     openMenu42(s, menu35);
     return true;

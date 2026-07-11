@@ -90,6 +90,22 @@ for distribution tails/erf, per architecture §4; keep any heavy tier lazy-loade
 - `pnpm lint` / `pnpm test` / `pnpm build` / `pnpm test:e2e` green; the existing UI suites
   (geometry, promotion, typing) stay green.
 
+## Delivery notes (as shipped)
+- The Prime rides the RPN engine + the P16 menu layer in its RPN entry
+  mode: Enter/Eval/Sto▸/x⁻¹/xʸ/√/⌫/Del/Clear/Ans/|x| translate; Esc clears
+  entry+menus; Copy/Paste round-trip the entry; Apps/Menu→CATALOG,
+  Vars→VARMENU, Units→CONVERT, Base→BASE, Matrix→MATRIX, Program→PGM.FCN,
+  Chars→ALPHA, Mem→CLEAR; "e i π" is a constants row (exact e and π on the
+  tower; i forms the P9 complex pair — Prime-scoped so the 12C's TVM i key
+  is untouched).
+- **The Prime app model (Home/CAS views, Symb/Plot/Num, touch dialogs,
+  templates, x t θ n, a b/c fractions) is ACCEPTED with the capability
+  documented as the native phase's subject (P23)** — those are windows into
+  a different computation model, not keys of the 4-level engine.
+- Shift / rocker / alpha-lock are hardware prefix keys (faceplate-local).
+- HP-Prime coverage oracle: GREEN — **ALL 21 MODELS now report zero inert
+  keys.**
+
 ## Notes / risks
 - Home/CAS is the central seam — variables and history are per-context; be explicit about which
   tier a function belongs to (capitalised = Home/numeric, lowercase = CAS/symbolic) and test the

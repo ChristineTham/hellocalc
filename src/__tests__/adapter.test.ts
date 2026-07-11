@@ -140,6 +140,11 @@ describe("model adapter (hp/mapping/mapping.json)", () => {
     expect(report.missing).toEqual([]);
   });
 
+  it("HP-Prime: NO key remains inert — the fleet is complete (Phase-22 DoD)", () => {
+    const report = coverage("HP-Prime", rpnImplements);
+    expect(report.missing).toEqual([]);
+  });
+
   it("HP-48SX: NO key remains inert — plotting + the 48 plane live (Phase-17 DoD)", async () => {
     const rpl = await import("@/lib/engine/rpl");
     const probe = (fn: string) => rpl.dispatchRpl(rpl.createRpl(), fn);

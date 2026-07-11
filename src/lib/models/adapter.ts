@@ -81,6 +81,7 @@ const FACEPLATE_LOCAL = new Set([
   // the 48-series shift/alpha keys + blank spacers (P17)
   "◄ (left-shift key)", "► (right-shift key)", "α (ALPHA)", "(blank)",
   "← (left-shift key)", "→ (right-shift key)", // the 49G/50g arrow shifts (P19)
+  "Shift", "Rocker wheel", "alpha (lock)", // the Prime's hardware keys (P22)
 ]);
 
 /** Coverage report for the no-inert-keys DoD line: which of a model's mapped

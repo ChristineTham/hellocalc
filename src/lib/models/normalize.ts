@@ -140,6 +140,9 @@ export const MODEL_FN_OVERRIDES: Record<string, Record<string, string>> = {
   "HP-35s": {
     PRGM: "W/PRGM",
   },
+  "HP-Prime": {
+    i: "I", // the Prime's imaginary unit — NOT the 12C's TVM interest key
+  },
   "HP-25": {
     PRGM: "CLEAR PRGM", // the f-row under the 25's CLEAR bracket
     REG: "CLEAR REG",

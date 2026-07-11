@@ -445,6 +445,24 @@ test.describe("hellocalc — smoke", () => {
     await expect(glass().getByText("299792458.00").first()).toBeVisible();
   });
 
+  test("Phase 22 on the live HP Prime: RPN math + the Apps launcher", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await selectModel(page, "HP Prime");
+    const key = (name: string) =>
+      page.getByRole("button", { name, exact: true }).click();
+    const glass = () => page.locator('[data-lcd-mode]:visible');
+
+    await key("2");
+    await key("Enter");
+    await key("3");
+    await key("xʸ");
+    await expect(glass().getByText("8.00").first()).toBeVisible();
+    await key("Apps");
+    await expect(glass().locator('[data-slot="menu-row"]').first()).toBeVisible();
+  });
+
   test("persistence: the session survives a reload (FR-STATE-1)", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "7", exact: true }).click();
