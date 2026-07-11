@@ -40,6 +40,9 @@ export interface DisplayProps {
   family: Family;
   showAngle?: boolean;
   showRegisters?: boolean; // HP-12C financial readout
+  /** Per-model glass proportions (e.g. the 50g's "131 / 80"); defaults to the
+   * family token (--hp-lcd-aspect-rpl, the 48-series 131:64). */
+  lcdAspect?: string;
   /**
    * Line-mode stack echo (§11 #8, resolved ON): the single-line bar grows to
    * two lines and echoes the top of the stack so Y/Z/T are never fully lost
@@ -112,6 +115,7 @@ export function Display({
   showRegisters,
   showStack,
   defaultMode,
+  lcdAspect,
   renderLatex,
   fmt,
 }: DisplayProps) {
@@ -138,11 +142,18 @@ export function Display({
       : null
     : { label: "Y", value: fmt(s.Y, s.dec) };
 
+  // Per-model glass proportions (the 50g is 131×80 vs the 48-series 131×64):
+  // override the aspect token locally so the family CSS picks it up.
+  const panelStyle = lcdAspect
+    ? ({ "--hp-lcd-aspect-rpl": lcdAspect } as React.CSSProperties)
+    : undefined;
+
   return (
     <div
       className="lcd-panel w-full"
       data-lcd-force={force ?? undefined}
       data-lcd-family={family}
+      style={panelStyle}
     >
       {/* ── State A: single line + annunciators (+ stack echo) ─────────────── */}
       <div data-lcd-mode="line" className={cn(glass, "lcd-line")}>

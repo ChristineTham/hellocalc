@@ -276,6 +276,89 @@ describe("ClassicKeyboard (HP-35) — dual-pitch subcolumn grid", () => {
   });
 });
 
+describe("RplKeyboard (HP-49G/50g) — 10-row grid with cursor-diamond gaps", () => {
+  const model = MODELS["HP-49G"];
+  if (model.family !== "rpl") throw new Error("HP-49G must be rpl");
+
+  it("gap cells consume grid slots but render no button; rows still fill exactly", () => {
+    const { container } = render(
+      <RplKeyboard
+        rows={model.rows}
+        geometry={model.geometry}
+        prefix="none"
+        onArm={noop}
+        onPress={noop}
+      />,
+    );
+    const keyCount = model.rows.reduce(
+      (n, r) => n + r.filter((k) => k.kind !== "gap").length,
+      0,
+    );
+    expect(container.querySelectorAll("button")).toHaveLength(keyCount);
+    // every child (buttons AND gap spacers) spans; each row sums to subcols
+    const root = keyboardRoot(container);
+    expect(root.style.gridTemplateColumns).toBe("repeat(30, minmax(0, 1fr))"); // lcm(6,5)
+    const children = Array.from(root.children) as HTMLElement[];
+    let i = 0;
+    for (const row of model.rows) {
+      let units = 0;
+      for (let k = 0; k < row.length; k++, i++) {
+        const m = /span (\d+)/.exec(children[i].style.gridColumn);
+        if (!m) throw new Error(`cell ${i} has no span`);
+        units += Number(m[1]);
+      }
+      expect(units).toBe(30);
+    }
+  });
+
+  it("ENTER is a normal-width bottom-right key (unlike the 48-series)", () => {
+    const { container } = render(
+      <RplKeyboard
+        rows={model.rows}
+        geometry={model.geometry}
+        prefix="none"
+        onArm={noop}
+        onPress={noop}
+      />,
+    );
+    const enter = Array.from(container.querySelectorAll<HTMLElement>("button")).find(
+      (b) => b.getAttribute("aria-label") === "ENTER",
+    );
+    expect(enter?.style.gridColumn).toBe("span 6 / span 6"); // w1 in a 5-unit row
+  });
+});
+
+describe("per-model shift palette (MachineUnit override)", () => {
+  it("HP-48SX re-themes the RAW --hp-shift-ls/rs at the bezel root (@theme inline)", async () => {
+    const { MachineUnit } = await import("@/components/calculator/MachineUnit");
+    const model = MODELS["HP-48SX"];
+    const state = {
+      T: 0, Z: 0, Y: 0, X: 0, lastX: 0, entry: null, dec: 2,
+      prefix: "none" as const, latex: "0", hist: [], rpl: [],
+    };
+    const stub = {
+      state,
+      prefix: "none" as const,
+      press: noop,
+      arm: noop,
+      fmt: (n: number) => n.toFixed(2),
+      renderLatex: (tex: string) => ({ __html: tex }),
+    };
+    const { container } = render(
+      <MachineUnit model={model} rpn={stub} rpl={stub} lcd={<div />} />,
+    );
+    const machine = container.querySelector<HTMLElement>('[data-slot="machine"]');
+    expect(machine?.style.getPropertyValue("--hp-shift-ls")).toBe("var(--hp-shift-ls-sx)");
+    expect(machine?.style.getPropertyValue("--hp-shift-rs")).toBe("var(--hp-shift-rs-sx)");
+    // the 48G keeps the family default — no inline override
+    const g = render(
+      <MachineUnit model={MODELS["HP-48G"]} rpn={stub} rpl={stub} lcd={<div />} />,
+    );
+    const gm = g.container.querySelector<HTMLElement>('[data-slot="machine"]');
+    expect(gm?.style.getPropertyValue("--hp-shift-ls")).toBe("");
+  });
+});
+
 describe("RplKeyboard (HP-48G) — dual-pitch subcolumn grid", () => {
   const model = MODELS["HP-48G"];
   if (model.family !== "rpl") throw new Error("HP-48G must be rpl");

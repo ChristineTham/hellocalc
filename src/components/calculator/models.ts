@@ -60,6 +60,7 @@ export interface RplKey {
     | "cur"
     | "bksp"
     | "soft"
+    | "gap" // bare faceplate spacer (49G/50g cursor-diamond corners) — no key
     | "std";
 }
 
@@ -72,6 +73,12 @@ export interface ModelBase {
   // DERIVED from the key data via computeKeyboardGeometry — drives the
   // aspect-locked fitter (--kbd-a) and template selection (data-aspect).
   geometry: KeyboardGeometry;
+  /** Per-model shift-key palette override (RPL siblings): CSS colour values
+   * (theme-token var() refs) that MachineUnit sets as --color-hp-shift-*
+   * on the bezel, re-theming every ls/rs surface inside. */
+  shift?: { ls: string; rs: string; lsFg?: string; rsFg?: string };
+  /** Per-model glass proportions (e.g. the 50g's 131×80 vs the 48's 131×64). */
+  lcdAspect?: string;
 }
 export type Model =
   | (ModelBase & { family: "voyager"; keys: VoyagerKey[] })
@@ -171,6 +178,47 @@ const HP48G_ROWS: RplKey[][] = [
   [r("ON","CONT","OFF","",1,"on"),r("0","=","→","",1,"digit"),r(".","","↵",""),r("SPC","π","∡",""),r("+","{ }","::","",1,"arith")],
 ];
 
+// ---- HP-48SX (RPL, same keyplate as the 48G; orange/blue shifts) -------------
+const HP48SX_ROWS: RplKey[][] = [
+  [r("","","","A",1,"soft"),r("","","","B",1,"soft"),r("","","","C",1,"soft"),r("","","","D",1,"soft"),r("","","","E",1,"soft"),r("","","","F",1,"soft")],
+  [r("MTH","PRINT","","G"),r("PRG","I/O","","H"),r("CST","MODES","","I"),r("VAR","MEMORY","","J"),r("▲","LIBRARY","","K",1,"cur"),r("NXT","PREV","","L")],
+  [r("′","UP","HOME","M"),r("STO","DEF","RCL","N"),r("EVAL","→Q","→NUM","O"),r("◄","GRAPH","","P",1,"cur"),r("▼","REVIEW","","Q",1,"cur"),r("►","SWAP","","R",1,"cur")],
+  [r("SIN","ASIN","∂","S"),r("COS","ACOS","∫","T"),r("TAN","ATAN","Σ","U"),r("√x","x²","ˣ√y","V"),r("yˣ","10ˣ","LOG","W"),r("1/x","eˣ","LN","X")],
+  [r("ENTER","EQUATION","MATRIX","",2,"enter"),r("+/−","EDIT","VISIT","Y"),r("EEX","2D","3D","Z"),r("DEL","PURGE","",""),r("◄","DROP","CLR","",1,"bksp")],
+  [r("α","USR","ENTRY","",1,"alpha"),r("7","SOLVE","","",1,"digit"),r("8","PLOT","","",1,"digit"),r("9","ALGEBRA","","",1,"digit"),r("÷","( )","#","",1,"arith")],
+  [r("◄","","","",1,"ls"),r("4","TIME","","",1,"digit"),r("5","STAT","","",1,"digit"),r("6","UNITS","","",1,"digit"),r("×","[ ]","_","",1,"arith")],
+  [r("►","","","",1,"rs"),r("1","RAD","POLAR","",1,"digit"),r("2","STACK","ARG","",1,"digit"),r("3","CMD","MENU","",1,"digit"),r("−","« »","\" \"","",1,"arith")],
+  [r("ON","CONT","OFF","",1,"on"),r("0","=","→","",1,"digit"),r(".",",","↵",""),r("SPC","π","∡",""),r("+","{ }","::","",1,"arith")],
+];
+
+// ---- HP-49G / HP-50g (RPL CAS: 10 rows, cursor diamond, bottom-right ENTER) --
+// Rows 2–3 approximate the round 4-way pad as a plus cluster on the 6-col
+// grid (◄ ▲ ► over a centred ▼) with bare-plate gaps at the corners.
+const HP49G_ROWS: RplKey[][] = [
+  [r("F1","Y=","","A",1,"soft"),r("F2","WIN","","B",1,"soft"),r("F3","GRAPH","","C",1,"soft"),r("F4","2D/3D","","D",1,"soft"),r("F5","TBLSET","","E",1,"soft"),r("F6","TABLE","","F",1,"soft")],
+  [r("APPS","FILES","BEGIN","G"),r("MODE","CUSTOM","END","H"),r("TOOL","i","|","I"),r("◄","","","",1,"cur"),r("▲","","","",1,"cur"),r("►","","","",1,"cur")],
+  [r("VAR","UPDIR","COPY","J"),r("STO▶","RCL","CUT","K"),r("NXT","PREV","PASTE","L"),r("","","","",1,"gap"),r("▼","","","",1,"cur"),r("","","","",1,"gap")],
+  [r("HIST","CMD","UNDO","M"),r("Cα","PRG","CHARS","N"),r("EQW","MTRW","′","O"),r("SYMB","MTH","EVAL","P"),r("←","DEL","CLEAR","",1,"bksp")],
+  [r("yˣ","eˣ","LN","Q"),r("√x","x²","ˣ√y","R"),r("SIN","ASIN","Σ","S"),r("COS","ACOS","∂","T"),r("TAN","ATAN","∫","U")],
+  [r("EEX","10ˣ","LOG","V"),r("+/−","≠","=","W"),r("X","≤","<","X"),r("1/x","≥",">","Y"),r("÷","ABS","ARG","Z",1,"arith")],
+  [r("ALPHA","USER","ENTRY","",1,"alpha"),r("7","S.SLV","NUM.SLV","",1,"digit"),r("8","EXP&LN","TRIG","",1,"digit"),r("9","FINANCE","TIME","",1,"digit"),r("×","[ ]","\" \"","",1,"arith")],
+  [r("◄","","","",1,"ls"),r("4","CALC","ALG","",1,"digit"),r("5","MATRICES","STAT","",1,"digit"),r("6","CONVERT","UNITS","",1,"digit"),r("−","( )","_","",1,"arith")],
+  [r("→","","","",1,"rs"),r("1","ARITH","CMPLX","",1,"digit"),r("2","DEF","LIB","",1,"digit"),r("3","#","BASE","",1,"digit"),r("+","{ }","« »","",1,"arith")],
+  [r("ON","CONT","OFF","",1,"on"),r("0","∞","→","",1,"digit"),r(".","::","↵",""),r("SPC","π",",",""),r("ENTER","ANS","→NUM","",1,"enter")],
+];
+const HP50G_ROWS: RplKey[][] = [
+  [r("F1","Y=","","A",1,"soft"),r("F2","WIN","","B",1,"soft"),r("F3","GRAPH","","C",1,"soft"),r("F4","2D/3D","","D",1,"soft"),r("F5","TBLSET","","E",1,"soft"),r("F6","TABLE","","F",1,"soft")],
+  [r("APPS","FILES","BEGIN","G"),r("MODE","CUSTOM","END","H"),r("TOOL","i","|","I"),r("◄","","","",1,"cur"),r("▲","","","",1,"cur"),r("►","","","",1,"cur")],
+  [r("VAR","UPDIR","COPY","J"),r("STO▸","RCL","CUT","K"),r("NXT","PREV","PASTE","L"),r("","","","",1,"gap"),r("▼","","","",1,"cur"),r("","","","",1,"gap")],
+  [r("HIST","CMD","UNDO","M"),r("EVAL","PRG","CHARS","N"),r("′","MTRW","EQW","O"),r("SYMB","MTH","CAT","P"),r("←","DEL","CLEAR","",1,"bksp")],
+  [r("yˣ","eˣ","LN","Q"),r("√x","x²","ˣ√y","R"),r("SIN","ASIN","Σ","S"),r("COS","ACOS","∂","T"),r("TAN","ATAN","∫","U")],
+  [r("EEX","10ˣ","LOG","V"),r("+/−","≠","=","W"),r("X","≤","<","X"),r("1/X","≥",">","Y"),r("÷","ABS","ARG","Z",1,"arith")],
+  [r("ALPHA","USER","ENTRY","",1,"alpha"),r("7","S.SLV","NUM.SLV","",1,"digit"),r("8","EXP&LN","TRIG","",1,"digit"),r("9","FINANCE","TIME","",1,"digit"),r("×","[ ]","\" \"","",1,"arith")],
+  [r("◄","","","",1,"ls"),r("4","CALC","ALG","",1,"digit"),r("5","MATRICES","STAT","",1,"digit"),r("6","CONVERT","UNITS","",1,"digit"),r("−","( )","_","",1,"arith")],
+  [r("→","","","",1,"rs"),r("1","ARITH","CMPLX","",1,"digit"),r("2","DEF","LIB","",1,"digit"),r("3","#","BASE","",1,"digit"),r("+","{ }","« »","",1,"arith")],
+  [r("ON","CONT","OFF","",1,"on"),r("0","∞","→","",1,"digit"),r(".","::","↵",""),r("SPC","π",",",""),r("ENTER","ANS","→NUM","",1,"enter")],
+];
+
 // Geometry is DERIVED per model from its key data (never hand-tuned): the
 // 10×4 Voyagers land ≈2.89 (landscape); HP-35 5×8 ≈0.70 and HP-48G 6×9 ≈0.72
 // (both portrait — just above the 0.68 tall threshold).
@@ -184,12 +232,16 @@ const GEOM = {
   "HP-12C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-12C"] }, "voyager"),
   "HP-15C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-15C"] }, "voyager"),
   "HP-16C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-16C"] }, "voyager"),
-  // Per-model aspectClass override (§11 #4, §14 rev 5): at A≈0.722 the 48G is
-  // numerically just above the 0.68 tall threshold, but its 9-row keyboard
+  // Per-model aspectClass override (§11 #4, §14 rev 5): at A≈0.722 the 48-series
+  // is numerically just above the 0.68 tall threshold, but its 9-row keyboard
   // BEHAVES tall — stacked on a desktop it starves the glass. Classing it
   // tall sends it side-by-side on desktops while true portrait classics
   // (HP-35, 8 rows) keep the LCD-above-keys look.
+  "HP-48SX": computeKeyboardGeometry({ rows: HP48SX_ROWS }, "rpl", { aspectClass: "tall" }),
   "HP-48G": computeKeyboardGeometry({ rows: HP48G_ROWS }, "rpl", { aspectClass: "tall" }),
+  // 49G/50g: 10 rows → A≈0.649, tall by derivation (no override needed).
+  "HP-49G": computeKeyboardGeometry({ rows: HP49G_ROWS }, "rpl"),
+  "HP-50g": computeKeyboardGeometry({ rows: HP50G_ROWS }, "rpl"),
 } satisfies Record<string, KeyboardGeometry>;
 
 export const MODELS: Record<string, Model> = {
@@ -202,11 +254,17 @@ export const MODELS: Record<string, Model> = {
   "HP-12C": { id: "HP-12C", name: "HP-12C", family: "voyager", sub: "RPN · FINANCIAL",  angle: false, geometry: GEOM["HP-12C"], keys: GENERATED_VOYAGER["HP-12C"] },
   "HP-15C": { id: "HP-15C", name: "HP-15C", family: "voyager", sub: "RPN · SCIENTIFIC", angle: true,  geometry: GEOM["HP-15C"], keys: GENERATED_VOYAGER["HP-15C"] },
   "HP-16C": { id: "HP-16C", name: "HP-16C", family: "voyager", sub: "RPN · PROGRAMMER", angle: false, geometry: GEOM["HP-16C"], keys: GENERATED_VOYAGER["HP-16C"] },
+  "HP-48SX": { id: "HP-48SX", name: "HP-48SX", family: "rpl", sub: "RPL · GRAPHING", angle: true, geometry: GEOM["HP-48SX"], rows: HP48SX_ROWS,
+    shift: { ls: "var(--hp-shift-ls-sx)", rs: "var(--hp-shift-rs-sx)" } },
   "HP-48G": { id: "HP-48G", name: "HP-48G", family: "rpl",     sub: "RPL · GRAPHING",   angle: true,  geometry: GEOM["HP-48G"], rows: HP48G_ROWS },
+  "HP-49G": { id: "HP-49G", name: "HP-49G", family: "rpl", sub: "RPL · CAS", angle: true, geometry: GEOM["HP-49G"], rows: HP49G_ROWS,
+    shift: { ls: "var(--hp-shift-ls-49)", rs: "var(--hp-shift-rs-49)" } },
+  "HP-50g": { id: "HP-50g", name: "HP-50g", family: "rpl", sub: "RPL · CAS", angle: true, geometry: GEOM["HP-50g"], rows: HP50G_ROWS, lcdAspect: "131 / 80",
+    shift: { ls: "var(--hp-shift-ls-50)", rs: "var(--hp-shift-rs-50)", lsFg: "var(--hp-shift-f-fg)" } },
 };
 
 export const MODEL_ORDER = [
   "HP-35", "HP-45", "HP-65", "HP-25", "HP-67",
   "HP-11C", "HP-12C", "HP-15C", "HP-16C",
-  "HP-48G",
+  "HP-48SX", "HP-48G", "HP-49G", "HP-50g",
 ] as const;

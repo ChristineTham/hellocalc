@@ -23,9 +23,11 @@ const bgFor = (kind: RplKey["kind"]) => {
     case "arith":
       return "bg-hp-op text-hp-op-fg";
     case "ls":
-      return "bg-hp-shift-ls text-white";
+      // fg is a token so per-model palettes stay legible (the 50g's white
+      // left-shift key carries dark ink)
+      return "bg-hp-shift-ls text-hp-shift-ls-fg";
     case "rs":
-      return "bg-hp-shift-rs text-white";
+      return "bg-hp-shift-rs text-hp-shift-rs-fg";
     case "on":
       return "bg-hp-key text-destructive";
     default:
@@ -84,6 +86,17 @@ export function RplKeyboard({ rows, geometry, prefix, onArm, onPress }: RplKeybo
       {rows.map((row, ri) =>
         row.map((k, ki) => {
           const spanCols = subgridSpan(k, rowUnits[ri], subcols);
+          // bare-plate spacer (49G/50g cursor-diamond corners): consumes its
+          // grid slots but renders no key
+          if (k.kind === "gap") {
+            return (
+              <div
+                key={`${ri}-${ki}`}
+                aria-hidden
+                style={{ gridColumn: `span ${spanCols} / span ${spanCols}` }}
+              />
+            );
+          }
           const promoted = promotedOf(k);
           return (
             <ButtonPrimitive

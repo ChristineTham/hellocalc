@@ -195,6 +195,13 @@ export function applyRplFunction(s: RplEngine, fn: string): boolean {
       commit(s);
       s.stack.push(Math.PI);
       return true;
+    case "ˣ√y":
+      // XROOT: level-1-th root of level 2 (48/49/50 right-shift of √x)
+      binary(s, (a, b) => Math.pow(a, 1 / b));
+      return true;
+    case "ABS":
+      unary(s, Math.abs);
+      return true;
     default:
       return false;
   }

@@ -33,12 +33,36 @@ export interface MachineUnitProps {
   paper?: React.ReactNode;
 }
 
+/** CSSProperties + the per-model shift-palette vars (§14 — RPL siblings).
+ * NOTE: the app's `@theme inline` compiles utilities to the RAW --hp-* vars
+ * (one level inlined), so per-machine overrides must target --hp-shift-*,
+ * not --color-hp-shift-*. */
+type MachineStyle = React.CSSProperties &
+  Partial<
+    Record<
+      "--hp-shift-ls" | "--hp-shift-rs" | "--hp-shift-ls-fg" | "--hp-shift-rs-fg",
+      string
+    >
+  >;
+
 export function MachineUnit({ model, rpn, rpl, lcd, paper }: MachineUnitProps) {
   const badgeName = nameplateModel(model.name);
+  // Re-theme every ls/rs surface inside the bezel (keys, legends, gradients)
+  // by overriding the colour tokens at the machine root — the 48SX prints
+  // orange/blue, the 49G green/red, the 50g white/orange.
+  const style: MachineStyle | undefined = model.shift
+    ? {
+        "--hp-shift-ls": model.shift.ls,
+        "--hp-shift-rs": model.shift.rs,
+        ...(model.shift.lsFg ? { "--hp-shift-ls-fg": model.shift.lsFg } : {}),
+        ...(model.shift.rsFg ? { "--hp-shift-rs-fg": model.shift.rsFg } : {}),
+      }
+    : undefined;
   return (
     <div
       data-slot="machine"
       data-family={model.family}
+      style={style}
       className={cn(
         // machine plane (§13.1): the elevated instrument under warm light
         "machine rounded-[var(--radius-bezel)] border border-hp-bezel-border bg-hp-bezel shadow-[0_18px_36px_-14px_var(--color-shadow-warm)]",

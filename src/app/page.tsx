@@ -90,6 +90,7 @@ export default function Home() {
                 family={model.family}
                 showAngle={model.angle}
                 showRegisters={model.id === "HP-12C"}
+                lcdAspect={model.lcdAspect}
                 renderLatex={active.renderLatex}
                 fmt={active.fmt}
               />

@@ -70,4 +70,17 @@ describe("RPL dynamic-stack engine", () => {
     const s = createRpl();
     expect(applyRplFunction(s, "PLOT")).toBe(false);
   });
+
+  it("\u02e3\u221ay: 8 ENTER 3 XROOT = 2 (49G/50g right-shift of \u221ax)", () => {
+    const s = createRpl();
+    run(s, "8", "ENTER", "3", "\u02e3\u221ay");
+    expect(s.stack).toHaveLength(1);
+    expect(s.stack[0]).toBeCloseTo(2, 12);
+  });
+
+  it("ABS on the top only", () => {
+    const s = createRpl();
+    run(s, "5", "+/\u2212", "ABS");
+    expect(s.stack).toEqual([5]);
+  });
 });

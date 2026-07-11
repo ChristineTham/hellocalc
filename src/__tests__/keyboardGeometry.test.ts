@@ -33,7 +33,10 @@ describe("per-model geometry (MODELS registry, derived not hand-tuned)", () => {
     ["HP-65", 5, 8, 0.703, "portrait"],
     ["HP-25", 5, 7, 0.805, "portrait"], // stubbier Woodstock: 7 rows
     ["HP-67", 5, 8, 0.703, "portrait"],
+    ["HP-48SX", 6, 9, 0.722, "tall"], // per-model override, same posture as 48G
     ["HP-48G", 6, 9, 0.722, "tall"], // per-model override: 9-row kbd behaves tall (§14 rev 5)
+    ["HP-49G", 6, 10, 0.649, "tall"], // 10 rows → tall by derivation
+    ["HP-50g", 6, 10, 0.649, "tall"],
   ] as const)(
     "%s → %d×%d, A≈%f (±0.02), %s",
     (id, cols, rows, aspect, aspectClass) => {

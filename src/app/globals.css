@@ -77,6 +77,11 @@
   --color-hp-shift-g: var(--hp-shift-g); /* Voyager blue g (lower face) */
   --color-hp-shift-ls: var(--hp-shift-ls); /* RPL left-shift  (48G purple) */
   --color-hp-shift-rs: var(--hp-shift-rs); /* RPL right-shift (48G green)  */
+  --color-hp-shift-ls-fg: var(--hp-shift-ls-fg); /* ink on the ls/rs prefix keys */
+  --color-hp-shift-rs-fg: var(--hp-shift-rs-fg);
+  /* Sibling shift palettes (--hp-shift-*-sx/49/50) are raw vars only: models
+     override the RAW --hp-shift-ls/rs per machine (MachineUnit) because
+     @theme inline compiles utilities down to the raw var references. */
   /* Chrome accent pair + warm shadow tint (§13.3, §13.6) */
   --color-terracotta: var(--terracotta);
   --color-salvia: var(--salvia);
@@ -224,6 +229,17 @@
   --hp-shift-g: #35619e;
   --hp-shift-ls: #6d4f9e;
   --hp-shift-rs: #2f7d4f;
+  --hp-shift-ls-fg: #ffffff; /* ink on the shift KEYS (50g overrides to dark) */
+  --hp-shift-rs-fg: #ffffff;
+  /* RPL sibling shift palettes (§14 — per-model override via MachineUnit):
+     48SX orange/blue · 49G green/red · 50g white/orange (49G colours are a
+     [judgment] from product photos — its manual scan is monochrome). */
+  --hp-shift-ls-sx: #b9682a;
+  --hp-shift-rs-sx: #46719f;
+  --hp-shift-ls-49: #35815a;
+  --hp-shift-rs-49: #a84440;
+  --hp-shift-ls-50: #b5ac97;
+  --hp-shift-rs-50: #c07a2e;
 }
 
 /* ---------- DARK — graphite chassis + olive LCD ---------- */
@@ -285,6 +301,14 @@
   --hp-shift-g: #5b8fd6;
   --hp-shift-ls: #b492e6;
   --hp-shift-rs: #5fc487;
+  --hp-shift-ls-fg: #ffffff;
+  --hp-shift-rs-fg: #ffffff;
+  --hp-shift-ls-sx: #d3854a;
+  --hp-shift-rs-sx: #6b93bd;
+  --hp-shift-ls-49: #57a37b;
+  --hp-shift-rs-49: #c4635f;
+  --hp-shift-ls-50: #d8d2c5;
+  --hp-shift-rs-50: #d3924a;
 }
 
 @layer base {
