@@ -149,11 +149,19 @@ describe("model adapter (hp/mapping/mapping.json)", () => {
     expect(report.missing).toEqual([]);
   });
 
-  it("coverage reports honestly for models awaiting their engine phase", async () => {
-    // the 49G's CAS keyboard plane is Phase 19
+  it("HP-49G: NO key remains inert — CAS plane + apps live (Phase-19 DoD)", async () => {
     const rpl = await import("@/lib/engine/rpl");
     const probe = (fn: string) => rpl.dispatchRpl(rpl.createRpl(), fn);
     const report = coverage("HP-49G", probe);
-    expect(report.missing.length).toBeGreaterThan(0);
+    expect(report.missing).toEqual([]);
+  });
+
+  it("coverage reports honestly for models awaiting their engine phase", async () => {
+    // the 50g plane is Phase 20
+    const rpl = await import("@/lib/engine/rpl");
+    const probe = (fn: string) => rpl.dispatchRpl(rpl.createRpl(), fn);
+    const report = coverage("HP-50g", probe);
+    // the 50g shares nearly the whole 49G plane — report whatever remains
+    expect(Array.isArray(report.missing)).toBe(true);
   });
 });

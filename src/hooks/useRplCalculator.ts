@@ -18,7 +18,7 @@ import {
 } from "@/lib/engine/rpl";
 import { formatObj } from "@/lib/engine/rpl/object";
 import { formatValue } from "@/lib/engine/format";
-import { casReady } from "@/lib/engine/cas/provider";
+import { casReady, getCas } from "@/lib/engine/cas/provider";
 import { loadNerdamerProvider } from "@/lib/engine/cas/nerdamer-provider";
 import { setCas } from "@/lib/engine/cas/provider";
 import { objToTex } from "@/lib/render/tex";
@@ -28,7 +28,16 @@ import type { RpnState } from "@/components/calculator/Display";
 export type RplPrefix = "none" | "ls" | "rs" | "alpha";
 
 /** Keys/softkeys that need the lazy CAS tier (P14). */
-const CAS_FNS = new Set(["d/dx", "∂", "∫", "COLCT", "EXPAN", "FACTOR", "ISOL", "QUAD", "TAYLR"]);
+const CAS_FNS = new Set([
+  "d/dx", "∂", "∫", "COLCT", "EXPAN", "FACTOR", "ISOL", "QUAD", "TAYLR",
+  "DERVX", "INTVX", "SIMPLIFY", "SOLVEVX", "ZEROS", "SUBST", // 49G, light tier
+]);
+
+/** 49G operations that need the HEAVY (Pyodide+SymPy) tier — multi-MB WASM
+ * from the CDN, loaded on first use with an explicit state (P19, NFR-3/4). */
+const HEAVY_FNS = new Set([
+  "lim", "LIMIT", "SERIES", "PARTFRAC", "TEXPAND", "RISCH", "DESOLVE", "LAP", "ILAP",
+]);
 
 export interface RplCalculator {
   state: RpnState;
@@ -54,6 +63,8 @@ const clone = (e: RplEngine): RplEngine => ({
   custom: [...e.custom],
   pict: [...e.pict],
   menuStack48: [...e.menuStack48],
+  ans: e.ans,
+
   plot: e.plot ? { ...e.plot, points: [...e.plot.points] } : null,
   flags: [...e.flags],
   last: [...e.last],
@@ -96,9 +107,44 @@ export function useRplCalculator(): RplCalculator {
     });
   }, []);
 
+  // the heavy tier loads over the network (WASM + sympy wheel) — explicit
+  const withHeavy = useCallback((go: (e: RplEngine) => void) => {
+    setEngine((prev) => {
+      const next = clone(prev);
+      next.msg = "Loading advanced CAS (SymPy, multi-MB — first use only)…";
+      return next;
+    });
+    void import("@/lib/engine/cas/pyodide-provider")
+      .then(({ loadPyodideProvider }) => loadPyodideProvider())
+      .then((p) => {
+        setCas(p);
+        setEngine((prev) => {
+          const next = clone(prev);
+          next.msg = null;
+          go(next);
+          return next;
+        });
+      })
+      .catch(() => {
+        setEngine((prev) => {
+          const next = clone(prev);
+          next.msg = null;
+          next.error = "Advanced CAS failed to load (network required)";
+          return next;
+        });
+      });
+  }, []);
+
+  const heavyReady = () => {
+    const c = getCas();
+    return c !== null && "limit" in c;
+  };
+
   const press = useCallback(
     (fn: string) => {
-      if (CAS_FNS.has(fn) && !casReady()) {
+      if (HEAVY_FNS.has(fn) && !heavyReady()) {
+        withHeavy((e) => dispatchRpl(e, fn));
+      } else if (CAS_FNS.has(fn) && !casReady()) {
         withCas((e) => dispatchRpl(e, fn));
       } else {
         setEngine((prev) => {
@@ -109,13 +155,20 @@ export function useRplCalculator(): RplCalculator {
       }
       setPrefix("none");
     },
-    [withCas],
+    [withCas, withHeavy],
   );
 
   const soft = useCallback(
     (i: number) => {
       setEngine((prev) => {
-        if (CAS_FNS.has(menuLabels(prev)[i] ?? "") && !casReady()) {
+        const label = menuLabels(prev)[i] ?? "";
+        if (HEAVY_FNS.has(label) && !heavyReady()) {
+          withHeavy((e) => pressSoft(e, i));
+          const next = clone(prev);
+          next.msg = "Loading advanced CAS (SymPy, multi-MB — first use only)…";
+          return next;
+        }
+        if (CAS_FNS.has(label) && !casReady()) {
           // re-enter through the loader; return the loading state for now
           withCas((e) => pressSoft(e, i));
           const next = clone(prev);
@@ -128,7 +181,7 @@ export function useRplCalculator(): RplCalculator {
       });
       setPrefix("none");
     },
-    [withCas],
+    [withCas, withHeavy],
   );
 
   const recall = useCallback((raw: string) => {

@@ -80,6 +80,7 @@ const FACEPLATE_LOCAL = new Set([
   "■ (shift)", // the 42S/pioneer shift key print (P16)
   // the 48-series shift/alpha keys + blank spacers (P17)
   "◄ (left-shift key)", "► (right-shift key)", "α (ALPHA)", "(blank)",
+  "← (left-shift key)", "→ (right-shift key)", // the 49G/50g arrow shifts (P19)
 ]);
 
 /** Coverage report for the no-inert-keys DoD line: which of a model's mapped

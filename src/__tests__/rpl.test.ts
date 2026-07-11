@@ -794,6 +794,108 @@ describe("P18 the 48G: stat plots, fits, lists, linear algebra, TVM", () => {
   });
 });
 
+describe("P19 the 49G: number theory, CAS routing, heavy tier", () => {
+  it("ARITH is pure TS and exact: GCD/LCM/ISPRIME?/NEXTPRIME/FACTORS/EULER", () => {
+    const s = createRpl();
+    line(s, "12 18 GCD");
+    expect(nums(s.stack)).toEqual([6]);
+    line(s, "CLEAR 4 6 LCM");
+    expect(nums(s.stack)).toEqual([12]);
+    line(s, "CLEAR 97 ISPRIME?");
+    expect(nums(s.stack)).toEqual([1]);
+    line(s, "CLEAR 100 NEXTPRIME");
+    expect(nums(s.stack)).toEqual([101]);
+    line(s, "CLEAR 360 FACTORS");
+    expect(fmtTop(s)).toBe("{ 2 3 3 2 5 1 }"); // 2³·3²·5
+    line(s, "CLEAR 10 EULER");
+    expect(nums(s.stack)).toEqual([4]);
+  });
+
+  it("DERVX/INTVX/SOLVEVX ride the light tier wrt X", async () => {
+    const { loadNerdamerProvider } = await import("@/lib/engine/cas/nerdamer-provider");
+    const { setCas } = await import("@/lib/engine/cas/provider");
+    setCas(await loadNerdamerProvider());
+    const s = createRpl();
+    line(s, "'X^3' DERVX");
+    expect(s.stack[0]).toEqual({ k: "alg", src: "3*X^2" });
+    line(s, "CLEAR 'X^2-9' SOLVEVX");
+    expect(fmtTop(s)).toBe("{ 3 -3 }");
+    line(s, "CLEAR 'X^2+A' 'A=5' SUBST");
+    expect(s.stack[0]).toEqual({ k: "alg", src: "5+X^2" });
+  });
+
+  it("heavy-only ops report the loading affordance until SymPy registers", async () => {
+    // reset to the light tier (may carry a heavy mock from a previous test)
+    const { loadNerdamerProvider } = await import("@/lib/engine/cas/nerdamer-provider");
+    const { setCas } = await import("@/lib/engine/cas/provider");
+    setCas(await loadNerdamerProvider());
+    const s = createRpl();
+    line(s, "'SIN(X)/X' 'X' 0 lim");
+    expect(s.error).toMatch(/Advanced CAS/);
+  });
+
+  it("with a (mock) heavy provider, lim/PARTFRAC/LAP route through it", async () => {
+    const { setCas } = await import("@/lib/engine/cas/provider");
+    const calls: string[] = [];
+    const mock = {
+      diff: () => "d", integrate: () => "i", expand: () => "e", simplify: () => "s",
+      factor: () => "f", solve: () => ["1"], taylor: () => "t", toLatex: () => "x",
+      limit: (e: string, v: string, to: string) => (calls.push(`lim ${e} ${v} ${to}`), "1"),
+      series: () => "1+X", partfrac: (e: string) => (calls.push(`pf ${e}`), "1/(X+1)"),
+      texpand: () => "tx", desolve: () => "de", laplace: () => "1/s^2", ilaplace: () => "T",
+    };
+    setCas(mock);
+    const s = createRpl();
+    line(s, "'SIN(X)/X' 'X' 0 lim");
+    expect(nums(s.stack)).toEqual([1]);
+    expect(calls[0]).toBe("lim SIN(X)/X X 0");
+    line(s, "CLEAR '1/(X^2+X)' 'X' PARTFRAC");
+    expect(s.stack[0]).toEqual({ k: "alg", src: "1/(X+1)" });
+    line(s, "CLEAR 'X' 'X' LAP");
+    expect(s.stack[0]).toEqual({ k: "alg", src: "1/s^2" });
+    // restore the light tier for later tests
+    const { loadNerdamerProvider } = await import("@/lib/engine/cas/nerdamer-provider");
+    setCas(await loadNerdamerProvider());
+  });
+
+  it("49G keys: F-row softkeys, ANS, COPY/PASTE, TABLE, EQW", () => {
+    const s = createRpl();
+    line(s, "7");
+    dispatchRpl(s, "STACK");
+    dispatchRpl(s, "F1"); // the labelled soft row → DUP
+    expect(nums(s.stack)).toEqual([7, 7]);
+    line(s, "1 2 +");
+    dispatchRpl(s, "ANS");
+    expect(nums(s.stack).slice(-1)).toEqual([3]);
+    dispatchRpl(s, "ON");
+    s.entry = "123";
+    dispatchRpl(s, "COPY");
+    dispatchRpl(s, "PASTE");
+    expect(s.entry).toBe("123123");
+    dispatchRpl(s, "ON");
+    line(s, "'X^2' STEQ -2 2 XRNG");
+    dispatchRpl(s, "TABLE");
+    const t = s.stack[s.stack.length - 1];
+    expect(t.k === "list" && t.items.length).toBe(11);
+    dispatchRpl(s, "EQW");
+    expect(s.entry).toBe("'");
+  });
+
+  it("APPS/CALC/ARITH keys open their menus; CHARS types glyphs", () => {
+    const s = createRpl();
+    dispatchRpl(s, "CALC");
+    expect(menuLabels(s)).toEqual(["DERVX", "INTVX", "lim", "SERIES", "TAYLR", "RISCH"]);
+    dispatchRpl(s, "ARITH");
+    expect(menuLabels(s)[2]).toBe("ISPRIME?");
+    dispatchRpl(s, "CHARS");
+    pressSoft(s, 1); // π
+    expect(s.entry).toBe("π");
+    dispatchRpl(s, "ON");
+    dispatchRpl(s, "FINANCE");
+    expect(menuLabels(s)[0]).toBe("TVMROOT");
+  });
+});
+
 describe("P12 command line, editing, and recovery", () => {
   it("the ◆ key types the algebraic delimiter; operators append in text mode", () => {
     const s = createRpl();

@@ -363,6 +363,33 @@ test.describe("hellocalc — smoke", () => {
     await expect(glass().locator('[data-slot="plot-panel"]')).toHaveCount(0);
   });
 
+  test("Phase 19 on the live HP-49G: ARITH number theory + app menus", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await selectModel(page, "HP-49G");
+    const key = (name: string) =>
+      page.getByRole("button", { name, exact: true }).click();
+    const glass = () => page.locator('[data-lcd-mode]:visible');
+    const ls = () => page.locator('button[data-kind="ls"]').click();
+
+    // 97 ISPRIME? through the ARITH menu (left-shift 1) — the 49G's soft
+    // row is the labelled F1–F6 keys
+    await key("9");
+    await key("7");
+    await key("ENTER");
+    await ls();
+    await key("1"); // → ARITH
+    await expect(glass().locator('[data-slot="menu-row"]').first()).toContainText("ISPRIME?");
+    await key("F3"); // ISPRIME?
+    await expect(glass().getByText("1", { exact: true }).first()).toBeVisible();
+
+    // FINANCE (left-shift 9) opens the TVM roster from P18
+    await ls();
+    await key("9");
+    await expect(glass().locator('[data-slot="menu-row"]').first()).toContainText("TVMROOT");
+  });
+
   test("persistence: the session survives a reload (FR-STATE-1)", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "7", exact: true }).click();

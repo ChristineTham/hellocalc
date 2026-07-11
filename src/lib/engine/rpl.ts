@@ -47,6 +47,8 @@ import {
 } from "./units";
 import { UNIT_CATEGORIES, UNIT_MENUS } from "./units-catalog";
 import { getCas } from "./cas/provider";
+import type { HeavyCasProvider } from "./cas/pyodide-provider";
+import { factorsBig, gcdBig, isPrimeBig, lcmBig, nextPrimeBig, totientBig } from "./numtheory";
 import {
   cToPx, PICT_H, PICT_W, type PlotPoint, type PlotReq, pxToC, rasterLine, sampleSeries,
 } from "./rpl/plot";
@@ -112,6 +114,8 @@ export interface RplEngine {
   pict: string[]; // lit pixels as "x,y" keys (GROB-lite)
   menuStack48: string[]; // submenu nesting (MTH → PROB …)
   fitModel: "LINFIT" | "LOGFIT" | "EXPFIT" | "PWRFIT"; // the 48G ΣPAR model
+  clip: string | null; // COPY/CUT/PASTE buffer (49G editing keys)
+  ans: RplObj | null; // the 49G ANS: level 1 after the last committed line
   error: string | null;
   errN: number; // ERRN / ERRM (IFERR)
   errM: string;
@@ -147,6 +151,8 @@ export function createRpl(): RplEngine {
     pict: [],
     menuStack48: [],
     fitModel: "LINFIT",
+    clip: null,
+    ans: null,
     error: null,
     errN: 0,
     errM: "",
@@ -238,6 +244,14 @@ function requireCas() {
   const cas = getCas();
   if (!cas) throw err("CAS loading — press again");
   return cas;
+}
+/** The heavy (SymPy) tier when loaded — feature-tested via the extras. */
+function requireHeavy(): HeavyCasProvider {
+  const cas = getCas();
+  if (!cas || !("limit" in cas)) {
+    throw err("Advanced CAS (SymPy) loading — press again");
+  }
+  return cas as HeavyCasProvider;
 }
 function tryCas<T>(op: () => T): T {
   try {
@@ -2944,6 +2958,153 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
     case "RRK":
     case "RKFSTEP":
       throw err("ODE suite deferred (documented)");
+    // ---- 49G additions (P19) -----------------------------------------------------------------------
+    // number theory (ARITH) — pure TS, exact
+    case "GCD":
+    case "LCM": {
+      const [a, b] = popN(s, 2);
+      const x = BigInt(wantReal(a).trunc().toFixed(0));
+      const y = BigInt(wantReal(b).trunc().toFixed(0));
+      s.stack.push(real(bn((w === "GCD" ? gcdBig(x, y) : lcmBig(x, y)).toString())));
+      return true;
+    }
+    case "ISPRIME?": {
+      const x = BigInt(wantReal(pop1(s)).trunc().toFixed(0));
+      s.stack.push(real(bn(isPrimeBig(x) ? 1 : 0)));
+      return true;
+    }
+    case "NEXTPRIME": {
+      const x = BigInt(wantReal(pop1(s)).trunc().toFixed(0));
+      s.stack.push(real(bn(nextPrimeBig(x).toString())));
+      return true;
+    }
+    case "FACTORS": {
+      const x = BigInt(wantReal(pop1(s)).trunc().toFixed(0));
+      const f = factorsBig(x);
+      if (f === null) throw err("Factor exceeds the trial bound (documented)");
+      const items: RplObj[] = [];
+      for (const [prime, k2] of f) {
+        items.push(real(bn(prime.toString())), real(bn(k2)));
+      }
+      s.stack.push({ k: "list", items });
+      return true;
+    }
+    case "EULER": {
+      const x = BigInt(wantReal(pop1(s)).trunc().toFixed(0));
+      const t = totientBig(x);
+      if (t === null) throw err("Factor exceeds the trial bound (documented)");
+      s.stack.push(real(bn(t.toString())));
+      return true;
+    }
+    // CAS surface: light tier where it suffices, SymPy for the rest
+    case "DERVX":
+      pushCasResult(s, requireCas().diff(algSrcOf(pop1(s)), "X"));
+      return true;
+    case "INTVX":
+      pushCasResult(s, requireCas().integrate(algSrcOf(pop1(s)), "X"));
+      return true;
+    case "SIMPLIFY":
+      pushCasResult(s, requireCas().simplify(algSrcOf(pop1(s))));
+      return true;
+    case "SOLVEVX": {
+      const sols = tryCas(() => requireCas().solve(algSrcOf(pop1(s)), "X"));
+      if (!sols.length) throw err("No Solution");
+      const objs = sols.map((t) => casObjOf(t));
+      s.stack.push(objs.length === 1 ? objs[0] : { k: "list", items: objs });
+      return true;
+    }
+    case "ZEROS": {
+      const [eO, vO] = popN(s, 2);
+      const sols = tryCas(() => requireCas().solve(algSrcOf(eO), varNameOf(vO)));
+      s.stack.push({ k: "list", items: sols.map((t) => casObjOf(t)) });
+      return true;
+    }
+    case "SUBST": {
+      // 'expr' 'var=val' SUBST — textual substitution (light tier)
+      const [eO, sO] = popN(s, 2);
+      const src2 = algSrcOf(eO);
+      const m = algSrcOf(sO).match(/^([A-Za-z][A-Za-z0-9]*)=(.+)$/);
+      if (!m) throw err("Bad Argument Value");
+      const re = new RegExp(`\\b${m[1]}\\b`, "g");
+      pushCasResult(s, requireCas().simplify(src2.replace(re, `(${m[2]})`)));
+      return true;
+    }
+    case "XNUM":
+      return execWord(s, "→NUM", ctx);
+    case "XQ":
+      return execWord(s, "→Q", ctx);
+    // heavy-only (SymPy) operations
+    case "lim":
+    case "LIMIT": {
+      const [eO, vO, tO] = popN(s, 3);
+      pushCasResult(s, requireHeavy().limit(algSrcOf(eO), varNameOf(vO), algSrcOf(tO)));
+      return true;
+    }
+    case "SERIES": {
+      const [eO, vO, nO] = popN(s, 3);
+      pushCasResult(s, requireHeavy().series(algSrcOf(eO), varNameOf(vO), wantInt(nO)));
+      return true;
+    }
+    case "PARTFRAC": {
+      const [eO, vO] = popN(s, 2);
+      pushCasResult(s, requireHeavy().partfrac(algSrcOf(eO), varNameOf(vO)));
+      return true;
+    }
+    case "TEXPAND":
+      pushCasResult(s, requireHeavy().texpand(algSrcOf(pop1(s))));
+      return true;
+    case "RISCH": {
+      const [eO, vO] = popN(s, 2);
+      pushCasResult(s, requireHeavy().integrate(algSrcOf(eO), varNameOf(vO)));
+      return true;
+    }
+    case "DESOLVE": {
+      const [eO, fO] = popN(s, 2);
+      pushCasResult(s, requireHeavy().desolve(algSrcOf(eO), varNameOf(fO), "X"));
+      return true;
+    }
+    case "LDEC":
+      throw err("Use DESOLVE (documented)");
+    case "LAP": {
+      const [eO, vO] = popN(s, 2);
+      pushCasResult(s, requireHeavy().laplace(algSrcOf(eO), varNameOf(vO)));
+      return true;
+    }
+    case "ILAP": {
+      const [eO, vO] = popN(s, 2);
+      pushCasResult(s, requireHeavy().ilaplace(algSrcOf(eO), varNameOf(vO)));
+      return true;
+    }
+    // 49G editing / app keys
+    case "ANS":
+      if (s.ans) s.stack.push(s.ans);
+      else throw err("No previous result");
+      return true;
+    case "TABLE": {
+      // tabulate the current equation over the X window (10 rows)
+      const eq = lookupVar(s, "EQ");
+      if (!eq || (eq.k !== "alg" && eq.k !== "name")) throw err("No Current Equation");
+      const srcTxt = eq.k === "alg" ? eq.src : eq.v;
+      const rows: RplObj[] = [];
+      for (let i = 0; i <= 10; i++) {
+        const x = s.ppar.pmin[0] + ((s.ppar.pmax[0] - s.ppar.pmin[0]) * i) / 10;
+        const y = evalAtPoint(s, srcTxt, s.ppar.indep, x);
+        rows.push({
+          k: "list",
+          items: [realOf(x), y === null ? mkName("?") : realOf(y)],
+        });
+      }
+      s.stack.push({ k: "list", items: rows });
+      return true;
+    }
+    case "TBLSET":
+      return true; // table parameters ride PPAR (documented)
+    case "2D/3D":
+      s.ptype = s.ptype === "POLAR" ? "FUNCTION" : "POLAR";
+      return true;
+    case "MTRW": // MatrixWriter-lite: open a matrix entry
+      append(s, "[ [ ");
+      return true;
     // ---- UNITS (P13, FR-UNIT-1/2/3) ----------------------------------------------------------------
     case "CONVERT": {
       const [q, t] = popN(s, 2);
@@ -2991,6 +3152,11 @@ const MENU_OPEN: Record<string, string> = {
   MTH: "MTH", PRG: "PRG", VAR: "USER", CST: "CUSTOM", USR: "USER", MODES: "MODE",
   SOLVE: "SOLVE", "I/O": "IO", LIBRARY: "LIBRARY", MATRIX: "MATR", SYMBOLIC: "SYMBOLIC",
   TIMEMENU: "TIME48",
+  // 49G application keys (P19)
+  APPS: "MENUS", FILES: "MEMORY", TOOL: "MENUS", SYMB: "SYMBOLIC", HIST: "CUSTOM",
+  "S.SLV": "SSLV", "NUM.SLV": "SOLVE", "EXP&LN": "EXPLN", FINANCE: "TVMM",
+  CALC: "CALC", ALG: "ALG", MATRICES: "MATR48", ARITH: "ARITH", LIB: "LIBRARY",
+  BASE: "BASE", CHARS: "CHARS", "Y=": "PLOTP", WIN: "PLOT",
 };
 
 /** The 28S MENUS key: a meta-menu of every menu (softkey opens it). */
@@ -3022,6 +3188,8 @@ const PRINT48: Record<string, string> = {
   "′ (tick)": "'", "↵ (newline)": "NEWLINE", "∡ (angle)": "∡", "( )": "(",
   "[ ]": "[", "{ }": "{", "«  »": "«", '"  "': '"', "« »": "«", '" "': '"',
   TIME: "TIMEMENU", // the TIME KEY opens the menu; the TIME command stays typed
+  "←": "DEL", "◄ (left) / ► (right)": "◄", "STO▶": "STO", EQW: "EQUATION",
+  "Cα": "α LOCK", "∞": "∞TYPE",
   // the 48G's right-shift APPLICATION launchers print "(cmd menu)" (P18)
   "I/O (cmd menu)": "I/O", "MODES (cmd menu)": "MODES", "MEMORY (cmd menu)": "MEMORY",
   "LIBRARY (cmd menu)": "LIBRARY", "SOLVE (cmd menu)": "SOLVE", "PLOT (cmd menu)": "PLOT",
@@ -3088,6 +3256,7 @@ function runLine(s: RplEngine): boolean {
   try {
     const pos = { i: 0 };
     runNodes(s, buildNodes(items, pos, []).nodes, ctx);
+    s.ans = s.stack.length ? s.stack[s.stack.length - 1] : s.ans;
   } catch (e) {
     if (e instanceof RplError) {
       s.error = e.message;
@@ -3153,6 +3322,10 @@ export function pressSoft(s: RplEngine, i: number): void {
   }
   if (s.menu?.name === "MENUS") {
     s.menu = { name: label, page: 0 };
+    return;
+  }
+  if (s.menu?.name === "CHARS") {
+    append(s, label);
     return;
   }
   if (s.menu?.name === "MODE" && ["CMD", "UNDO", "LAST", "ML", "TRAC"].includes(label)) {
@@ -3272,6 +3445,15 @@ export function dispatchRpl(s: RplEngine, fn: string): boolean {
     append(s, s.lc ? alphaChar[1].toLowerCase() : alphaChar[1]);
     return true;
   }
+  const fkey = fn.match(/^F([1-6])$/);
+  if (fkey) {
+    pressSoft(s, Number(fkey[1]) - 1); // the 49G's labelled soft row
+    return true;
+  }
+  if (fn === "∞TYPE") {
+    append(s, "∞");
+    return true;
+  }
   if (fn === "EQUATION") {
     // EquationWriter-lite: open an algebraic entry; the hero line typesets
     // the partial expression live (delivery note)
@@ -3318,6 +3500,20 @@ export function dispatchRpl(s: RplEngine, fn: string): boolean {
     if (s.stack.length >= lvl && lvl >= 1) s.entry = objToSrc(s.stack[s.stack.length - lvl]);
     return true;
   }
+  if (fn === "COPY") {
+    s.clip = s.entry ?? (s.stack.length ? objToSrc(peek(s)) : null);
+    return true;
+  }
+  if (fn === "CUT") {
+    s.clip = s.entry;
+    s.entry = null;
+    return true;
+  }
+  if (fn === "PASTE") {
+    if (s.clip) append(s, s.clip);
+    return true;
+  }
+  if (fn === "BEGIN") return true; // selection anchor — append-only editor
   if (fn === "COMMAND") {
     if (s.lastCmd.length) {
       s.entry = s.lastCmd[0];

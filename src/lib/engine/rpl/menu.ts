@@ -40,6 +40,13 @@ export const RPL_MENUS: Record<string, string[]> = {
   LIST48: ["DOLIST", "STREAM", "SEQ", "SORT", "REVLIST", "ΣLIST", "ΠLIST", "ΔLIST"],
   MATR48: ["RREF", "RANK", "LU", "QR", "SVD", "EGV", "EGVL"],
   TVMM: ["TVMROOT", "TVMBEG", "TVMEND", "AMORT"],
+  // 49G application rosters (P19)
+  CALC: ["DERVX", "INTVX", "lim", "SERIES", "TAYLR", "RISCH"],
+  ALG: ["FACTOR", "EXPAND", "SIMPLIFY", "PARTFRAC", "SUBST", "TEXPAND"],
+  ARITH: ["GCD", "LCM", "ISPRIME?", "NEXTPRIME", "FACTORS", "EULER"],
+  SSLV: ["SOLVEVX", "ZEROS", "ISOL", "QUAD", "DESOLVE", "LAP"],
+  EXPLN: ["EXP", "LN", "LOG", "ALOG", "EXPM", "LNP1"],
+  CHARS: ["Σ", "π", "∡", "°", "µ", "_"],
   DSPL: ["PIXON", "PIXOFF", "LINE", "BOX", "→GROB", "PVIEW", "CLLCD", "DISP", "→LCD", "LCD→"],
   IO: ["SEND", "RECV", "SERVER", "KGET", "FINISH"],
   LIBRARY: ["PORTS", "ATTACH", "DETACH"],

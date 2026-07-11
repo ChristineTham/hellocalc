@@ -74,6 +74,36 @@ application model.
 - `pnpm lint`/`test`/`build`/`test:e2e` green; **Pyodide confirmed absent from the initial
   bundle**; the existing UI suites (geometry, promotion, typing) stay green.
 
+## Delivery notes (as shipped)
+- **Heavy tier** (cas/pyodide-provider.ts): Pyodide + SymPy behind the SAME
+  CasProvider seam, extended (HeavyCasProvider) with limit/series/partfrac/
+  texpand/desolve/laplace/ilaplace. Dynamic-imported; the WASM + sympy
+  wheel stream from the jsdelivr CDN pinned to the installed package's own
+  version export — first use needs NETWORK and shows the explicit loading
+  line; the browser caches afterwards; nothing enters the initial bundle.
+  Once loaded, calls are synchronous (runPython), so the engine stays sync.
+- The gate lives in the React seam: HEAVY_FNS (lim/SERIES/PARTFRAC/TEXPAND/
+  RISCH/DESOLVE/LAP/ILAP) trigger the load; engine-side those ops report
+  "Advanced CAS (SymPy) loading — press again" until the tier registers.
+  CI verifies ROUTING with a mock provider; the real-WASM integration test
+  is opt-in (PYODIDE_IT=1) per the plan's no-network-in-tests rule.
+- Light tier suffices for (and serves) DERVX/INTVX/SIMPLIFY/SOLVEVX/ZEROS/
+  FACTOR/EXPAND; SUBST is textual substitution + simplify; XQ/XNUM map to
+  →Q/→NUM. LDEC points at DESOLVE.
+- **ARITH is pure TS** (numtheory.ts): Euclid GCD/LCM, deterministic
+  Miller–Rabin (< 3.3e24), NEXTPRIME, trial-division FACTORS and EULER with
+  an HONEST bound (beyond it: "Factor exceeds the trial bound").
+- 49G keys: F1–F6 dispatch the labelled soft row; APPS/TOOL→menu index,
+  FILES→MEMORY, SYMB/CALC/ALG/ARITH/S.SLV/NUM.SLV/EXP&LN/FINANCE/MATRICES/
+  BASE/CHARS open rosters; EQW→algebraic entry, MTRW seeds a matrix; ANS
+  re-pushes the last committed result; COPY/CUT/PASTE edit the command
+  line; TABLE tabulates EQ over the window; 2D/3D toggles the plot type;
+  Y=/WIN open the plot rosters; ∞ types.
+- Mathematica-style interchange (FR-IO-4) remains sympy-mediated via
+  sympify at the provider boundary — no separate exporter shipped
+  (documented). The flash-ROM app model stays deferred with LIBRARY.
+- HP-49G coverage oracle: GREEN — no key remains inert (18 models live).
+
 ## Notes / risks
 - Pyodide cold-start is multi-MB and seconds-long (open question §8.4) — always behind an
   explicit gate with a loading state (NFR-4); never auto-triggered by ordinary keystrokes.
