@@ -17,6 +17,10 @@ export interface AuxPanelProps {
   fmt: (n: Value, dec?: number) => string;
   /** financial models (HP-12C): include the TVM registers note */
   showRegisters?: boolean;
+  /** keystroke-programmable models (P3): include the program note */
+  showProgram?: boolean;
+  /** program-note controls dispatch engine ids through press() */
+  onKey?: (fn: string) => void;
   /** history recall — tape lines push their exact value back (FR-EXP-5) */
   onRecall?: (raw: string) => void;
   /** "bay": the side-machine's compact below-LCD arrangement */
@@ -28,6 +32,8 @@ export function AuxPanel({
   family,
   fmt,
   showRegisters,
+  showProgram,
+  onKey,
   onRecall,
   variant,
 }: AuxPanelProps) {
@@ -37,6 +43,8 @@ export function AuxPanel({
       family={family}
       fmt={fmt}
       showRegisters={showRegisters}
+      showProgram={showProgram}
+      onKey={onKey}
       onRecall={onRecall}
       variant={variant}
     />

@@ -45,6 +45,7 @@ const ALIAS: Record<string, string> = {
   "8→kg/lb": "kg/lb",
   "9→ltr/gal": "ltr/gal",
   "0→LAST x": "LSTx",
+  "R→P": "→P", // HP-65 prints rect→polar this way
   // 42S/35s/Prime spellings
   ASIN: "SIN⁻¹",
   ACOS: "COS⁻¹",

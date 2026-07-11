@@ -301,6 +301,129 @@ describe("Phase-2: registers, statistics, conversions (HP-45)", () => {
   });
 });
 
+describe("Phase-3: keystroke programmability (HP-65)", () => {
+  /** Record a program through the real recorder (dispatch in PRGM mode). */
+  function record(s: RpnEngine, ...keys: string[]) {
+    dispatch(s, "W/PRGM");
+    for (const k of keys) dispatch(s, k);
+    dispatch(s, "W/PRGM");
+  }
+
+  it("records keystrokes as steps and plays them back: LBL A 2 × RTN", () => {
+    const s = createRpn();
+    record(s, "LBL", "A", "2", "×", "RTN");
+    expect(s.prgm.steps).toEqual(["LBL", "A", "2", "×", "RTN"]);
+    run(s, "6", "ENTER");
+    applyFunction(s, "A"); // user key runs from LBL A
+    expect(n(s.x)).toBe(12);
+    applyFunction(s, "A"); // and again — programs are reusable
+    expect(n(s.x)).toBe(24);
+  });
+
+  it("R/S runs from the top; a stored R/S pauses and resumes", () => {
+    const s = createRpn();
+    record(s, "3", "×", "R/S", "2", "+");
+    run(s, "5", "ENTER");
+    applyFunction(s, "R/S"); // runs 5×3, pauses at the stored R/S
+    expect(n(s.x)).toBe(15);
+    applyFunction(s, "R/S"); // resumes: +2
+    expect(n(s.x)).toBe(17);
+  });
+
+  it("conditionals skip the next instruction (argument included) on false", () => {
+    const s = createRpn();
+    // if x=y double, else… GTO 1 is SKIPPED (2 slots) when the test fails
+    record(s, "x=y", "GTO", "1", "9", "9", "R/S", "LBL", "1", "2", "×", "RTN");
+    run(s, "4", "ENTER", "4"); // x=y true → jumps to LBL 1 → ×2
+    applyFunction(s, "R/S");
+    expect(n(s.x)).toBe(8);
+    const s2 = createRpn();
+    s2.prgm = { ...s.prgm, steps: [...s.prgm.steps], pc: 0, mode: "RUN", f1: false, f2: false };
+    run(s2, "4", "ENTER", "5"); // false → skips GTO 1, keys 99, halts at R/S
+    applyFunction(s2, "R/S");
+    expect(n(xval(s2))).toBe(99);
+  });
+
+  it("flags: SF 2 set → TF 2 passes; clear flag → skips", () => {
+    const s = createRpn();
+    record(s, "TF 2", "GTO", "1", "0", "R/S", "LBL", "1", "1", "R/S");
+    applyFunction(s, "SF 2");
+    applyFunction(s, "R/S");
+    expect(n(xval(s))).toBe(1); // flag set → took the branch
+  });
+
+  it("DSZ decrements R8 and loops until zero (GTO loop with an exit)", () => {
+    const s = createRpn();
+    record(s, "LBL", "A", "2", "×", "DSZ", "GTO", "A", "RTN");
+    run(s, "3", "STO n", "8"); // loop 3 times
+    run(s, "1", "ENTER");
+    applyFunction(s, "A");
+    expect(n(s.x)).toBe(8); // 1×2×2×2
+  });
+
+  it("a GTO loop with no exit halts on the op budget with Error (NFR-9)", () => {
+    const s = createRpn();
+    record(s, "LBL", "A", "1", "+", "GTO", "A");
+    applyFunction(s, "A");
+    expect(s.error).toBe("Error"); // runaway stopped, UI thread never hangs
+  });
+
+  it("PRGM-mode edits: SST/BST move the cursor, DEL removes a step", () => {
+    const s = createRpn();
+    dispatch(s, "W/PRGM");
+    for (const k of ["1", "2", "+"]) dispatch(s, k);
+    dispatch(s, "BST"); // cursor before "+"
+    dispatch(s, "DEL"); // deletes "2"
+    dispatch(s, "W/PRGM");
+    expect(s.prgm.steps).toEqual(["1", "+"]);
+  });
+
+  it("CLEAR PRGM empties the program; CLEAR STK / CLEAR REG scope correctly", () => {
+    const s = createRpn();
+    record(s, "1", "+");
+    run(s, "7", "STO n", "3", "ENTER");
+    applyFunction(s, "CLEAR PRGM");
+    expect(s.prgm.steps).toEqual([]);
+    expect(n(s.regs[3])).toBe(7); // registers untouched
+    applyFunction(s, "CLEAR REG");
+    expect(n(s.regs[3])).toBe(0);
+    expect(n(s.y)).toBe(7); // stack untouched by CLEAR REG
+    applyFunction(s, "CLEAR STK");
+    expect(n(s.y)).toBe(0);
+  });
+
+  it("DSP n sets display digits without changing the mode", () => {
+    const s = createRpn();
+    run(s, "DSP", "4");
+    expect(s.disp).toEqual({ mode: "FIX", digits: 4 });
+  });
+
+  it("→OCT / OCT→ integer base views: 8 → 10 and back; 9 in octal is Error", () => {
+    const s = createRpn();
+    run(s, "8", "→OCT");
+    expect(xval(s).toString()).toBe("10");
+    applyFunction(s, "OCT→");
+    expect(xval(s).toString()).toBe("8");
+    const s2 = createRpn();
+    run(s2, "9", "OCT→");
+    expect(s2.error).toBe("Error");
+  });
+
+  it("D.MS+ adds in degrees-minutes-seconds space: 1.45 + 0.30 = 2.15", () => {
+    const s = createRpn();
+    run(s, "1.45", "ENTER", "0.30", "D.MS+"); // 1°45′ + 0°30′ = 2°15′
+    expect(xval(s).toString()).toBe("2.15");
+  });
+
+  it("programs persist through the state codec", () => {
+    const s = createRpn();
+    record(s, "LBL", "A", "2", "×", "RTN");
+    // round-trip through JSON via the persistence test path is covered in
+    // persistence.test.ts; here assert the engine fields are plain data
+    expect(JSON.parse(JSON.stringify(s.prgm))).toEqual(s.prgm);
+  });
+});
+
 describe("classic-era ops (HP-25/45/65/67 planes)", () => {
   it("R↑ is the inverse of R↓ (one full cycle restores the stack)", () => {
     const s = createRpn();

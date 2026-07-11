@@ -7,7 +7,7 @@
 // only defines the codec, the snapshot/restore pair, and the adapter seam.
 
 import { bn, type Value } from "./config";
-import { createRpn, type Angle, type HistEntry, type RpnEngine } from "./rpn";
+import { createRpn, type Angle, type HistEntry, type PrgmState, type RpnEngine } from "./rpn";
 import { createRpl, type RplEngine } from "./rpl";
 import type { DisplayFormat } from "./format";
 
@@ -33,6 +33,7 @@ interface SerializedRpn {
   /** optional for v1 forward-compat: pre-P2 saves have no registers/Σ */
   regs?: TaggedValue[];
   sum?: { n: TaggedValue; x: TaggedValue; x2: TaggedValue; y: TaggedValue };
+  prgm?: PrgmState;
   entry: string | null;
   lift: boolean;
   angle: Angle;
@@ -78,6 +79,7 @@ export function snapshot(
         x2: encodeValue(rpn.sum.x2),
         y: encodeValue(rpn.sum.y),
       },
+      prgm: { ...rpn.prgm, steps: [...rpn.prgm.steps] },
       entry: rpn.entry,
       lift: rpn.lift,
       angle: rpn.angle,
@@ -117,6 +119,9 @@ export function restore(state: EngineStateV1): {
           y: decodeValue(state.rpn.sum.y),
         }
       : fresh.sum,
+    prgm: state.rpn.prgm
+      ? { ...state.rpn.prgm, steps: [...state.rpn.prgm.steps] }
+      : fresh.prgm,
     entry: state.rpn.entry,
     lift: state.rpn.lift,
     angle: state.rpn.angle,
@@ -157,6 +162,12 @@ function isSerializedRpn(v: unknown): v is SerializedRpn {
     (s.regs === undefined || (Array.isArray(s.regs) && s.regs.every(isTagged))) &&
     (s.sum === undefined ||
       (isTagged(s.sum?.n) && isTagged(s.sum?.x) && isTagged(s.sum?.x2) && isTagged(s.sum?.y))) &&
+    (s.prgm === undefined ||
+      (typeof s.prgm === "object" &&
+        s.prgm !== null &&
+        Array.isArray(s.prgm.steps) &&
+        s.prgm.steps.every((st) => typeof st === "string") &&
+        (s.prgm.mode === "RUN" || s.prgm.mode === "PRGM"))) &&
     (s.entry === null || typeof s.entry === "string") &&
     typeof s.lift === "boolean" &&
     typeof s.angle === "string" &&

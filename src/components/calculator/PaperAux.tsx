@@ -223,12 +223,88 @@ export function VarsNote({
   );
 }
 
+/**
+ * The keystroke-program note (P3): a notebook card listing recorded steps
+ * with the pointer, plus the W/PRGM–RUN switch (the 65's slide switch) and
+ * run/step/clear controls. Everything dispatches ENGINE ids through the same
+ * press() path as the keys — no separate program API for the UI.
+ */
+export function ProgramNote({
+  state: s,
+  onKey,
+  className,
+}: {
+  state: RpnState;
+  onKey: (fn: string) => void;
+  className?: string;
+}) {
+  const prgm = s.prgm;
+  if (!prgm) return null;
+  const recording = prgm.mode === "PRGM";
+  const CHIP =
+    "rounded-md border border-paper-line px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-[0.12em] uppercase transition-colors hover:bg-terracotta/10";
+  return (
+    <section data-slot="prgm-note" className={className}>
+      <div className="mb-2 flex items-baseline justify-between gap-2">
+        <h3 className={cn(CAPTION, "mb-0")}>Program</h3>
+        <div className="flex gap-1.5">
+          <button
+            type="button"
+            onClick={() => onKey("W/PRGM")}
+            aria-label={recording ? "Switch to RUN mode" : "Switch to W/PRGM mode"}
+            className={cn(CHIP, recording ? "bg-terracotta/15 text-terracotta" : "text-muted-foreground")}
+          >
+            {recording ? "PRGM" : "RUN"}
+          </button>
+          <button type="button" onClick={() => onKey("R/S")} aria-label="Run program" className={cn(CHIP, "text-muted-foreground")}>
+            R/S
+          </button>
+          <button type="button" onClick={() => onKey("SST")} aria-label="Single step" className={cn(CHIP, "text-muted-foreground")}>
+            SST
+          </button>
+          <button type="button" onClick={() => onKey("CLEAR PRGM")} aria-label="Clear program" className={cn(CHIP, "text-muted-foreground")}>
+            CLR
+          </button>
+        </div>
+      </div>
+      <div className={cn(NOTE, "max-h-48 overflow-y-auto")}>
+        {prgm.steps.length === 0 ? (
+          <p className="py-1 text-center font-mono text-[11px] text-muted-foreground/70">
+            {recording ? "— recording: press keys —" : "— no program —"}
+          </p>
+        ) : (
+          prgm.steps.map((step, i) => (
+            <div
+              key={i}
+              className="flex items-baseline gap-2 border-b border-paper-line py-0.5 last:border-0"
+            >
+              <span className="min-w-[26px] font-mono text-[10.5px] text-muted-foreground">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <span className="w-3 font-mono text-[10.5px] text-terracotta">
+                {i === prgm.pc ? "▶" : ""}
+              </span>
+              <span className="font-legend text-[12px] font-semibold text-foreground">
+                {step}
+              </span>
+            </div>
+          ))
+        )}
+      </div>
+    </section>
+  );
+}
+
 export interface AuxColumnProps {
   state: RpnState;
   family: Family;
   fmt: (n: Value, dec?: number) => string;
   /** financial models (HP-12C): include the TVM note */
   showRegisters?: boolean;
+  /** keystroke-programmable models (P3): include the program note */
+  showProgram?: boolean;
+  /** program-note controls dispatch engine ids through press() */
+  onKey?: (fn: string) => void;
   /** history recall — tape lines push their exact value back (FR-EXP-5) */
   onRecall?: (raw: string) => void;
   /** "bay": the side-machine's compact below-LCD arrangement (§14.3) */
@@ -241,6 +317,8 @@ export function AuxColumn({
   family,
   fmt,
   showRegisters,
+  showProgram,
+  onKey,
   onRecall,
   variant = "flow",
   className,
@@ -250,6 +328,9 @@ export function AuxColumn({
   const paperStack = family !== "rpl";
   const showVars =
     showRegisters || family === "rpl" || (state.registers?.length ?? 0) > 0;
+  const prgmNote = showProgram && onKey && (
+    <ProgramNote state={state} onKey={onKey} />
+  );
   if (variant === "bay") {
     // paper resting on the machine body. Both pieces render; CSS picks per
     // context (§14 rev 5): desktop-tall shows VARS (tape lives on the page),
@@ -268,6 +349,7 @@ export function AuxColumn({
     <div className={cn("aux-flow size-full", className)}>
       {paperStack && <StackNote state={state} family={family} fmt={fmt} />}
       {showVars && <VarsNote state={state} family={family} tvm={showRegisters} />}
+      {prgmNote}
       <HistoryTape hist={state.hist} onRecall={onRecall} className="min-h-0 flex-1" />
     </div>
   );

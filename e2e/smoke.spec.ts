@@ -96,6 +96,33 @@ test.describe("hellocalc — smoke", () => {
     ).toContainText("R1");
   });
 
+  test("Phase 3 on the live HP-65: record a program, run it from a user key", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await selectModel(page, "HP-65");
+    const key = (name: string) =>
+      page.getByRole("button", { name, exact: true }).click();
+
+    // the program note is on the desk for programmable models
+    const note = page.locator('[data-slot="prgm-note"]:visible').first();
+    await expect(note).toBeVisible();
+
+    // flip to W/PRGM (the 65's slide switch) and key: LBL A 2 × RTN
+    await note.getByRole("button", { name: "Switch to W/PRGM mode" }).click();
+    for (const seq of ["LBL", "A", "2", "×", "RTN"]) await key(seq);
+    await expect(note).toContainText("LBL");
+    await note.getByRole("button", { name: "Switch to RUN mode" }).click();
+
+    // 6, then the A user key runs the program → 12.00
+    await key("6");
+    await key("ENTER↑");
+    await key("A");
+    await expect(
+      page.locator('[data-lcd-mode]:visible').getByText("12.00").first(),
+    ).toBeVisible();
+  });
+
   test("persistence: the session survives a reload (FR-STATE-1)", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "7", exact: true }).click();

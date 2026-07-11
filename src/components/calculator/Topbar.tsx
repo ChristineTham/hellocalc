@@ -7,7 +7,7 @@
 // Base UI dialogs: Escape + backdrop dismiss for free.
 "use client";
 
-import { Layers, Menu, Receipt, Sigma } from "lucide-react";
+import { Layers, ListOrdered, Menu, Receipt, Sigma } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -31,6 +31,8 @@ export interface TopbarProps {
     stack?: React.ReactNode;
     tape: React.ReactNode;
     vars?: React.ReactNode;
+    /** keystroke program note (P3) — programmable models only */
+    prgm?: React.ReactNode;
   };
 }
 
@@ -123,6 +125,15 @@ export function Topbar({ activeModel, onSelectModel, tags, nav, panels }: Topbar
           icon={<Sigma className="size-4" />}
         >
           {panels.vars}
+        </PanelSheet>
+      )}
+      {panels.prgm && (
+        <PanelSheet
+          label="Toggle program"
+          title="Program"
+          icon={<ListOrdered className="size-4" />}
+        >
+          {panels.prgm}
         </PanelSheet>
       )}
       <PanelSheet

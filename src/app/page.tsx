@@ -5,7 +5,7 @@ import { CalcShell } from "@/components/calculator/CalcShell";
 import { MachineUnit } from "@/components/calculator/MachineUnit";
 import { Display } from "@/components/calculator/Display";
 import { AuxPanel } from "@/components/calculator/AuxPanel";
-import { HistoryTape, StackNote, VarsNote } from "@/components/calculator/PaperAux";
+import { HistoryTape, ProgramNote, StackNote, VarsNote } from "@/components/calculator/PaperAux";
 import { Topbar } from "@/components/calculator/Topbar";
 import { CalcNav } from "@/components/calculator/CalcNav";
 import { CheatSheet } from "@/components/calculator/CheatSheet";
@@ -105,12 +105,17 @@ export default function Home() {
   // side-variant bay; CSS shows exactly one per template (like the LCD's
   // line/mini dual render).
   const showRegisters = model.id === "HP-12C";
+  // keystroke-programmable models grow the program note (P3: the 65; later
+  // phases add their models as the subsystem reaches them)
+  const showProgram = model.id === "HP-65";
   const aux = (
     <AuxPanel
       state={active.state}
       family={model.family}
       fmt={active.fmt}
       showRegisters={showRegisters}
+      showProgram={showProgram}
+      onKey={active.press}
       onRecall={active.recall}
     />
   );
@@ -135,6 +140,9 @@ export default function Home() {
               vars: (
                 <VarsNote state={active.state} family={model.family} tvm={showRegisters} />
               ),
+              prgm: showProgram ? (
+                <ProgramNote state={active.state} onKey={active.press} />
+              ) : undefined,
             }}
           />
         }

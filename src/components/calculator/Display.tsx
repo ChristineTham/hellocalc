@@ -34,6 +34,8 @@ export interface RpnState {
   reg?: Record<"n" | "i" | "PV" | "PMT" | "FV", string>; // TVM readout
   /** nonzero storage registers (M, R0–R9, Σn), formatted — the vars note */
   registers?: { name: string; value: string }[];
+  /** keystroke program view (P3): mode + steps + pointer for the program note */
+  prgm?: { mode: "RUN" | "PRGM"; pc: number; steps: string[] };
   rpl?: Value[]; // RPL dynamic stack (bottom -> top)
   hist?: { op: string; v: string; raw?: string }[];
 }

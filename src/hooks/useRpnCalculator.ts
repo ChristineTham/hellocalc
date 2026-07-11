@@ -42,6 +42,7 @@ const clone = (e: RpnEngine): RpnEngine => ({
   disp: { ...e.disp },
   regs: [...e.regs],
   sum: { ...e.sum },
+  prgm: { ...e.prgm, steps: [...e.prgm.steps] },
   pending: e.pending ? { ...e.pending } : null,
 });
 
@@ -102,6 +103,11 @@ export function useRpnCalculator(): RpnCalculator {
       latex: fmt(xval(engine)),
       err: engine.error ?? undefined,
       registers,
+      prgm: {
+        mode: engine.prgm.mode,
+        pc: engine.prgm.pc,
+        steps: [...engine.prgm.steps],
+      },
       hist: engine.hist.map((h) => ({ op: h.op, v: fmt(bn(h.raw)), raw: h.raw })),
     };
   }, [engine, prefix, fmt]);
