@@ -26,6 +26,59 @@ test.describe("hellocalc — smoke", () => {
     ).toBeVisible();
   });
 
+  test("Phase 1 on the live HP-35: exact 0.1+0.2, STO/RCL, EEX, history recall", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await selectModel(page, "HP-35");
+    const key = (name: string) =>
+      page.getByRole("button", { name, exact: true }).click();
+    const glass = () => page.locator('[data-lcd-mode]:visible');
+
+    // exact decimal arithmetic on the BigNumber tower (FR-NUM-1)
+    await key("·");
+    await key("1");
+    await key("ENTER↑");
+    await key("·");
+    await key("2");
+    await key("+");
+    await expect(glass().getByText("0.30").first()).toBeVisible();
+
+    // STO / RCL round-trip on the single memory register
+    await key("7");
+    await key("STO");
+    await key("CLx");
+    await key("RCL");
+    await expect(glass().getByText("7.00").first()).toBeVisible();
+
+    // EEX keys a real exponent: 5 EEX 3 ENTER = 5000
+    await key("5");
+    await key("EEX");
+    await key("3");
+    await key("ENTER↑");
+    await expect(glass().getByText("5000.00").first()).toBeVisible();
+
+    // history recall: the tape's "+" line (0.30) pushes its exact value back
+    await page.getByRole("button", { name: "Recall 0.30" }).first().click();
+    await expect(glass().getByText("0.30").first()).toBeVisible();
+  });
+
+  test("persistence: the session survives a reload (FR-STATE-1)", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "7", exact: true }).click();
+    await page.getByRole("button", { name: "ENTER", exact: true }).click();
+    // autosave is effect-driven; the write lands within a frame of the press
+    await page.waitForTimeout(200);
+    await page.reload();
+    await expect(
+      page.locator('[data-lcd-mode]:visible').getByText("7.00").first(),
+    ).toBeVisible();
+    // the stack note shows the restored Y too (7 ENTER left X=Y=7)
+    await expect(page.locator('[data-slot="stack-note"]:visible').first()).toContainText(
+      "7.00",
+    );
+  });
+
   test("model picker groups models, searches, and disables unimplemented ones", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "Select calculator model" }).click();

@@ -12,6 +12,7 @@
 import { cn } from "@/lib/utils";
 import type { RpnState } from "./Display";
 import type { Family } from "./models";
+import type { Value } from "@/lib/engine/config";
 
 const CAPTION =
   "mb-2 font-mono text-[10.5px] font-semibold tracking-[0.18em] text-muted-foreground uppercase";
@@ -20,9 +21,13 @@ const NOTE =
 
 export function HistoryTape({
   hist,
+  onRecall,
   className,
 }: {
   hist: RpnState["hist"];
+  /** History recall (FR-EXP-5): click a printed line to push its EXACT value
+   * back onto the stack (rows carry the raw BigNumber string). */
+  onRecall?: (raw: string) => void;
   className?: string;
 }) {
   const rows = (hist ?? []).slice().reverse(); // newest at the top — fresh print
@@ -38,19 +43,37 @@ export function HistoryTape({
               — no entries yet —
             </p>
           ) : (
-            rows.map((e, i) => (
-              <div
-                key={i}
-                className="flex items-baseline justify-between gap-3 border-b border-paper-line py-1.5 last:border-0"
-              >
-                <span className="font-legend text-[12px] font-semibold text-muted-foreground">
-                  {e.op}
-                </span>
-                <span className="font-mono text-[13px] tabular-nums text-foreground">
-                  {e.v}
-                </span>
-              </div>
-            ))
+            rows.map((e, i) => {
+              const raw = e.raw;
+              const line = (
+                <>
+                  <span className="font-legend text-[12px] font-semibold text-muted-foreground">
+                    {e.op}
+                  </span>
+                  <span className="font-mono text-[13px] tabular-nums text-foreground">
+                    {e.v}
+                  </span>
+                </>
+              );
+              return onRecall && raw !== undefined ? (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => onRecall(raw)}
+                  aria-label={`Recall ${e.v}`}
+                  className="flex w-full cursor-pointer items-baseline justify-between gap-3 border-b border-paper-line py-1.5 text-left transition-colors last:border-0 hover:bg-terracotta/10"
+                >
+                  {line}
+                </button>
+              ) : (
+                <div
+                  key={i}
+                  className="flex items-baseline justify-between gap-3 border-b border-paper-line py-1.5 last:border-0"
+                >
+                  {line}
+                </div>
+              );
+            })
           )}
         </div>
       </div>
@@ -68,7 +91,7 @@ export function StackNote({
 }: {
   state: RpnState;
   family: Family;
-  fmt: (n: number, dec?: number) => string;
+  fmt: (n: Value, dec?: number) => string;
   className?: string;
 }) {
   const isRpl = family === "rpl";
@@ -170,9 +193,11 @@ export function VarsNote({
 export interface AuxColumnProps {
   state: RpnState;
   family: Family;
-  fmt: (n: number, dec?: number) => string;
+  fmt: (n: Value, dec?: number) => string;
   /** financial models (HP-12C): include the TVM note */
   showRegisters?: boolean;
+  /** history recall — tape lines push their exact value back (FR-EXP-5) */
+  onRecall?: (raw: string) => void;
   /** "bay": the side-machine's compact below-LCD arrangement (§14.3) */
   variant?: "flow" | "bay";
   className?: string;
@@ -183,6 +208,7 @@ export function AuxColumn({
   family,
   fmt,
   showRegisters,
+  onRecall,
   variant = "flow",
   className,
 }: AuxColumnProps) {
@@ -198,7 +224,7 @@ export function AuxColumn({
       <div className={cn("aux-flow w-full", className)}>
         {paperStack && <StackNote state={state} family={family} fmt={fmt} />}
         {showVars && <VarsNote state={state} family={family} className="bay-vars" />}
-        <HistoryTape hist={state.hist} className="bay-tape min-h-0 flex-1" />
+        <HistoryTape hist={state.hist} onRecall={onRecall} className="bay-tape min-h-0 flex-1" />
       </div>
     );
   }
@@ -206,7 +232,7 @@ export function AuxColumn({
     <div className={cn("aux-flow size-full", className)}>
       {paperStack && <StackNote state={state} family={family} fmt={fmt} />}
       {showVars && <VarsNote state={state} family={family} />}
-      <HistoryTape hist={state.hist} className="min-h-0 flex-1" />
+      <HistoryTape hist={state.hist} onRecall={onRecall} className="min-h-0 flex-1" />
     </div>
   );
 }

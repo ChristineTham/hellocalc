@@ -4,6 +4,7 @@
 import { describe, expect, it } from "vitest";
 import { INVERSE_OF, normalizeFn } from "@/lib/models/normalize";
 import { applyFunction, createRpn } from "@/lib/engine/rpn";
+import { bn } from "@/lib/engine/config";
 
 describe("normalizeFn", () => {
   it("maps era spellings to canonical ids", () => {
@@ -30,7 +31,7 @@ describe("normalizeFn", () => {
     // (mode/format ids like FIX/SCI stay inert by design)
     for (const printed of ["CLX", "LAST x", "ln", "e^x", "n!", "%CH", "·"]) {
       const s = createRpn();
-      s.x = 3;
+      s.x = bn(3);
       expect(applyFunction(s, normalizeFn(printed)), printed).toBe(true);
     }
   });

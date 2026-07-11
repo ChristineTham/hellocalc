@@ -1,17 +1,16 @@
 // src/hooks/useRpnCalculator.ts
-// React seam over the pure RPN engine (src/lib/engine/rpn.ts). Holds the engine
-// + view state (armed prefix, history, FIX digits) and exposes what the
-// faceplate needs: a display state, a key dispatcher, and formatters.
+// React seam over the pure RPN engine (src/lib/engine/rpn.ts, BigNumber
+// tower). Holds the engine (which now carries its own history + display
+// format) and exposes what the faceplate needs: a display state, a key
+// dispatcher, history recall, snapshot/restore for persistence, and the
+// format.ts-backed formatter.
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
 import katex from "katex";
-import {
-  applyFunction,
-  createRpn,
-  xval,
-  type RpnEngine,
-} from "@/lib/engine/rpn";
+import { createRpn, dispatch, pushX, xval, type RpnEngine } from "@/lib/engine/rpn";
+import { formatValue } from "@/lib/engine/format";
+import { bn, type Value } from "@/lib/engine/config";
 import type { RpnState } from "@/components/calculator/Display";
 
 // f/g are the Voyager planes; h (HP-67 black) and fi (HP-65 f⁻¹ gold inverse)
@@ -20,9 +19,6 @@ import type { RpnState } from "@/components/calculator/Display";
 // a prefix — keyboards resolve (key, prefix) → one function id before press().
 export type Prefix = "none" | "f" | "g" | "h" | "fi" | "alpha";
 
-const DIGIT = /^[0-9]$/;
-const isValueKey = (fn: string) => DIGIT.test(fn) || fn === "•" || fn === ".";
-
 export interface RpnCalculator {
   state: RpnState;
   prefix: Prefix;
@@ -30,46 +26,53 @@ export interface RpnCalculator {
   press: (fn: string) => void;
   /** Toggle the armed f/g prefix. */
   arm: (p: Prefix) => void;
-  fmt: (n: number, dec?: number) => string;
+  /** Recall an exact history value into X (lifts the stack). */
+  recall: (raw: string) => void;
+  fmt: (v: Value, dec?: number) => string;
   renderLatex: (tex: string) => { __html: string };
-}
-
-interface CalcState {
+  /** Persistence seam (FR-STATE-1/4). */
   engine: RpnEngine;
-  hist: { op: string; v: string }[];
+  restore: (engine: RpnEngine) => void;
 }
 
-export function useRpnCalculator(dec = 2): RpnCalculator {
-  // engine + history live in ONE state so the press updater stays pure — a
-  // setState inside another updater double-fires under StrictMode (the tape
-  // printed every operation twice).
-  const [calc, setCalc] = useState<CalcState>(() => ({ engine: createRpn(), hist: [] }));
-  const { engine, hist } = calc;
+/** Clone before mutating so the setState updater stays pure under StrictMode
+ * (values are immutable BigNumbers; hist is replaced, never pushed in place). */
+const clone = (e: RpnEngine): RpnEngine => ({ ...e, disp: { ...e.disp } });
+
+export function useRpnCalculator(): RpnCalculator {
+  const [engine, setEngine] = useState<RpnEngine>(() => createRpn());
   const [prefix, setPrefix] = useState<Prefix>("none");
 
   const fmt = useCallback(
-    (n: number, d = dec) => (Number.isFinite(n) ? n.toFixed(d) : "Error"),
-    [dec],
+    (v: Value, d?: number) =>
+      formatValue(v, { mode: engine.disp.mode, digits: d ?? engine.disp.digits }),
+    [engine.disp],
   );
 
-  const press = useCallback(
-    (fn: string) => {
-      setCalc((prev) => {
-        const engine = { ...prev.engine };
-        const handled = applyFunction(engine, fn);
-        const hist =
-          handled && !isValueKey(fn)
-            ? [...prev.hist.slice(-49), { op: fn, v: fmt(xval(engine)) }]
-            : prev.hist;
-        return { engine, hist };
-      });
-      setPrefix("none");
-    },
-    [fmt],
-  );
+  const press = useCallback((fn: string) => {
+    setEngine((prev) => {
+      const next = clone(prev);
+      dispatch(next, fn);
+      return next;
+    });
+    setPrefix("none");
+  }, []);
+
+  const recall = useCallback((raw: string) => {
+    setEngine((prev) => {
+      const next = clone(prev);
+      pushX(next, bn(raw));
+      return next;
+    });
+  }, []);
 
   const arm = useCallback((p: Prefix) => {
     setPrefix((cur) => (cur === p ? "none" : p));
+  }, []);
+
+  const restore = useCallback((next: RpnEngine) => {
+    setEngine(next);
+    setPrefix("none");
   }, []);
 
   const state = useMemo<RpnState>(
@@ -80,14 +83,14 @@ export function useRpnCalculator(dec = 2): RpnCalculator {
       X: xval(engine),
       lastX: engine.lastX,
       entry: engine.entry,
-      dec,
+      dec: engine.disp.digits,
       ang: engine.angle,
       prefix,
       latex: fmt(xval(engine)),
       err: engine.error ?? undefined,
-      hist,
+      hist: engine.hist.map((h) => ({ op: h.op, v: fmt(bn(h.raw)), raw: h.raw })),
     }),
-    [engine, prefix, dec, fmt, hist],
+    [engine, prefix, fmt],
   );
 
   // Math output is always typeset (AGENTS §3): KaTeX renders synchronously at
@@ -97,5 +100,5 @@ export function useRpnCalculator(dec = 2): RpnCalculator {
     [],
   );
 
-  return { state, prefix, press, arm, fmt, renderLatex };
+  return { state, prefix, press, arm, recall, fmt, renderLatex, engine, restore };
 }

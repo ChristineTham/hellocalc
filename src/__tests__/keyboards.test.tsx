@@ -7,6 +7,9 @@ import { Keyboard } from "@/components/calculator/Keyboard";
 import { ClassicKeyboard } from "@/components/calculator/ClassicKeyboard";
 import { RplKeyboard } from "@/components/calculator/RplKeyboard";
 import { MODELS } from "@/components/calculator/models";
+import { bn, type Value } from "@/lib/engine/config";
+import { createRpn } from "@/lib/engine/rpn";
+import { createRpl } from "@/lib/engine/rpl";
 
 const noop = () => {};
 
@@ -416,8 +419,9 @@ describe("per-model shift palette (MachineUnit override)", () => {
   it("HP-48SX re-themes the RAW --hp-shift-ls/rs at the bezel root (@theme inline)", async () => {
     const { MachineUnit } = await import("@/components/calculator/MachineUnit");
     const model = MODELS["HP-48SX"];
+    const zero = bn(0);
     const state = {
-      T: 0, Z: 0, Y: 0, X: 0, lastX: 0, entry: null, dec: 2,
+      T: zero, Z: zero, Y: zero, X: zero, lastX: zero, entry: null, dec: 2,
       prefix: "none" as const, latex: "0", hist: [], rpl: [],
     };
     const stub = {
@@ -425,18 +429,29 @@ describe("per-model shift palette (MachineUnit override)", () => {
       prefix: "none" as const,
       press: noop,
       arm: noop,
-      fmt: (n: number) => n.toFixed(2),
+      recall: noop,
+      fmt: (n: Value) => n.toFixed(2),
       renderLatex: (tex: string) => ({ __html: tex }),
     };
     const { container } = render(
-      <MachineUnit model={model} rpn={stub} rpl={stub} lcd={<div />} />,
+      <MachineUnit
+        model={model}
+        rpn={{ ...stub, engine: createRpn(), restore: noop }}
+        rpl={{ ...stub, engine: createRpl(), restore: noop }}
+        lcd={<div />}
+      />,
     );
     const machine = container.querySelector<HTMLElement>('[data-slot="machine"]');
     expect(machine?.style.getPropertyValue("--hp-shift-ls")).toBe("var(--hp-shift-ls-sx)");
     expect(machine?.style.getPropertyValue("--hp-shift-rs")).toBe("var(--hp-shift-rs-sx)");
     // the 48G keeps the family default — no inline override
     const g = render(
-      <MachineUnit model={MODELS["HP-48G"]} rpn={stub} rpl={stub} lcd={<div />} />,
+      <MachineUnit
+        model={MODELS["HP-48G"]}
+        rpn={{ ...stub, engine: createRpn(), restore: noop }}
+        rpl={{ ...stub, engine: createRpl(), restore: noop }}
+        lcd={<div />}
+      />,
     );
     const gm = g.container.querySelector<HTMLElement>('[data-slot="machine"]');
     expect(gm?.style.getPropertyValue("--hp-shift-ls")).toBe("");

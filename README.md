@@ -53,13 +53,14 @@ See the [PRD](docs/prd.md) for the full, prioritized requirement set.
 
 ## Status
 
-**The UI foundation is built and deployed, and ALL 21 model faceplates are playable** at
-<https://christinetham.github.io/hellocalc/> — every keyboard authored or generated from
-the verified [`hp/`](hp/) reference data, dispatching to a prototype engine (real
-4-level-RPN and dynamic-RPL stack semantics; plain JS numbers until the math.js/BigNumber
-tower lands in Phase 1). Functions beyond the engine's current set render faithfully but
-stay inert until their engine phase. The design and full rationale live in
-[docs/responsive-layout.md](docs/responsive-layout.md); the highlights:
+**The UI foundation is built and deployed, ALL 21 model faceplates are playable, and the
+Phase-1 engine core has landed** at <https://christinetham.github.io/hellocalc/> — every
+keyboard authored or generated from the verified [`hp/`](hp/) reference data, computing on
+the **math.js/BigNumber value tower** (`0.1 + 0.2` is exactly `0.3`), with sessions
+autosaved to localStorage and exportable as versioned JSON. The HP-35 is the first fully
+wired model (no key inert, guarded by a coverage test); functions beyond the engine's
+current set render faithfully but stay inert until their engine phase. The design and full
+rationale live in [docs/responsive-layout.md](docs/responsive-layout.md); the highlights:
 
 - **The integrated machine** — nameplate, LCD and keyboard are ONE bezel that reflows across
   five page templates (phone → desktop): classic portrait models stack LCD-over-keys for the

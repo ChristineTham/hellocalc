@@ -5,13 +5,15 @@ import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { AuxPanel } from "@/components/calculator/AuxPanel";
 import type { RpnState } from "@/components/calculator/Display";
+import { bn, type Value } from "@/lib/engine/config";
 
+const zero = bn(0);
 const state: RpnState = {
-  T: 0,
-  Z: 0,
-  Y: 0,
-  X: 0,
-  lastX: 0,
+  T: zero,
+  Z: zero,
+  Y: zero,
+  X: zero,
+  lastX: zero,
   entry: null,
   dec: 2,
   prefix: "none",
@@ -19,7 +21,7 @@ const state: RpnState = {
   hist: [{ op: "+", v: "5.00" }],
 };
 
-const fmt = (n: number, dec?: number) => n.toFixed(dec ?? 2);
+const fmt = (n: Value, dec?: number) => n.toFixed(dec ?? 2);
 
 describe("AuxPanel (paper aux)", () => {
   it("renders stack note, TVM note and history tape as separate paper pieces", () => {

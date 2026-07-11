@@ -1,6 +1,12 @@
-# Phase 1 — Engine foundation & HP-35
+# Phase 1 — Engine foundation & HP-35 ✅ DELIVERED
 
 **Delivers:** HP-35 fully functional · engine core (BigNumber value tower, 4-level RPN stack, model-adapter formalization, persistence) · **Era:** 1972 · **Builds on:** the live 21-model UI shell ([docs/responsive-layout.md](../docs/responsive-layout.md))
+
+> **Status: shipped.** Both engines compute on the BigNumber tower (`0.1+0.2`
+> is exactly `0.3` on the glass); the HP-35 passes the no-inert-keys coverage
+> oracle (`adapter.test.ts`); EEX/STO/RCL/FIX/SCI live; history records in
+> `EngineState` with exact-value recall from the tape; sessions autosave to
+> localStorage and export/import as versioned JSON via the nav.
 
 ## Goal
 Stand up the shared pure-TS engine on math.js configured to `BigNumber`, formalize the

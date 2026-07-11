@@ -13,14 +13,17 @@ import { useState } from "react";
 import { ChevronsDownUp, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Family } from "./models";
+import type { Value } from "@/lib/engine/config";
 
 // ---- shared types the engine/hook exposes ----------------------------------
+// Values are BigNumbers end-to-end (Phase 1 value tower); components never
+// compute on them — everything passes through fmt() to a string.
 export interface RpnState {
-  T: number;
-  Z: number;
-  Y: number;
-  X: number;
-  lastX: number;
+  T: Value;
+  Z: Value;
+  Y: Value;
+  X: Value;
+  lastX: Value;
   entry: string | null; // in-progress keyed number, or null
   dec: number; // FIX digits
   ang?: "DEG" | "RAD" | "GRD";
@@ -29,8 +32,8 @@ export interface RpnState {
   err?: string;
   latex: string; // last result, as KaTeX source
   reg?: Record<"n" | "i" | "PV" | "PMT" | "FV", string>; // TVM readout
-  rpl?: number[]; // RPL dynamic stack (bottom -> top)
-  hist?: { op: string; v: string }[];
+  rpl?: Value[]; // RPL dynamic stack (bottom -> top)
+  hist?: { op: string; v: string; raw?: string }[];
 }
 
 export type LcdMode = "line" | "mini";
@@ -56,7 +59,7 @@ export interface DisplayProps {
   defaultMode?: LcdMode;
   /** inject your KaTeX renderer so this file has no hard dependency */
   renderLatex: (tex: string) => { __html: string };
-  fmt: (n: number, dec?: number) => string;
+  fmt: (n: Value, dec?: number) => string;
 }
 
 // Segment numerals (DSEG7) for the seven-segment families; dot-matrix
@@ -304,9 +307,9 @@ function RplStack({
   entry,
   fmt,
 }: {
-  rpl: number[];
+  rpl: Value[];
   entry: string | null;
-  fmt: (n: number) => string;
+  fmt: (n: Value) => string;
 }) {
   const start = Math.max(0, rpl.length - 6);
   const lines = rpl

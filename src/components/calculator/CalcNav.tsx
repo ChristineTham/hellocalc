@@ -1,11 +1,12 @@
 // src/components/calculator/CalcNav.tsx
 // Navigation content (docs/responsive-layout.md §3.1): settings, state
-// import/export/reset (FR-STATE-4 entry points — enabled when the persistence
-// phase lands), and About. ONE component, two hosts: the left nav Sheet below
+// import/export/reset (FR-STATE-4 — live since the Phase-1 persistence
+// foundation), and About. ONE component, two hosts: the left nav Sheet below
 // lg (Topbar hamburger) and the persistent sidebar aside at lg+ (§12.4 —
 // same mental location at every size). Desk-plane styling (§13.1).
 "use client";
 
+import { useRef } from "react";
 import {
   Download,
   Info,
@@ -42,25 +43,52 @@ function Soon() {
   );
 }
 
-export function CalcNav({ className }: { className?: string }) {
+export interface CalcNavProps {
+  className?: string;
+  /** FR-STATE-4: export the workspace as a versioned JSON file. */
+  onExport?: () => void;
+  /** FR-STATE-4: import a previously exported state file. */
+  onImportFile?: (file: File) => void;
+  /** FR-STATE-1: reset engines + clear the autosaved session. */
+  onReset?: () => void;
+}
+
+export function CalcNav({ className, onExport, onImportFile, onReset }: CalcNavProps) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const wired = Boolean(onExport || onImportFile || onReset);
   return (
     <nav className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto p-2", className)}>
       <SectionLabel>Workspace</SectionLabel>
-      {/* FR-STATE-4 entry points — wired when the persistence phase lands */}
-      <button type="button" className={ITEM} disabled>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="application/json,.json"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) onImportFile?.(file);
+          e.target.value = ""; // re-selecting the same file must re-fire
+        }}
+      />
+      <button
+        type="button"
+        className={ITEM}
+        disabled={!wired}
+        onClick={() => fileRef.current?.click()}
+      >
         <Upload className="size-4 shrink-0" />
         Import state
-        <Soon />
+        {!wired && <Soon />}
       </button>
-      <button type="button" className={ITEM} disabled>
+      <button type="button" className={ITEM} disabled={!wired} onClick={onExport}>
         <Download className="size-4 shrink-0" />
         Export state
-        <Soon />
+        {!wired && <Soon />}
       </button>
-      <button type="button" className={ITEM} disabled>
+      <button type="button" className={ITEM} disabled={!wired} onClick={onReset}>
         <RotateCcw className="size-4 shrink-0" />
         Reset state
-        <Soon />
+        {!wired && <Soon />}
       </button>
 
       <SectionLabel>App</SectionLabel>
@@ -85,7 +113,7 @@ export function CalcNav({ className }: { className?: string }) {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-1 font-mono text-[11px] text-muted-foreground">
-            <p>HP-35 · HP-12C · HP-15C · HP-48G — more on the way.</p>
+            <p>All 21 classic models, HP-35 (1972) → HP Prime (2013).</p>
             <p>
               Built with Next.js, math.js and KaTeX ·{" "}
               <a

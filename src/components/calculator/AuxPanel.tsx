@@ -9,24 +9,35 @@
 import { AuxColumn } from "./PaperAux";
 import type { RpnState } from "./Display";
 import type { Family } from "./models";
+import type { Value } from "@/lib/engine/config";
 
 export interface AuxPanelProps {
   state: RpnState;
   family: Family;
-  fmt: (n: number, dec?: number) => string;
+  fmt: (n: Value, dec?: number) => string;
   /** financial models (HP-12C): include the TVM registers note */
   showRegisters?: boolean;
+  /** history recall — tape lines push their exact value back (FR-EXP-5) */
+  onRecall?: (raw: string) => void;
   /** "bay": the side-machine's compact below-LCD arrangement */
   variant?: "flow" | "bay";
 }
 
-export function AuxPanel({ state, family, fmt, showRegisters, variant }: AuxPanelProps) {
+export function AuxPanel({
+  state,
+  family,
+  fmt,
+  showRegisters,
+  onRecall,
+  variant,
+}: AuxPanelProps) {
   return (
     <AuxColumn
       state={state}
       family={family}
       fmt={fmt}
       showRegisters={showRegisters}
+      onRecall={onRecall}
       variant={variant}
     />
   );

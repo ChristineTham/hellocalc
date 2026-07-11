@@ -6,13 +6,14 @@
 import { describe, expect, it } from "vitest";
 import { fireEvent, render, within } from "@testing-library/react";
 import { Display, type RpnState } from "@/components/calculator/Display";
+import { bn, type Value } from "@/lib/engine/config";
 
 const state: RpnState = {
-  T: 4,
-  Z: 3,
-  Y: 2,
-  X: 5,
-  lastX: 1,
+  T: bn(4),
+  Z: bn(3),
+  Y: bn(2),
+  X: bn(5),
+  lastX: bn(1),
   entry: null,
   dec: 2,
   prefix: "none",
@@ -20,7 +21,7 @@ const state: RpnState = {
   hist: [],
 };
 
-const fmt = (n: number, dec?: number) => n.toFixed(dec ?? 2);
+const fmt = (n: Value, dec?: number) => n.toFixed(dec ?? 2);
 const renderLatex = (tex: string) => ({ __html: `<span class="katex">${tex}</span>` });
 
 function renderDisplay(props: Partial<React.ComponentProps<typeof Display>> = {}) {
@@ -84,7 +85,7 @@ describe("Display — §5.3 line↔mini mechanism (prop-driven)", () => {
   it("RPL line echo shows level 2 when the stack is ≥2 deep", () => {
     const { container } = renderDisplay({
       family: "rpl",
-      state: { ...state, rpl: [7, 9] },
+      state: { ...state, rpl: [bn(7), bn(9)] },
     });
     const line = subtree(container, "line");
     expect(within(line).getByText("2:")).toBeTruthy();
@@ -92,7 +93,7 @@ describe("Display — §5.3 line↔mini mechanism (prop-driven)", () => {
   });
 
   it("RPL glass uses dot-matrix numerals; segment families keep DSEG7 (the 48 is a 131×64 pixel matrix)", () => {
-    const rpl = renderDisplay({ family: "rpl", state: { ...state, rpl: [5] } });
+    const rpl = renderDisplay({ family: "rpl", state: { ...state, rpl: [bn(5)] } });
     expect(panel(rpl.container).dataset.lcdFamily).toBe("rpl");
     expect(rpl.container.querySelector(".font-lcd-dot")).toBeTruthy();
     expect(rpl.container.querySelector(".font-display")).toBeNull();

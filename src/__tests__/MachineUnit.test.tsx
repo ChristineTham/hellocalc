@@ -8,13 +8,17 @@ import { MODELS } from "@/components/calculator/models";
 import type { RpnCalculator } from "@/hooks/useRpnCalculator";
 import type { RplCalculator } from "@/hooks/useRplCalculator";
 import type { RpnState } from "@/components/calculator/Display";
+import { bn, type Value } from "@/lib/engine/config";
+import { createRpn } from "@/lib/engine/rpn";
+import { createRpl } from "@/lib/engine/rpl";
 
+const zero = bn(0);
 const state: RpnState = {
-  T: 0,
-  Z: 0,
-  Y: 0,
-  X: 0,
-  lastX: 0,
+  T: zero,
+  Z: zero,
+  Y: zero,
+  X: zero,
+  lastX: zero,
   entry: null,
   dec: 2,
   prefix: "none",
@@ -22,7 +26,7 @@ const state: RpnState = {
   hist: [],
 };
 
-const fmt = (n: number, dec?: number) => n.toFixed(dec ?? 2);
+const fmt = (n: Value, dec?: number) => n.toFixed(dec ?? 2);
 const renderLatex = (tex: string) => ({ __html: tex });
 const noop = () => {};
 
@@ -31,16 +35,22 @@ const rpn: RpnCalculator = {
   prefix: "none",
   press: noop,
   arm: noop,
+  recall: noop,
   fmt,
   renderLatex,
+  engine: createRpn(),
+  restore: noop,
 };
 const rpl: RplCalculator = {
   state: { ...state, rpl: [] },
   prefix: "none",
   press: noop,
   arm: noop,
+  recall: noop,
   fmt,
   renderLatex,
+  engine: createRpl(),
+  restore: noop,
 };
 
 describe("MachineUnit", () => {

@@ -34,6 +34,7 @@ const ALIAS: Record<string, string> = {
   "e^x": "eˣ",
   "10^x": "10ˣ",
   "y^x": "yˣ",
+  "x^y": "yˣ", // the HP-35 prints the power key as x^y
   "x^2": "x²",
   // factorial / percent-change spellings
   "n!": "x!",
