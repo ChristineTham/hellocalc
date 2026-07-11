@@ -1357,6 +1357,22 @@ One spacing rhythm across chrome and machine (`--calc-region-gap` everywhere, co
 panel padding/radius), aux columns top-aligned with the machine, no orphaned dead zones at
 any (model × viewport) cell. Cozy, not tight; professional with Italian whitespace.
 
+### 14.4b Revision 3 (user feedback on v2)
+
+- **Desktop portrait/tall machines are SIDE-BY-SIDE** — the HP-48G is the
+  classic case: stacked on a desktop squeezed its LCD to the line state, while
+  side-by-side gives the tall keyboard full height AND a proper multi-line
+  glass. The paper (tape, vars) lives in the machine's bay below the glass;
+  the page's right aux column is dropped for these models. Landscape machines
+  keep stacking (display-above-keys IS the Voyager); tablets stay stacked
+  (portrait orientation has the height).
+- **One home for the stack** — never on the LCD and on paper at once. RPN
+  families: the paper StackNote owns the stack wherever it is in-plane (md+
+  aux or the bay); the mini LCD then shows hero + annunciators only (the
+  `.lcd-stack` block hides via CSS). RPL: the glass IS the stack display —
+  authentic to the 48G — so RPL models get no paper StackNote and no stack
+  toggle chip.
+
 ### 14.5 Clamshell note (HP-28, still deferred)
 
 When the 28-series lands: large displays render the two keyboard halves side by side under

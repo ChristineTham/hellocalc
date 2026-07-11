@@ -77,18 +77,27 @@ test.describe("hellocalc — smoke", () => {
     expect(lcd.y + lcd.height).toBeLessThanOrEqual(k.y + 1);
 
     // desktop 1366×800, portrait model (48G) — `desktop`: machine right of the
-    // sidebar, paper column to the machine's RIGHT, machine still stacked
+    // sidebar, paper column to the machine's RIGHT — and the machine itself is
+    // SIDE-BY-SIDE (§14.1 rev 3): LCD left of the full-height keyboard
     await page.setViewportSize({ width: 1366, height: 800 });
     await selectModel(page, "HP-48G");
     await expect(page.locator("main.calc-shell")).toHaveAttribute("data-template", "desktop");
-    await expect(page.locator("main.calc-shell")).toHaveAttribute("data-machine", "stack");
+    await expect(page.locator("main.calc-shell")).toHaveAttribute("data-machine", "side");
     m = await boxOf(machine());
     const sidebar = await boxOf(page.locator('[data-region="sidebar"]'));
-    const aux = await boxOf(page.locator('[data-region="aux"]'));
     expect(m.x).toBeGreaterThanOrEqual(sidebar.x + sidebar.width - 1);
-    expect(aux.x).toBeGreaterThanOrEqual(m.x + m.width - 1);
+    lcd = await boxOf(lcdSlot());
+    k = await boxOf(kbd());
+    expect(lcd.x + lcd.width).toBeLessThanOrEqual(k.x + 1); // glass beside the keys
+    expect(k.x + k.width).toBeLessThanOrEqual(m.x + m.width + 1); // same bezel
+    // paper lives in the bay BELOW the glass; the right aux column is gone
+    await expect(
+      page.locator('[data-slot="machine-aux"] [data-slot="history-tape"]'),
+    ).toBeVisible();
+    await expect(page.locator('[data-region="aux"]')).toBeHidden();
 
-    // same viewport, landscape model (12C): the classic anatomy — LCD above keys
+    // same viewport, landscape model (12C): the classic anatomy — LCD above
+    // keys, paper column to the machine's RIGHT
     await selectModel(page, "HP-12C");
     await expect(page.locator("main.calc-shell")).toHaveAttribute("data-template", "desktop");
     m = await boxOf(machine());
@@ -96,6 +105,8 @@ test.describe("hellocalc — smoke", () => {
     k = await boxOf(kbd());
     expect(lcd.y + lcd.height).toBeLessThanOrEqual(k.y + 1);
     expect(k.y + k.height).toBeLessThanOrEqual(m.y + m.height + 1);
+    const aux = await boxOf(page.locator('[data-region="aux"]'));
+    expect(aux.x).toBeGreaterThanOrEqual(m.x + m.width - 1);
   });
 
   test("device matrix extended: tablet paper-left, side machine, large desktop (§14)", async ({

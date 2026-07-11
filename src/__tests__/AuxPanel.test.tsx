@@ -48,10 +48,11 @@ describe("AuxPanel (paper aux)", () => {
     expect(histAt).toBeGreaterThan(tvmAt);
   });
 
-  it("omits the TVM note for non-financial models", () => {
+  it("RPL models get NO paper stack — their glass owns the stack (§14.3 rev 3)", () => {
     const { container } = render(<AuxPanel state={state} family="rpl" fmt={fmt} />);
     expect(container.querySelector('[data-slot="vars-note"]')).toBeNull();
-    expect(container.querySelector('[data-slot="stack-note"]')).not.toBeNull();
+    expect(container.querySelector('[data-slot="stack-note"]')).toBeNull();
+    expect(container.querySelector('[data-slot="history-tape"]')).not.toBeNull();
   });
 
   it("the bay variant is compact: stack + tape only (§14.3 side machine)", () => {

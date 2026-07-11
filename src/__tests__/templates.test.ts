@@ -90,6 +90,23 @@ describe("computePlacement — the §14.2 enumeration", () => {
     expect(t.id).toBe("stack");
     expect(t.machine).toBe("stack");
   });
+
+  it("desktop portrait/tall machines go side-by-side (§14.1 rev 3 — the 48G case)", () => {
+    const t = computePlacement("portrait", "lg");
+    expect(t.machine).toBe("side");
+    // …with the paper in the bay below the glass, not a right column
+    expect(t.aux).toBe("in-machine");
+    expect(t.regionsInline.aux).toBe(false);
+    expect(t.regionsInline.sidebar).toBe(true);
+    expect(computePlacement("portrait", "2xl").machine).toBe("side");
+    expect(computePlacement("tall", "xl").machine).toBe("side");
+    // landscape stays stacked — display-above-keys IS the Voyager
+    const v = computePlacement("landscape", "lg");
+    expect(v.machine).toBe("stack");
+    expect(v.aux).toBe("right");
+    // tablets keep stacking: portrait orientation has the height for it
+    expect(computePlacement("portrait", "md").machine).toBe("stack");
+  });
 });
 
 describe("template invariants (§14.2)", () => {

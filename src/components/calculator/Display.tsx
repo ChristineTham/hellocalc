@@ -158,7 +158,14 @@ export function Display({
           <span className={cn(num, "text-hp-lcd-value")}>{lineValue}</span>
         </div>
         {showStack !== false && echo && (
-          <div className="flex items-baseline justify-between border-t border-hp-display-dim/30 pt-1">
+          // RPN echo is `lcd-stack`: hidden when a paper stack is in-plane
+          // (§14.3 rev 3). RPL keeps its echo — the glass owns the RPL stack.
+          <div
+            className={cn(
+              !isRpl && "lcd-stack",
+              "flex items-baseline justify-between border-t border-hp-display-dim/30 pt-1",
+            )}
+          >
             <span className="font-mono text-hp-lcd-reg font-semibold tracking-[0.1em] text-hp-display-dim">
               {echo.label}
             </span>
@@ -194,11 +201,13 @@ export function Display({
           dangerouslySetInnerHTML={renderLatex(s.latex)}
         />
 
-        {/* compact stack */}
+        {/* compact stack — for RPN it is `lcd-stack` (one home: paper when
+            in-plane, glass otherwise, §14.3 rev 3); the RPL glass ALWAYS
+            shows its stack — that is what a 48G display is */}
         {isRpl ? (
           <RplStack rpl={s.rpl ?? []} entry={s.entry} fmt={(n) => fmt(n, s.dec)} />
         ) : (
-          <div className="mt-2">
+          <div className="lcd-stack mt-2">
             <StackRow label="T" value={fmt(s.T, s.dec)} muted />
             <StackRow label="Z" value={fmt(s.Z, s.dec)} muted />
             <StackRow label="Y" value={fmt(s.Y, s.dec)} />

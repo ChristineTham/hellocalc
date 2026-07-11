@@ -21,9 +21,10 @@ export interface TopbarProps {
   onSelectModel: (id: string) => void;
   /** nav content (CalcNav) — hosted in the left sheet below lg */
   nav: React.ReactNode;
-  /** the paper components (§14.3), each behind its own toggle below md */
+  /** the paper components (§14.3), each behind its own toggle below md;
+      stack is absent for RPL models — their glass owns the stack */
   panels: {
-    stack: React.ReactNode;
+    stack?: React.ReactNode;
     tape: React.ReactNode;
     vars?: React.ReactNode;
   };
@@ -93,9 +94,11 @@ export function Topbar({ activeModel, onSelectModel, nav, panels }: TopbarProps)
       <div aria-hidden className="flex-1 sm:hidden" />
 
       {/* individual paper-panel toggles (§14.3) — sheet-hosted below md */}
-      <PanelSheet label="Toggle stack" title="Stack" icon={<Layers className="size-4" />}>
-        {panels.stack}
-      </PanelSheet>
+      {panels.stack && (
+        <PanelSheet label="Toggle stack" title="Stack" icon={<Layers className="size-4" />}>
+          {panels.stack}
+        </PanelSheet>
+      )}
       {panels.vars && (
         <PanelSheet
           label="Toggle variables"

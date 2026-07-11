@@ -604,7 +604,20 @@
     .calc-shell[data-aspect] > [data-region="sidebar"] {
       display: none;
     }
+    /* with the page aux hidden, the machine's paper bay takes over (§14.3) */
+    .calc-shell[data-aspect="portrait"] .machine .machine-aux,
+    .calc-shell[data-aspect="tall"] .machine .machine-aux {
+      display: flex;
+      min-inline-size: 0;
+      overflow: hidden;
+    }
+  }
 
+  /* ── SIDE machine (§14.1 rev 3): short viewports OR desktop, portrait/tall.
+        On desktop the tall keyboard takes the full height and the LCD gets a
+        proper multi-line glass beside it (the HP-48G case); landscape
+        machines keep stacking — display-above-keys IS the Voyager. ───────── */
+  @media (max-height: 34rem), (width >= 64rem) {
     .calc-shell[data-aspect="portrait"] .machine,
     .calc-shell[data-aspect="tall"] .machine {
       grid-template-areas:
@@ -630,12 +643,6 @@
         calc(var(--kbd-cols) * var(--calc-key-max-pitch))
       );
     }
-    .calc-shell[data-aspect="portrait"] .machine .machine-aux,
-    .calc-shell[data-aspect="tall"] .machine .machine-aux {
-      display: flex;
-      min-inline-size: 0;
-      overflow: hidden;
-    }
     /* the side column is narrow — badge stacks over the model number */
     .calc-shell[data-aspect="portrait"] .machine .machine-np,
     .calc-shell[data-aspect="tall"] .machine .machine-np {
@@ -643,6 +650,47 @@
       align-items: flex-start;
       justify-content: flex-end;
       block-size: auto;
+    }
+  }
+
+  /* Desktop side refinements (§14.1 rev 3): a generous glass column that
+     flexes to a multi-line LCD, with the paper IN THE BAY below it — the
+     space under the display is used, per the side-by-side intent — so the
+     page's right aux column is dropped for these models. */
+  @media (width >= 64rem) {
+    .calc-shell[data-aspect="portrait"],
+    .calc-shell[data-aspect="tall"] {
+      grid-template-areas:
+        "sidebar topbar"
+        "sidebar machine";
+      grid-template-columns: var(--calc-sidebar-w) minmax(0, 1fr);
+      grid-template-rows: minmax(var(--calc-topbar-h), auto) minmax(0, 1fr);
+    }
+    .calc-shell[data-aspect="portrait"] > [data-region="aux"],
+    .calc-shell[data-aspect="tall"] > [data-region="aux"] {
+      display: none;
+    }
+    .calc-shell[data-aspect="portrait"] .machine,
+    .calc-shell[data-aspect="tall"] .machine {
+      grid-template-columns: minmax(0, 22rem) auto;
+      grid-template-rows: auto minmax(13rem, 1fr) minmax(0, 1fr);
+    }
+    .calc-shell[data-aspect="portrait"] .machine .machine-aux,
+    .calc-shell[data-aspect="tall"] .machine .machine-aux {
+      display: flex;
+      min-inline-size: 0;
+      overflow: hidden;
+      padding-block-start: var(--calc-machine-gap);
+    }
+  }
+
+  /* ── One home for the stack (§14.3 rev 3): when an in-plane paper stack
+        exists (md+ aux, or the short machine's bay), the RPN LCD shows only
+        hero + annunciators — never the stack twice. RPL glass is exempt: a
+        48G's display IS its stack, so RPL gets no paper StackNote instead. ── */
+  @media (min-width: 48rem), (max-height: 34rem) {
+    .lcd-panel .lcd-stack {
+      display: none;
     }
   }
 }

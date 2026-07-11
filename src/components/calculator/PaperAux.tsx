@@ -161,18 +161,21 @@ export function AuxColumn({
   variant = "flow",
   className,
 }: AuxColumnProps) {
+  // One home for the stack (§14.3 rev 3): the RPL glass IS a stack display,
+  // so RPL models get no paper StackNote — tape (and vars) only.
+  const paperStack = family !== "rpl";
   if (variant === "bay") {
-    // compact paper resting on the machine body: stack note + tape only
+    // compact paper resting on the machine body
     return (
       <div className={cn("aux-flow w-full", className)}>
-        <StackNote state={state} family={family} fmt={fmt} />
+        {paperStack && <StackNote state={state} family={family} fmt={fmt} />}
         <HistoryTape hist={state.hist} className="min-h-0 flex-1" />
       </div>
     );
   }
   return (
     <div className={cn("aux-flow size-full", className)}>
-      <StackNote state={state} family={family} fmt={fmt} />
+      {paperStack && <StackNote state={state} family={family} fmt={fmt} />}
       {showRegisters && <VarsNote state={state} />}
       <HistoryTape hist={state.hist} className="min-h-0 flex-1" />
     </div>

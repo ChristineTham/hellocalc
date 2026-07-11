@@ -59,7 +59,11 @@ export default function Home() {
             onSelectModel={setModelId}
             nav={<CalcNav />}
             panels={{
-              stack: <StackNote state={active.state} family={model.family} fmt={active.fmt} />,
+              // RPL glass owns its stack (§14.3 rev 3) — no paper stack panel
+              stack:
+                model.family !== "rpl" ? (
+                  <StackNote state={active.state} family={model.family} fmt={active.fmt} />
+                ) : undefined,
               tape: <HistoryTape hist={active.state.hist} />,
               vars: showRegisters ? <VarsNote state={active.state} /> : undefined,
             }}
