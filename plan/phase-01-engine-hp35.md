@@ -30,12 +30,13 @@ New subsystems across architecture §3 layers (value tower · parser/eval · sta
   resolves `(physical_key, prefix)` → engine op; per-model exposure from `hp/functions/`.
 - **Faceplate framework** — `Faceplate` / `Keyboard` / `Display` / `CalcKey` (evolve existing
   `src/components/calculator/*`) rendered from generated model data (`models.generated.ts`).
-- **Responsive, viewport-fit scaling framework** (built once here, reused by every model) —
-  the faceplate scales as one unit (display, keys, fonts together) to fully fit the viewport at
-  every breakpoint, preserving key aspect ratio, with no clipping or scroll-to-reach-a-key
-  (fluid sizing / CSS container queries, not a fixed pixel grid). Secondary panels (history,
-  stack rail) collapse behind a toggle/drawer on small screens; the display can collapse to a
-  compact device-like LCD with an **expand** control to the full multi-line view.
+- **Responsive layout framework** (built once here, reused by every model — see
+  [docs/responsive-layout.md](../docs/responsive-layout.md)) — the KEYBOARD block preserves the
+  real model's proportions (aspect derived from its key grid) and scales uniformly with no
+  clipping or scroll-to-reach-a-key; the LCD is placed and sized INDEPENDENTLY, filling most of
+  the remaining estate, collapsing between a device-like line state and a mini multi-line state
+  (container-driven, with a manual override). Secondary panels (history, stack rail) collapse
+  behind a bottom/nav sheet on small screens.
 - **History stack** — the engine/hook records each committed entry and result as a running
   history (`{ op, value }`), recallable into the display; the substrate for the native-mode
   history/expression library in Phase 23.
@@ -53,9 +54,9 @@ New subsystems across architecture §3 layers (value tower · parser/eval · sta
   only HP-35 functions exposed; LED-style display/annunciators.
 - **FR-EXP-5** — history stack of prior entries/results, shown in the display and recallable.
 - **FR-UI-1/2/3/5** — large display showing the RPN stack **and computation history**; physical-keyboard input; responsive; design tokens.
-- **FR-UI-7/8/9** — faceplate scales to fit the viewport (display/keys/fonts together); history
-  and stack panels collapse behind a control on small screens; display can collapse to a
-  compact device-like LCD with an expand control.
+- **FR-UI-7/8/9/10/11** — keyboard aspect fidelity + independent LCD placement per
+  [docs/responsive-layout.md](../docs/responsive-layout.md); history/stack panels collapse
+  behind sheets on small screens; the LCD collapses between line and mini states.
 - **FR-STATE-1** — persist session state across reloads (localStorage autosave/restore).
 - **FR-STATE-4** — export/import state as a versioned file (durable backup; foundation laid here).
 - **NFR-5/8** — precision correctness (HP reference tests); pure-TS framework-agnostic engine.

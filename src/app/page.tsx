@@ -22,7 +22,14 @@ export default function Home() {
   const rpl = useRplCalculator();
   const active = model.family === "rpl" ? rpl : rpn;
 
-  const aux = <AuxPanel state={active.state} family={model.family} fmt={active.fmt} />;
+  const aux = (
+    <AuxPanel
+      state={active.state}
+      family={model.family}
+      fmt={active.fmt}
+      showRegisters={model.id === "HP-12C"}
+    />
+  );
 
   return (
     <CalcShell

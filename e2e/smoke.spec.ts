@@ -91,6 +91,48 @@ test.describe("hellocalc — smoke", () => {
     expect(box.y + box.height).toBeGreaterThan(800 - 80); // anchored at the bottom
   });
 
+  test("device matrix extended: tablet corner, phone landscape, large desktop (§10)", async ({
+    page,
+  }) => {
+    const kbd = () => page.locator('[data-slot="keyboard"]');
+
+    // tablet-portrait 834×1112, portrait model (48G) — `tablet-portrait-corner`:
+    // LCD top, aux bottom-LEFT, keyboard bottom-RIGHT (§12.1 diagonal)
+    await page.setViewportSize({ width: 834, height: 1112 });
+    await page.goto("/");
+    await selectModel(page, "HP-48G");
+    await expect(page.locator("main.calc-shell")).toHaveAttribute(
+      "data-template",
+      "tablet-portrait-corner",
+    );
+    const kbdBox = await kbd().boundingBox();
+    if (!kbdBox) throw new Error("no keyboard box (tablet corner)");
+    expect(kbdBox.x).toBeGreaterThan(834 / 2); // bottom-right corner
+    expect(kbdBox.y).toBeGreaterThan(1112 / 3);
+    const aux = await page.locator('[data-region="aux"]').boundingBox();
+    if (!aux) throw new Error("no aux box (tablet corner)");
+    expect(aux.x + aux.width).toBeLessThanOrEqual(kbdBox.x + 1); // aux left of keyboard
+
+    // phone-landscape 852×393 — the short-viewport override: keyboard right-side
+    await page.setViewportSize({ width: 852, height: 393 });
+    await expect(page.locator("main.calc-shell")).toHaveAttribute(
+      "data-template",
+      "phone-landscape",
+    );
+    const plBox = await kbd().boundingBox();
+    if (!plBox) throw new Error("no keyboard box (phone landscape)");
+    expect(plBox.x).toBeGreaterThan(852 / 2);
+
+    // large desktop 1680×950, HP-12C — TVM register strip pinned in aux (§12.5)
+    await page.setViewportSize({ width: 1680, height: 950 });
+    await selectModel(page, "HP-12C");
+    const strip = page.locator('[data-slot="tvm-strip"]');
+    await expect(strip).toBeVisible();
+    for (const k of ["PV", "PMT", "FV"]) {
+      await expect(strip.getByText(k, { exact: true })).toBeVisible();
+    }
+  });
+
   test("width-tier boundaries: JS labels match the CSS-active template (§10 parity)", async ({
     page,
   }) => {

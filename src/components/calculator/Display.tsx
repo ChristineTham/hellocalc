@@ -306,9 +306,11 @@ export interface StackPanelProps {
   className?: string;
   /** when provided (mobile drawer), renders a close button */
   onClose?: () => void;
+  /** equation/variable/TVM strip (§12.5) — pinned between the stack and history */
+  varsRow?: React.ReactNode;
 }
 
-export function StackPanel({ state: s, family, fmt, className, onClose }: StackPanelProps) {
+export function StackPanel({ state: s, family, fmt, className, onClose, varsRow }: StackPanelProps) {
   const isRpl = family === "rpl";
   const rows = isRpl
     ? (() => {
@@ -368,6 +370,9 @@ export function StackPanel({ state: s, family, fmt, className, onClose }: StackP
           </div>
         ))}
       </div>
+
+      {/* equation/variable/TVM strip — glanceable without opening anything (§12.5) */}
+      {varsRow}
 
       {/* history — the archive, scrolls away beneath (§12.5) */}
       <h3 className="mt-3.5 mb-2.5 border-t border-border pt-3.5 font-mono text-[10.5px] font-semibold tracking-[0.18em] text-muted-foreground uppercase">

@@ -809,12 +809,12 @@ faceplate/display palette, `--font-display` (dseg7), `--font-mono`, `--font-lege
   keys never distorted; size capped ("not comically large").
 - **ADD FR-UI-12** (M) — *Top bar + hamburger → persistent sidebar nav* exposing
   settings/about/state import-export/reset (surfaces FR-STATE-4).
-- **ADD FR-UI-13** (M) — *Physical keyboard input.* Keystrokes dispatch through the model
-  adapter (data-driven `hotkey` map); pressed keys **echo visually** on the faceplate; `?`
-  opens a per-model shortcut cheat-sheet; `/` / `Cmd+K` opens the model picker (§12.2).
-- **ADD FR-UI-14** (S) — *Armed-prefix plane highlighting.* Arming `f`/`g`/`ls`/`rs`
+- **EXTEND FR-UI-2** (already covers physical-keyboard input) — add the data-driven per-model
+  `hotkey` map, the visual **press echo**, and the `?` cheat-sheet (§12.2). (The draft proposed
+  a new FR-UI-13 for this before noticing FR-UI-2 exists.)
+- **ADD FR-UI-13** (S) — *Armed-prefix plane highlighting.* Arming `f`/`g`/`ls`/`rs`
   brightens the matching legend plane and dims primary legends (§12.3).
-- **ADD FR-UI-15** (S) — *Three-plane visual language* (extends FR-UI-5): desk / machine /
+- **ADD FR-UI-14** (S) — *Three-plane visual language* (extends FR-UI-5): desk / machine /
   glass material rules, warm shadows, pastel chrome accents, cqi-proportional legend type
   (§13).
 - **EXTEND FR-UI-8/9** — the equation/variable region (TVM registers, named variables,

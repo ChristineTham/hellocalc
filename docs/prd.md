@@ -212,21 +212,43 @@ the unified [`hp/mapping/mapping.json`](../hp/mapping/mapping.json).
 ### 7.3 Display & interaction
 - **FR-UI-1 (M):** Large calculator display showing history, the RPN stack, and KaTeX-rendered
   math — beyond a single-line traditional display.
-- **FR-UI-2 (M):** Physical-keyboard input maps to keys/entry in every mode.
+- **FR-UI-2 (M):** Physical-keyboard input maps to keys/entry in every mode, via a
+  data-driven per-model hotkey map; a physical keypress **echoes visually** on the matching
+  faceplate key, and a `?` cheat-sheet lists the active model's shortcuts
+  ([responsive-layout §12.2](responsive-layout.md)).
 - **FR-UI-3 (M):** Fully responsive layouts across all breakpoints — mobile, tablet, desktop.
 - **FR-UI-4 (S):** Notebook / block-evaluation editor for multi-step work (native mode).
 - **FR-UI-5 (S):** Adhere to the app's HP-calculator design system / theme tokens (defined in `globals.css` `@theme`).
 - **FR-UI-6 (C):** Light/dark themes.
-- **FR-UI-7 (M):** The **faceplate scales to fully fit the viewport** — display, buttons, and
-  fonts scale together as one unit at every breakpoint, with no clipping and no page scroll
-  required to reach any key. Preserve the model's key aspect ratio and relative sizing while
-  scaling (fluid sizing / container queries; not a fixed pixel grid).
+- **FR-UI-7 (M):** **Keyboard aspect fidelity is the primary layout constraint.** The keyboard
+  block preserves the real model's keyboard proportions (aspect derived from its key grid —
+  see [responsive-layout §4](responsive-layout.md)); keys scale **uniformly** with no
+  distortion, no clipping, and no page scroll to reach any key. The LCD is sized and placed
+  **independently** of the keyboard (they do not scale as one unit).
 - **FR-UI-8 (M):** Surrounding UI components are responsive too. Secondary panels (computation
-  **history**, the side stack rail, plots) reflow with the layout; on small screens they
-  **collapse behind a control** (toggle/drawer) rather than crowding or shrinking the faceplate.
-- **FR-UI-9 (S):** On small screens the display **may collapse to a compact form resembling the
-  real device's LCD** (the model's native single-/two-line readout), with a control to
-  **expand** it to the full multi-line display (history + RPN/RPL stack + KaTeX).
+  **history**, the stack rail, the **equation/variable/TVM panel** — a distinct reflowable
+  region, not LCD-embedded content — plots) reflow with the layout; on small screens they
+  **collapse behind a control** (bottom sheet / nav sheet) rather than crowding the keyboard.
+- **FR-UI-9 (M):** The display **collapses between two states**: a compact form resembling the
+  real device's LCD (single/two-line readout + annunciators, with a stack echo) and a mini
+  multi-line panel (KaTeX hero + compact stack + register summary). The default is
+  container-driven (the LCD fills most of its remaining estate); a control forces either state.
+- **FR-UI-10 (M):** **Independent LCD placement by device class** — the LCD is placed after
+  the keyboard and fills MOST of the remaining estate: top of the screen on phones/tablets,
+  top-left when the keyboard occupies the right side ([responsive-layout §3](responsive-layout.md)).
+- **FR-UI-11 (M):** **Keyboard placement by device class** — phone: full-width bottom band;
+  tablet portrait: bottom band (landscape models) or bottom-right (portrait/tall); desktop:
+  bottom band / right side / full-height right edge; size capped per model ("never comically
+  large": a key-pitch cap, not a fixed module width).
+- **FR-UI-12 (M):** **Always-present top bar + navigation** — hamburger (top-left, below `lg`)
+  opening a nav sheet, persistent sidebar at `lg`+, exposing settings/about/state
+  import-export/reset (surfaces FR-STATE-4).
+- **FR-UI-13 (S):** **Armed-prefix plane highlighting** — arming `f`/`g`/`ls`/`rs` brightens
+  the matching shift-legend plane and dims primary legends; on narrow keyboards the shift
+  planes hide entirely except while armed ([responsive-layout §12.3](responsive-layout.md)).
+- **FR-UI-14 (S):** **Three-plane visual language** (extends FR-UI-5): desk / machine / glass
+  material rules, warm shadows, pastel chrome accents, cq-proportional legend type
+  ([responsive-layout §13](responsive-layout.md)).
 
 ---
 

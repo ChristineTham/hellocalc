@@ -120,6 +120,7 @@
   --text-key-shift: clamp(6px, 1.55cqi, 9px);
   /* LCD */
   --hp-lcd-aspect-mini: 4 / 3;
+  --calc-lcd-max-w: 30rem; /* mini-glass width cap — surplus estate stays desk, not empty glass */
   --calc-lcd-line-h: 3.25rem;
   --calc-lcd-mini-min-h: 13rem;
   --hp-lcd-pad: 1rem;
@@ -360,10 +361,11 @@
   .lcd-panel .lcd-mini {
     display: none;
     flex-direction: column;
-    /* mini 4:3 glass: capped by the slot's height, centred; content may
-       stretch it taller than 4:3 (aspect-ratio yields to min-content). */
+    /* mini 4:3 glass: capped by the slot's height AND --calc-lcd-max-w,
+       centred; content may stretch it taller than 4:3 (aspect-ratio yields
+       to min-content). */
     aspect-ratio: var(--hp-lcd-aspect-mini);
-    inline-size: min(100%, calc(100cqb * 4 / 3));
+    inline-size: min(100%, calc(100cqb * 4 / 3), var(--calc-lcd-max-w));
     margin-inline: auto;
   }
   /* threshold literal MUST equal --calc-lcd-mini-min-h (size container
