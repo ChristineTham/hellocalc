@@ -32,6 +32,10 @@ import {
   UndefinedName,
 } from "./rpl/parse";
 import { CATALOG_COMMANDS, RPL_MENUS } from "./rpl/menu";
+import {
+  addU, convertU, DimensionError, divU, mulU, powU, scaleU, subU, ubaseU, validUnit,
+} from "./units";
+import { UNIT_CATEGORIES, UNIT_MENUS } from "./units-catalog";
 
 export type Angle = "DEG" | "RAD" | "GRD";
 
@@ -146,6 +150,31 @@ const wantBin = (o: RplObj): bigint => {
 const realOf = (n: number): RplObj => {
   if (!Number.isFinite(n)) throw err("Error");
   return real(bn(String(n)));
+};
+type UnitObj = Extract<RplObj, { k: "unit" }>;
+const wantUnit = (o: RplObj): UnitObj => {
+  if (o.k !== "unit") throw err("Bad Argument Type");
+  return o;
+};
+/** The target-unit spec for CONVERT/→UNIT: a unit object, name, or string. */
+const unitSpecOf = (o: RplObj): string => {
+  // a quoted 'm/s^2' parses as an algebraic — its source IS the unit spec
+  const u =
+    o.k === "unit" ? o.u : o.k === "name" || o.k === "str" ? o.v : o.k === "alg" ? o.src : null;
+  if (u === null || !validUnit(u)) throw err("Bad Argument Type");
+  return u;
+};
+/** Run a unit op, translating DimensionError to the 28C's message. */
+function tryUnits<T>(op: () => T): T {
+  try {
+    return op();
+  } catch (e) {
+    throw e instanceof DimensionError ? err(e.message) : err("Error");
+  }
+}
+const pushU = (s: RplEngine, q: { mag: Value; u: string }): void => {
+  if (!q.mag.isFinite()) throw err("Infinite Result");
+  s.stack.push(q.u === "" ? real(q.mag) : { k: "unit", mag: q.mag, u: q.u });
 };
 const fRe = (o: RplObj): number => num(wantReal(o));
 
@@ -638,6 +667,12 @@ function unaryNum(s: RplEngine, f: (a: Value) => unknown): void {
 /** ‘+’ across the object tower. */
 function opAdd(s: RplEngine): void {
   const [a, b] = popN(s, 2);
+  if (a.k === "unit" || b.k === "unit") {
+    // real + unit is dimensionally inconsistent, like the machines (FR-UNIT-2)
+    if (a.k !== "unit" || b.k !== "unit") throw err("Inconsistent Units");
+    pushU(s, tryUnits(() => addU(a, b)));
+    return;
+  }
   if (a.k === "str" || b.k === "str") {
     const t = (o: RplObj): string => (o.k === "str" ? o.v : formatObj(o, s.disp, s.base));
     s.stack.push(mkStr(t(a) + t(b)));
@@ -665,6 +700,11 @@ function opAdd(s: RplEngine): void {
 
 function opSub(s: RplEngine): void {
   const [a, b] = popN(s, 2);
+  if (a.k === "unit" || b.k === "unit") {
+    if (a.k !== "unit" || b.k !== "unit") throw err("Inconsistent Units");
+    pushU(s, tryUnits(() => subU(a, b)));
+    return;
+  }
   if (a.k === "arr" && b.k === "arr") {
     if (!sameDims(a, b)) throw err("Invalid Dimension");
     s.stack.push(arrOf(zip(a.rows, b.rows, (x, y) => x - y), a.vec && b.vec));
@@ -683,6 +723,12 @@ function opSub(s: RplEngine): void {
 
 function opMul(s: RplEngine): void {
   const [a, b] = popN(s, 2);
+  if (a.k === "unit" || b.k === "unit") {
+    if (a.k === "real") pushU(s, tryUnits(() => scaleU(wantUnit(b), a.v)));
+    else if (b.k === "real") pushU(s, tryUnits(() => scaleU(wantUnit(a), b.v)));
+    else pushU(s, tryUnits(() => mulU(wantUnit(a), wantUnit(b))));
+    return;
+  }
   if (a.k === "arr" || b.k === "arr") {
     if (a.k === "arr" && b.k === "arr") {
       const [, ac] = dimsOf(a);
@@ -711,6 +757,12 @@ function opMul(s: RplEngine): void {
 
 function opDiv(s: RplEngine): void {
   const [a, b] = popN(s, 2);
+  if (a.k === "unit" || b.k === "unit") {
+    const qa = a.k === "unit" ? a : { mag: wantReal(a), u: "" };
+    const qb = b.k === "unit" ? b : { mag: wantReal(b), u: "" };
+    pushU(s, tryUnits(() => divU(qa, qb)));
+    return;
+  }
   if (a.k === "arr" && b.k === "real") {
     const k = num(b.v);
     if (k === 0) throw err("Infinite Result");
@@ -732,6 +784,10 @@ function opDiv(s: RplEngine): void {
 
 function opPow(s: RplEngine): void {
   const [a, b] = popN(s, 2);
+  if (a.k === "unit") {
+    pushU(s, tryUnits(() => powU(a, wantInt(b))));
+    return;
+  }
   if (a.k === "cpx") {
     s.stack.push(cPow(a, fRe(b)));
     return;
@@ -872,6 +928,7 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
       else if (o.k === "arr") s.stack.push(arrOf(o.rows.map((r) => r.map((x) => -x)), o.vec));
       else if (o.k === "bin") s.stack.push(binObj(maskOf(s.ws) + B1 - o.v, s.ws));
       else if (o.k === "alg") s.stack.push({ k: "alg", src: `-(${o.src})` });
+      else if (o.k === "unit") s.stack.push({ ...o, mag: o.mag.neg() });
       else throw err("Bad Argument Type");
       return true;
     }
@@ -939,6 +996,7 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
       const o = pop1(s);
       if (o.k === "cpx") s.stack.push(realOf(cAbs(o)));
       else if (o.k === "arr") s.stack.push(realOf(Math.sqrt(sum(flat(o).map((x) => x * x)))));
+      else if (o.k === "unit") s.stack.push({ ...o, mag: o.mag.abs() });
       else s.stack.push(real(wantReal(o).abs()));
       return true;
     }
@@ -1943,6 +2001,29 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
     case "ERRM":
       s.stack.push(mkStr(s.errM));
       return true;
+    // ---- UNITS (P13, FR-UNIT-1/2/3) ----------------------------------------------------------------
+    case "CONVERT": {
+      const [q, t] = popN(s, 2);
+      pushU(s, tryUnits(() => convertU(wantUnit(q), unitSpecOf(t))));
+      return true;
+    }
+    case "→UNIT": {
+      const [v, t] = popN(s, 2);
+      pushU(s, { mag: wantReal(v), u: unitSpecOf(t) });
+      return true;
+    }
+    case "UBASE":
+      pushU(s, tryUnits(() => ubaseU(wantUnit(pop1(s)))));
+      return true;
+    case "UVAL":
+      s.stack.push(real(wantUnit(pop1(s)).mag));
+      return true;
+    case "UFACT": {
+      // simplified UFACT (delivery note): full conversion into the given unit
+      const [q, t] = popN(s, 2);
+      pushU(s, tryUnits(() => convertU(wantUnit(q), unitSpecOf(t))));
+      return true;
+    }
     // ---- EVAL ------------------------------------------------------------------------------------
     case "EVAL":
     case "→NUM":
@@ -1962,7 +2043,7 @@ const MENU_OPEN: Record<string, string> = {
   CTRL: "CTRL", CONTRL: "CTRL", BRANCH: "BRANCH", TEST: "TEST", TRIG: "TRIG",
   LOGS: "LOGS", MODE: "MODE", STAT: "STAT", PLOT: "PLOT", PRINT: "PRINT",
   SOLV: "SOLVE", ALGEBRA: "ALGEBRA", ALGBRA: "ALGEBRA", CATALOG: "CATALOG",
-  USER: "USER",
+  USER: "USER", UNITS: "UNITS",
 };
 
 /** Words the BRANCH/CTRL softkeys TYPE into the command line (program entry). */
@@ -2081,6 +2162,38 @@ export function pressSoft(s: RplEngine, i: number): void {
     }
     return;
   }
+  if (s.menu?.name === "UNITS") {
+    s.menu = { name: `U:${label}`, page: 0 };
+    return;
+  }
+  if (s.menu?.name.startsWith("U:")) {
+    // the 28C UNITS catalog: on a real, ATTACH the unit; on a quantity,
+    // CONVERT to it (the catalog's two working modes)
+    if (s.entry !== null && !inTextMode(s.entry) && !runLine(s)) return;
+    if (!s.stack.length) {
+      s.error = "Too Few Arguments";
+      return;
+    }
+    const top = s.stack[s.stack.length - 1];
+    try {
+      if (top.k === "real") {
+        s.stack.pop();
+        pushU(s, { mag: top.v, u: label });
+      } else if (top.k === "unit") {
+        s.stack.pop();
+        pushU(s, tryUnits(() => convertU(top, label)));
+      } else {
+        s.error = "Bad Argument Type";
+        return;
+      }
+    } catch (e) {
+      if (e instanceof RplError) s.error = e.message;
+      else throw e;
+      return;
+    }
+    recordTape(s, label);
+    return;
+  }
   if (s.menu?.name === "SOLVR") {
     // the solver menu: a variable softkey STORES level 1 into that variable
     if (s.entry !== null && !inTextMode(s.entry) && !runLine(s)) return;
@@ -2109,12 +2222,16 @@ export function menuLabels(s: RplEngine): string[] {
       ? [...Object.keys(s.vars), "ORDER", "CLUSR", "MEM"]
       : s.menu.name === "CATALOG"
         ? CATALOG_COMMANDS
-        : s.menu.name === "SOLVR"
-          ? (() => {
-              const eq = s.vars["EQ"];
-              return eq && eq.k === "alg" ? exprNames(eq.src) : [];
-            })()
-          : RPL_MENUS[s.menu.name] ?? [];
+        : s.menu.name === "UNITS"
+          ? [...UNIT_CATEGORIES]
+          : s.menu.name.startsWith("U:")
+            ? UNIT_MENUS[s.menu.name.slice(2)] ?? []
+            : s.menu.name === "SOLVR"
+              ? (() => {
+                  const eq = s.vars["EQ"];
+                  return eq && eq.k === "alg" ? exprNames(eq.src) : [];
+                })()
+              : RPL_MENUS[s.menu.name] ?? [];
   const pages = Math.max(1, Math.ceil(roster.length / 6));
   const p = ((s.menu.page % pages) + pages) % pages;
   const out = roster.slice(p * 6, p * 6 + 6);

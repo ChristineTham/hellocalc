@@ -7,6 +7,7 @@
 // environment; symbolic rewriting is the P14 CAS's job.
 
 import { bn, math, PI, type Value } from "../config";
+import { validUnit } from "../units";
 import type { RplObj } from "./object";
 
 export type RplItem = { lit: RplObj } | { word: string };
@@ -145,6 +146,13 @@ function parseOne(r: Reader, base: number): RplItem | null {
   if (!tok) {
     // a structural char not consumed above ends up here only via ] } ) — error
     throw syntax();
+  }
+  // HP unit syntax `5_cm` / `9.81_m/s^2` (P13) — magnitude stays exact
+  const um = tok.match(/^([+-]?(?:\d+\.?\d*|\.\d+)(?:[Ee][+-]?\d+)?)_(.+)$/);
+  if (um) {
+    const mag = parseNumber(um[1]);
+    if (mag === null || !validUnit(um[2])) throw syntax();
+    return { lit: { k: "unit", mag, u: um[2] } };
   }
   const num = parseNumber(tok);
   if (num !== null) return { lit: { k: "real", v: num } };

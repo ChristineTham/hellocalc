@@ -246,6 +246,108 @@ describe("P12 object types", () => {
   });
 });
 
+describe("P13 units & dimensional analysis", () => {
+  it("FR-UNIT-1: 5_cm + 2_in auto-converts to the left unit, exactly", () => {
+    const s = createRpl();
+    line(s, "5_cm 2_in +");
+    const top = s.stack[0];
+    expect(top.k).toBe("unit");
+    if (top.k === "unit") {
+      expect(top.v === undefined).toBe(true); // discriminant sanity
+      expect(top.mag.toString()).toBe("10.08"); // exact on BigNumber
+      expect(top.u).toBe("cm");
+    }
+  });
+
+  it("FR-UNIT-2: 3_m + 4_s reports Inconsistent Units, never NaN", () => {
+    const s = createRpl();
+    line(s, "3_m 4_s +");
+    expect(s.error).toBe("Inconsistent Units");
+    line(s, "CLEAR 3 4_s +"); // bare real + quantity is inconsistent too
+    expect(s.error).toBe("Inconsistent Units");
+  });
+
+  it("FR-UNIT-3: CONVERT 100_km/h to m/s; UBASE of 1_N; UVAL strips", () => {
+    const s = createRpl();
+    line(s, "100_km/h 1_m/s CONVERT");
+    const top = s.stack[0];
+    expect(top.k === "unit" && top.u).toBe("m/s");
+    expect(top.k === "unit" && top.mag.toFixed(10)).toBe("27.7777777778");
+    line(s, "CLEAR 1_N UBASE");
+    const si = s.stack[0];
+    expect(si.k === "unit" && si.u).toBe("(kg m) / s^2");
+    line(s, "UVAL");
+    expect(nums(s.stack)).toEqual([1]);
+  });
+
+  it("×/÷/^ compose and cancel dimensions", () => {
+    const s = createRpl();
+    line(s, "6_m 2_s ÷");
+    expect(fmtTop(s)).toBe("3_m / s");
+    line(s, "CLEAR 3_m 3 ^");
+    const v = s.stack[0];
+    expect(v.k === "unit" && v.mag.toString()).toBe("27");
+    expect(v.k === "unit" && v.u).toBe("m^3");
+    line(s, "CLEAR 6_m 2_m ÷"); // dimensionless → plain real
+    expect(nums(s.stack)).toEqual([3]);
+    line(s, "CLEAR 2 5_cm ×");
+    expect(fmtTop(s)).toBe("10_cm");
+  });
+
+  it("affine temperature converts through the catalog path", () => {
+    const s = createRpl();
+    line(s, "100_degC 1_degF CONVERT");
+    const top = s.stack[0];
+    expect(top.k === "unit" && top.mag.toString()).toBe("212");
+  });
+
+  it("→UNIT attaches; NEG/ABS work on quantities; SAME compares", () => {
+    const s = createRpl();
+    line(s, "9.81 'm/s^2' →UNIT");
+    expect(fmtTop(s)).toBe("9.81_m/s^2");
+    line(s, "NEG ABS");
+    expect(fmtTop(s)).toBe("9.81_m/s^2");
+    line(s, "9.81_m/s^2 SAME");
+    expect(nums(s.stack)).toEqual([1]);
+  });
+
+  it("the UNITS catalog menu: categories → units; attach and convert", () => {
+    const s = createRpl();
+    dispatchRpl(s, "UNITS");
+    expect(menuLabels(s)[0]).toBe("LENG");
+    pressSoft(s, 0); // open LENG
+    expect(menuLabels(s)).toEqual(["m", "cm", "mm", "km", "um", "in"]);
+    line(s, "5");
+    pressSoft(s, 1); // cm → attach
+    expect(fmtTop(s)).toBe("5_cm");
+    pressSoft(s, 5); // in → convert the quantity
+    const top = s.stack[0];
+    expect(top.k === "unit" && top.u).toBe("in");
+    // every catalog entry must be a unit math.js accepts
+  });
+
+  it("the whole units catalog parses through math.js (no dead softkeys)", async () => {
+    const { UNIT_MENUS } = await import("@/lib/engine/units-catalog");
+    const { validUnit } = await import("@/lib/engine/units");
+    for (const [cat, units] of Object.entries(UNIT_MENUS)) {
+      const bad = units.filter((u) => !validUnit(u));
+      expect(bad, `category ${cat}`).toEqual([]);
+    }
+  });
+
+  it("unit quantities persist (FR-STATE-1)", async () => {
+    const { snapshot, restore } = await import("@/lib/engine/persistence");
+    const { createRpn } = await import("@/lib/engine/rpn");
+    const s = createRpl();
+    line(s, "5_cm 2_in +");
+    const state = JSON.parse(JSON.stringify(snapshot(createRpn(), s, "HP-28C")));
+    const engines = restore(state);
+    const top = engines.rpl.stack[0];
+    expect(top.k === "unit" && top.mag.toString()).toBe("10.08");
+    expect(top.k === "unit" && top.u).toBe("cm");
+  });
+});
+
 describe("P12 variables, algebraics, programs (the evaluator)", () => {
   it("STO / RCL / PURGE over named variables", () => {
     const s = createRpl();

@@ -35,7 +35,8 @@ export type TaggedObj =
   | { t: "prog"; v: string }
   | { t: "bin"; v: string }
   | { t: "list"; items: TaggedObj[] }
-  | { t: "arr"; rows: number[][]; vec: boolean };
+  | { t: "arr"; rows: number[][]; vec: boolean }
+  | { t: "unit"; v: string; u: string };
 
 export function encodeObj(o: RplObj): TaggedObj {
   switch (o.k) {
@@ -57,6 +58,8 @@ export function encodeObj(o: RplObj): TaggedObj {
       return { t: "list", items: o.items.map(encodeObj) };
     case "arr":
       return { t: "arr", rows: o.rows.map((r) => [...r]), vec: o.vec };
+    case "unit":
+      return { t: "unit", v: o.mag.toString(), u: o.u };
   }
 }
 
@@ -80,6 +83,8 @@ export function decodeObj(t: TaggedObj): RplObj {
       return { k: "list", items: t.items.map(decodeObj) };
     case "arr":
       return { k: "arr", rows: t.rows.map((r) => [...r]), vec: t.vec };
+    case "unit":
+      return { k: "unit", mag: bn(t.v), u: t.u };
   }
 }
 
@@ -330,6 +335,10 @@ function isTaggedObj(v: unknown): v is TaggedObj {
     case "prog":
     case "bin":
       return typeof (o as { v?: unknown }).v === "string";
+    case "unit": {
+      const u = o as { v?: unknown; u?: unknown };
+      return typeof u.v === "string" && typeof u.u === "string";
+    }
     case "cpx": {
       const c = o as { re?: unknown; im?: unknown };
       return typeof c.re === "number" && typeof c.im === "number";

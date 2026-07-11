@@ -119,8 +119,8 @@ describe("model adapter (hp/mapping/mapping.json)", () => {
     const rpl = await import("@/lib/engine/rpl");
     const probe = (fn: string) => rpl.dispatchRpl(rpl.createRpl(), fn);
     const report = coverage("HP-28C", probe);
-    // units (P13) and the CAS keys (P14) are the phase plan's stated deferrals
-    const deferred = new Set(["UNITS", "CONVERT", "∫", "d/dx"]);
+    // the CAS keys (P14) are the only remaining deferral — units landed in P13
+    const deferred = new Set(["∫", "d/dx"]);
     expect(report.missing.filter((fn) => !deferred.has(fn))).toEqual([]);
   });
 

@@ -19,7 +19,9 @@ export type RplObj =
   | { k: "prog"; body: string } // text between « »
   | { k: "alg"; src: string } // text between ' '
   | { k: "name"; v: string }
-  | { k: "bin"; v: bigint }; // # binary integer (unsigned word)
+  | { k: "bin"; v: bigint } // # binary integer (unsigned word)
+  /** unit quantity (P13): exact magnitude + a math.js unit expression */
+  | { k: "unit"; mag: Value; u: string };
 
 export const real = (v: Value): RplObj => ({ k: "real", v });
 export const realN = (n: number | string): RplObj => real(bn(n));
@@ -47,6 +49,8 @@ export function typeNumber(o: RplObj): number {
       return 9;
     case "bin":
       return 10;
+    case "unit":
+      return 13; // the HP-48 numbering for unit objects
   }
 }
 
@@ -79,6 +83,8 @@ export function formatObj(o: RplObj, disp: DisplayFormat, base: number): string 
         : `[[ ${o.rows.map((r) => r.map((n) => fmtF(n, disp)).join(" ")).join(" ][ ")} ]]`;
     case "bin":
       return `# ${o.v.toString(base).toUpperCase()}${BASE_SUFFIX[base]}`;
+    case "unit":
+      return `${formatValue(o.mag, disp)}_${o.u}`;
   }
 }
 
@@ -106,6 +112,8 @@ export function objToSrc(o: RplObj): string {
         : `[ ${o.rows.map((r) => `[ ${r.join(" ")} ]`).join(" ")} ]`;
     case "bin":
       return `# ${o.v.toString(16).toUpperCase()}h`;
+    case "unit":
+      return `${o.mag.toString().toUpperCase()}_${o.u}`;
   }
 }
 
@@ -143,6 +151,10 @@ export function sameObj(a: RplObj, b: RplObj): boolean {
           (r, i) => r.length === c.rows[i].length && r.every((n, j) => n === c.rows[i][j]),
         )
       );
+    }
+    case "unit": {
+      const c = b as { mag: Value; u: string };
+      return a.u === c.u && a.mag.eq(c.mag);
     }
   }
 }

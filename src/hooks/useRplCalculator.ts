@@ -111,7 +111,14 @@ export function useRplCalculator(): RplCalculator {
       dec: engine.disp.digits,
       ang: engine.angle,
       prefix,
-      latex: "",
+      // unit quantities typeset on the hero line (P13; AGENTS §3): magnitude
+      // per the display mode, unit in upright roman
+      latex: (() => {
+        const top = engine.stack[engine.stack.length - 1];
+        if (!top || top.k !== "unit") return "";
+        const uTex = top.u.replace(/\u00b5/g, "\\mu ");
+        return `${formatValue(top.mag, engine.disp)}\\,\\mathrm{${uTex}}`;
+      })(),
       err: engine.error ?? undefined,
       msg: engine.msg ?? undefined,
       rpl: engine.stack.map((o) => formatObj(o, engine.disp, engine.base)),

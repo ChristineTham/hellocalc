@@ -70,6 +70,29 @@ documented fallback only, added later if math.js unit coverage proves insufficie
 - `pnpm lint` / `pnpm test` / `pnpm build` / `pnpm test:e2e` green; the existing UI suites
   (geometry, promotion, typing) stay green.
 
+## Delivery notes (as shipped)
+- Unit quantities are the RPL object `{ k: "unit", mag, u }` — exact BigNumber
+  magnitude + a math.js unit EXPRESSION; `5_cm` normalizes at the parse
+  boundary (src/lib/engine/rpl/parse.ts) and every op runs through
+  `src/lib/engine/units.ts` (math.js dimensional tracking, BigNumber
+  magnitudes end-to-end). TYPE reports 13, the HP-48 numbering.
+- `+`/`−` keep the LEFT operand's unit; `×`/`÷` compose (dimensionless
+  results collapse to reals); `^` raises; real×quantity scales; real+quantity
+  throws — every incompatibility surfaces as the 28C's "Inconsistent Units"
+  via a typed DimensionError, never NaN (FR-UNIT-2).
+- CONVERT / →UNIT / UBASE / UVAL wired; **UFACT is simplified to full
+  conversion** (true partial factoring deferred until the 48 unit library).
+  Unit specs accept quantity, name, string, or quoted expression ('m/s^2'
+  arrives as an algebraic — its source is the spec).
+- The UNITS key opens a two-level catalog menu on the P12 softkey system
+  (categories → units); a unit softkey ATTACHES on a real and CONVERTS on a
+  quantity. Catalog names are math.js spellings (µm→um; cal/lm/lx/knot/nmi
+  omitted until user-defined units land — FR-UNIT-4's `math.createUnit` seam
+  is available but not yet wired to a keyboard affordance).
+- Affine temperatures convert through math.js (degC↔degF verified); unit
+  quantities serialize via the `{t:"unit"}` codec (FR-STATE-1); the KaTeX
+  hero line typesets the top-of-stack quantity (AGENTS §3).
+
 ## Notes / risks
 - HP `_`-unit syntax (`5_cm`) differs from math.js's `5 cm`; normalize at the parse boundary so the
   faceplate reads HP-native while the engine speaks math.js.

@@ -159,6 +159,41 @@ test.describe("hellocalc — smoke", () => {
     await expect(glass().getByText("5", { exact: true }).first()).toBeVisible();
   });
 
+  test("Phase 13 on the live HP-28C: UNITS catalog builds, adds, and rejects quantities", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await selectModel(page, "HP-28C");
+    const key = (name: string) =>
+      page.getByRole("button", { name, exact: true }).click();
+    const glass = () => page.locator('[data-lcd-mode]:visible');
+    const soft = (i: number) => page.getByRole("button", { name: "menu" }).nth(i).click();
+
+    // red-shift R opens the UNITS catalog; LENG lists length units
+    await key("◄");
+    await key("R"); // → UNITS
+    await expect(page.getByRole("button", { name: "menu" }).first()).toContainText("LENG");
+    await soft(0); // LENG
+    // 5 cm + 2 in → 10.08 cm, exactly (FR-UNIT-1)
+    await key("5");
+    await soft(1); // cm attaches → 5_cm
+    await expect(glass().getByText("5_cm").first()).toBeVisible();
+    await key("2");
+    await soft(5); // in attaches → 2_in
+    await key("+");
+    await expect(glass().getByText("10.08_cm").first()).toBeVisible();
+
+    // dimensionally incompatible add reports an error (FR-UNIT-2)
+    await key("3");
+    await key("ENTER");
+    await key("◄");
+    await key("R");
+    await soft(3); // TIME
+    await soft(0); // s → 3_s
+    await key("+"); // 10.08_cm + 3_s
+    await expect(glass().getByText("Error").first()).toBeVisible();
+  });
+
   test("persistence: the session survives a reload (FR-STATE-1)", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "7", exact: true }).click();
