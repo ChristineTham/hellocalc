@@ -137,6 +137,10 @@
      phones legible; caps bind at the key-pitch maximum. */
   --text-key-primary: clamp(11px, calc(36cqi / var(--kbd-cols)), 26px);
   --text-key-shift: clamp(8px, calc(15cqi / var(--kbd-cols)), 12px);
+  /* Promoted shifted-function label (§12.3 rev 6): while a prefix is armed the
+     shift word takes the PRIMARY slot — sized between the two (words are
+     longer than numerals, so the primary size would overflow the face). */
+  --text-key-promoted: clamp(10px, calc(26cqi / var(--kbd-cols)), 19px);
   /* LCD */
   --hp-lcd-aspect-mini: 4 / 3;
   /* The real HP-48 pixel grid — also the target for the future dot-grid

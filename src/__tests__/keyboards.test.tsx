@@ -2,7 +2,7 @@
 // renders an aspect-locked grid of uniform tracks with correct spans, driven by
 // model.geometry — the structural guarantee behind Priority 1.
 import { describe, expect, it } from "vitest";
-import { render } from "@testing-library/react";
+import { fireEvent, render } from "@testing-library/react";
 import { Keyboard } from "@/components/calculator/Keyboard";
 import { ClassicKeyboard } from "@/components/calculator/ClassicKeyboard";
 import { RplKeyboard } from "@/components/calculator/RplKeyboard";
@@ -57,6 +57,67 @@ describe("Keyboard (voyager)", () => {
     );
     if (!enter) throw new Error("no ENTER key rendered");
     expect(enter.style.gridRow).toMatch(/span 2/);
+  });
+});
+
+describe("prefix promotion (§12.3 rev 6) — armed shift takes the primary slot", () => {
+  const voyager = MODELS["HP-12C"];
+  if (voyager.family !== "voyager") throw new Error("HP-12C must be voyager");
+  const rplModel = MODELS["HP-48G"];
+  if (rplModel.family !== "rpl") throw new Error("HP-48G must be rpl");
+
+  const primarySlotOf = (btn: HTMLElement) =>
+    btn.querySelector<HTMLElement>(".row-start-2, .z-10");
+
+  it("voyager: arming f shows the gold function AS the key label (n → AMORT)", () => {
+    const { container } = render(
+      <Keyboard keys={voyager.keys} geometry={voyager.geometry} prefix="f" onArm={noop} onPress={noop} />,
+    );
+    const n = Array.from(container.querySelectorAll<HTMLElement>("button")).find(
+      (b) => b.getAttribute("aria-label") === "n",
+    );
+    if (!n) throw new Error("no n key");
+    expect(primarySlotOf(n)?.textContent).toBe("AMORT");
+    // …and the small gold row emptied (the word moved down)
+    expect(n.querySelector(".key-shift")?.textContent).toBe("");
+  });
+
+  it("voyager: disarmed keys show their primary again", () => {
+    const { container } = render(
+      <Keyboard keys={voyager.keys} geometry={voyager.geometry} prefix="none" onArm={noop} onPress={noop} />,
+    );
+    const n = Array.from(container.querySelectorAll<HTMLElement>("button")).find(
+      (b) => b.getAttribute("aria-label") === "n",
+    );
+    expect(n && primarySlotOf(n)?.textContent).toBe("n");
+  });
+
+  it("rpl: arming left-shift shows the purple function AS the key label (7 → SOLVE)", () => {
+    const { container } = render(
+      <RplKeyboard rows={rplModel.rows} geometry={rplModel.geometry} prefix="ls" onArm={noop} onPress={noop} />,
+    );
+    const seven = Array.from(container.querySelectorAll<HTMLElement>("button")).find(
+      (b) => b.getAttribute("aria-label") === "7",
+    );
+    if (!seven) throw new Error("no 7 key");
+    expect(seven.querySelector(".z-10")?.textContent).toBe("SOLVE");
+  });
+
+  it("classic: arming arc shows the inverse AS the trig key label (sin → SIN⁻¹)", () => {
+    const model = MODELS["HP-35"];
+    if (model.family !== "classic") throw new Error("HP-35 must be classic");
+    const { container } = render(
+      <ClassicKeyboard rows={model.rows} geometry={model.geometry} onPress={noop} />,
+    );
+    const arc = Array.from(container.querySelectorAll<HTMLElement>("button")).find(
+      (b) => b.getAttribute("aria-label") === "arc",
+    );
+    if (!arc) throw new Error("no arc key");
+    fireEvent.click(arc);
+    const sin = Array.from(container.querySelectorAll<HTMLElement>("button")).find(
+      (b) => b.getAttribute("aria-label") === "sin",
+    );
+    expect(sin?.querySelector(".row-start-2")?.textContent).toBe("SIN⁻¹");
   });
 });
 

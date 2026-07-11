@@ -66,6 +66,11 @@ export function ClassicKeyboard({ rows, geometry, onPress }: ClassicKeyboardProp
       {rows.map((row, ri) =>
         row.map((k, ki) => {
           const spanCols = subgridSpan(k, rowUnits[ri], subcols);
+          // §12.3 rev 6 — arc promotion: while `arc` is armed, the trig keys
+          // show their inverse (SIN⁻¹…) in the primary slot via CalcKey's
+          // f-promotion; the 35 prints no shift legends, so the small plane
+          // rows stay empty either way.
+          const arcTarget = arc && ARC[k.fn] ? ARC[k.fn] : undefined;
           return (
             <CalcKey
               key={`${ri}-${ki}`}
@@ -73,7 +78,8 @@ export function ClassicKeyboard({ rows, geometry, onPress }: ClassicKeyboardProp
               primary={k.legend}
               tone={toneFor(k.cat, k.legend)}
               style={{ gridColumn: `span ${spanCols} / span ${spanCols}` }}
-              armed={k.fn === "arc" && arc ? "f" : "none"}
+              f={arcTarget}
+              armed={arcTarget || (k.fn === "arc" && arc) ? "f" : "none"}
               onClick={() => handle(k)}
             />
           );

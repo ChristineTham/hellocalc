@@ -88,44 +88,48 @@ export function CalcKey({
       style={gridStyle}
       {...props}
     >
-      {/* row 1 — gold f plane. `key-shift` auto-hides at narrow module widths
-          (globals.css @container kbdmod) except when armed (`key-hot`).
-          Arming a prefix shifts the whole plane (§12.3): the armed legends go
-          full, everything else dims — one glance answers "what will this key
-          do right now". */}
+      {/* §12.3 rev 6 — PROMOTION: while a prefix is armed, the shifted
+          function takes the PRIMARY slot (big, in its shift colour), so every
+          key literally shows what it will do. The promoted plane's small row
+          empties (its word moved down); the other plane dims. Keys without a
+          function for the armed prefix keep their dimmed primary — that is
+          what they still execute. */}
+      {/* row 1 — gold f plane */}
       <span
         className={cn(
           "key-shift pointer-events-none row-start-1 text-center text-key-shift text-hp-shift-f transition-all",
-          fHot
-            ? "key-hot [text-shadow:0_0_7px_var(--color-hp-shift-f)]"
-            : armed === "g"
-              ? "opacity-25"
-              : "opacity-90",
+          armed === "g" ? "opacity-25" : "opacity-90",
         )}
       >
-        {f}
+        {fHot ? null : f}
       </span>
-      {/* row 2 — primary legend, optically centred in the remaining face */}
+      {/* row 2 — primary legend (or the promoted shifted function) */}
       <span
         className={cn(
-          "row-start-2 self-center text-center text-key-primary transition-opacity",
-          armed !== "none" && tone !== "f" && tone !== "g" && "opacity-40",
+          "row-start-2 self-center text-center transition-opacity",
+          fHot || gHot
+            ? cn(
+                "text-key-promoted font-bold tracking-tight whitespace-nowrap",
+                fHot
+                  ? "text-hp-shift-f [text-shadow:0_0_9px_var(--color-hp-shift-f)]"
+                  : "text-hp-shift-g [text-shadow:0_0_9px_var(--color-hp-shift-g)]",
+              )
+            : cn(
+                "text-key-primary",
+                armed !== "none" && tone !== "f" && tone !== "g" && "opacity-40",
+              ),
         )}
       >
-        {tone === "f" ? "f" : tone === "g" ? "g" : primary}
+        {fHot ? f : gHot ? g : tone === "f" ? "f" : tone === "g" ? "g" : primary}
       </span>
       {/* row 3 — blue g plane */}
       <span
         className={cn(
           "key-shift pointer-events-none row-start-3 text-center text-key-shift text-hp-shift-g transition-all",
-          gHot
-            ? "key-hot [text-shadow:0_0_7px_var(--color-hp-shift-g)]"
-            : armed === "f"
-              ? "opacity-25"
-              : "opacity-90",
+          armed === "f" ? "opacity-25" : "opacity-90",
         )}
       >
-        {g}
+        {gHot ? null : g}
       </span>
     </ButtonPrimitive>
   );

@@ -1398,6 +1398,18 @@ and PICT rendering draw into exactly this grid.
   subtrees) so the per-context CSS swaps can hide them — a `flex` utility
   would win the cascade otherwise.
 
+### 14.4e Revision 6 — prefix promotion
+
+Arming a prefix now PROMOTES the shifted function into each key's primary
+slot (big, in its shift colour, `--text-key-promoted`): press `f` on a 12C and
+the keys read AMORT / INT / NPV…; press left-shift on a 48G and the board
+turns purple (SOLVE / PLOT / TIME…); arm `arc` on the 35 and the trig keys
+read SIN⁻¹…. The promoted plane's small row empties (its word moved down),
+the other plane dims, and keys without a function for the armed prefix keep
+their dimmed primary — which is what they still execute. This supersedes the
+narrow-module legend reveal: on phones the promoted word appears at full
+primary size instead of an 8px hint.
+
 ### 14.5 Clamshell note (HP-28, still deferred)
 
 When the 28-series lands: large displays render the two keyboard halves side by side under

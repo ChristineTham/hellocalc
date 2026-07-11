@@ -58,6 +58,11 @@ export function RplKeyboard({ rows, geometry, prefix, onArm, onPress }: RplKeybo
     if (fn) onPress(fn);
   };
 
+  // §12.3 rev 6 — promotion: while a shift is armed, the shifted function
+  // takes the key's PRIMARY slot in its shift colour.
+  const promotedOf = (k: RplKey): string =>
+    prefix === "ls" ? k.ls : prefix === "rs" ? k.rs : "";
+
   // Dual-pitch grid (§4.4 caveat): the 48G's 5-key digit rows span the SAME
   // width as its 6-key function rows — digit keys are genuinely wider. Model
   // it with an lcm-of-row-widths subcolumn grid (48G: lcm(6,5)=30) so every
@@ -79,6 +84,7 @@ export function RplKeyboard({ rows, geometry, prefix, onArm, onPress }: RplKeybo
       {rows.map((row, ri) =>
         row.map((k, ki) => {
           const spanCols = subgridSpan(k, rowUnits[ri], subcols);
+          const promoted = promotedOf(k);
           return (
             <ButtonPrimitive
               key={`${ri}-${ki}`}
@@ -96,13 +102,8 @@ export function RplKeyboard({ rows, geometry, prefix, onArm, onPress }: RplKeybo
                   side and the primaries dim. When both shifts share one word
                   (CST → MODES/MODES) it prints ONCE, spanning both colours —
                   as on the real 48G. */}
-              {k.ls && k.ls === k.rs ? (
-                <span
-                  className={cn(
-                    "key-shift pointer-events-none absolute inset-x-1 top-0.5 flex justify-center text-key-shift leading-none font-semibold",
-                    (prefix === "ls" || prefix === "rs") && "key-hot",
-                  )}
-                >
+              {k.ls && k.ls === k.rs && !promoted ? (
+                <span className="key-shift pointer-events-none absolute inset-x-1 top-0.5 flex justify-center text-key-shift leading-none font-semibold">
                   <span
                     className={cn(
                       "bg-gradient-to-r from-hp-shift-ls to-hp-shift-rs bg-clip-text text-transparent transition-opacity",
@@ -113,46 +114,44 @@ export function RplKeyboard({ rows, geometry, prefix, onArm, onPress }: RplKeybo
                   </span>
                 </span>
               ) : (k.ls || k.rs) && (
-                <span
-                  className={cn(
-                    // `key-shift` auto-hides at narrow module widths except
-                    // while a shift is armed (globals.css @container kbdmod)
-                    "key-shift pointer-events-none absolute inset-x-1 top-0.5 flex justify-between text-key-shift leading-none font-semibold",
-                    (prefix === "ls" || prefix === "rs") && "key-hot",
-                  )}
-                >
+                <span className="key-shift pointer-events-none absolute inset-x-1 top-0.5 flex justify-between text-key-shift leading-none font-semibold">
+                  {/* the armed side's word is PROMOTED to the primary slot —
+                      its small copy empties; the other side dims */}
                   <span
                     className={cn(
                       "text-hp-shift-ls transition-all",
-                      prefix === "ls"
-                        ? "[text-shadow:0_0_7px_var(--color-hp-shift-ls)]"
-                        : prefix !== "none" && "opacity-30",
+                      prefix !== "none" && "opacity-30",
                     )}
                   >
-                    {k.ls}
+                    {prefix === "ls" ? null : k.ls}
                   </span>
                   <span
                     className={cn(
                       "text-hp-shift-rs transition-all",
-                      prefix === "rs"
-                        ? "[text-shadow:0_0_7px_var(--color-hp-shift-rs)]"
-                        : prefix !== "none" && "opacity-30",
+                      prefix !== "none" && "opacity-30",
                     )}
                   >
-                    {k.rs}
+                    {prefix === "rs" ? null : k.rs}
                   </span>
                 </span>
               )}
               <span
                 className={cn(
                   "z-10 transition-opacity",
-                  prefix !== "none" &&
-                    prefix !== "alpha" &&
-                    !["ls", "rs", "alpha", "on"].includes(k.kind) &&
-                    "opacity-40",
+                  promoted
+                    ? cn(
+                        "text-key-promoted font-bold tracking-tight whitespace-nowrap",
+                        prefix === "ls"
+                          ? "text-hp-shift-ls [text-shadow:0_0_9px_var(--color-hp-shift-ls)]"
+                          : "text-hp-shift-rs [text-shadow:0_0_9px_var(--color-hp-shift-rs)]",
+                      )
+                    : prefix !== "none" &&
+                        prefix !== "alpha" &&
+                        !["ls", "rs", "alpha", "on"].includes(k.kind) &&
+                        "opacity-40",
                 )}
               >
-                {k.p}
+                {promoted || k.p}
               </span>
               {k.al && (
                 <span
