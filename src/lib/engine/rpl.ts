@@ -3105,6 +3105,36 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
     case "MTRW": // MatrixWriter-lite: open a matrix entry
       append(s, "[ [ ");
       return true;
+    // ---- 50g additions (P20) -----------------------------------------------------------------------
+    case "GRAD": {
+      // 'expr' { vars } (or a single 'var') → the gradient vector of algs
+      const [eO, vO] = popN(s, 2);
+      const src2 = algSrcOf(eO);
+      const names =
+        vO.k === "list" ? vO.items.map((o) => varNameOf(o)) : [varNameOf(vO)];
+      const cas = requireCas();
+      s.stack.push({
+        k: "list",
+        items: names.map((nm) => casObjOf(tryCas(() => cas.diff(src2, nm)))),
+      });
+      return true;
+    }
+    case "LINSOLVE": {
+      // [[A]] [b] LINSOLVE → x with A·x = b (ml-matrix, P9 numerics)
+      const [aO, bO] = popN(s, 2);
+      const A = wantArr(aO);
+      const b = wantArr(bO);
+      if (A.vec) throw err("Invalid Dimension");
+      try {
+        const bm = b.vec ? b.rows[0].map((v) => [v]) : b.rows;
+        const x = inverse(new Matrix(A.rows)).mmul(new Matrix(bm));
+        const rows = x.to2DArray();
+        s.stack.push(arrOf([rows.map((r) => r[0])], true));
+      } catch {
+        throw err("Singular Matrix");
+      }
+      return true;
+    }
     // ---- UNITS (P13, FR-UNIT-1/2/3) ----------------------------------------------------------------
     case "CONVERT": {
       const [q, t] = popN(s, 2);
@@ -3188,8 +3218,9 @@ const PRINT48: Record<string, string> = {
   "′ (tick)": "'", "↵ (newline)": "NEWLINE", "∡ (angle)": "∡", "( )": "(",
   "[ ]": "[", "{ }": "{", "«  »": "«", '"  "': '"', "« »": "«", '" "': '"',
   TIME: "TIMEMENU", // the TIME KEY opens the menu; the TIME command stays typed
-  "←": "DEL", "◄ (left) / ► (right)": "◄", "STO▶": "STO", EQW: "EQUATION",
-  "Cα": "α LOCK", "∞": "∞TYPE",
+  "←": "DEL", "◄ (left) / ► (right)": "◄", "STO▶": "STO", "STO▸": "STO",
+  EQW: "EQUATION", "Cα": "α LOCK", "∞": "∞TYPE", "' (tick)": "'", CAT: "CATALOG",
+  "1/X": "1/x",
   // the 48G's right-shift APPLICATION launchers print "(cmd menu)" (P18)
   "I/O (cmd menu)": "I/O", "MODES (cmd menu)": "MODES", "MEMORY (cmd menu)": "MEMORY",
   "LIBRARY (cmd menu)": "LIBRARY", "SOLVE (cmd menu)": "SOLVE", "PLOT (cmd menu)": "PLOT",

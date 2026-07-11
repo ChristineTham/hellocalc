@@ -156,12 +156,10 @@ describe("model adapter (hp/mapping/mapping.json)", () => {
     expect(report.missing).toEqual([]);
   });
 
-  it("coverage reports honestly for models awaiting their engine phase", async () => {
-    // the 50g plane is Phase 20
+  it("HP-50g: NO key remains inert — the RPL line is complete (Phase-20 DoD)", async () => {
     const rpl = await import("@/lib/engine/rpl");
     const probe = (fn: string) => rpl.dispatchRpl(rpl.createRpl(), fn);
     const report = coverage("HP-50g", probe);
-    // the 50g shares nearly the whole 49G plane — report whatever remains
-    expect(Array.isArray(report.missing)).toBe(true);
+    expect(report.missing).toEqual([]);
   });
 });

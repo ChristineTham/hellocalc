@@ -390,6 +390,37 @@ test.describe("hellocalc — smoke", () => {
     await expect(glass().locator('[data-slot="menu-row"]').first()).toContainText("TVMROOT");
   });
 
+  test("Phase 20 on the live HP-50g: stored variables survive a reload", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await selectModel(page, "HP-50g");
+    const key = (name: string) =>
+      page.getByRole("button", { name, exact: true }).click();
+    const glass = () => page.locator('[data-lcd-mode]:visible');
+    const ls = () => page.locator('button[data-kind="ls"]').click();
+
+    // 3 'A' STO — the tick key + alpha F1 build the name
+    await key("3");
+    await key("ENTER");
+    await key("′");
+    await key("ALPHA");
+    await key("F1"); // A
+    await key("ENTER");
+    await key("STO▸");
+    await page.waitForTimeout(300); // autosave debounce
+    await page.reload();
+    await selectModel(page, "HP-50g");
+    // 'A' RCL from the restored tree
+    await key("′");
+    await key("ALPHA");
+    await key("F1");
+    await key("ENTER");
+    await ls();
+    await key("STO▸"); // → RCL
+    await expect(glass().getByText("3", { exact: true }).first()).toBeVisible();
+  });
+
   test("persistence: the session survives a reload (FR-STATE-1)", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "7", exact: true }).click();

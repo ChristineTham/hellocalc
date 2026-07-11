@@ -72,6 +72,18 @@ already exists from Phases 9–19. No new libraries.
 - `pnpm lint`/`test`/`build`/`test:e2e` green; static export still builds (no server APIs);
   the existing UI suites (geometry, promotion, typing) stay green.
 
+## Delivery notes (as shipped)
+- Consolidation phase, as planned: the 50g rides the whole P12–P19 RPL
+  surface. New here: the 50g's own prints alias (STO▸, ' (tick), CAT→
+  CATALOG, 1/X), GRAD (symbolic gradient via the CasProvider — a list of
+  ∂/∂xᵢ algebraics), LINSOLVE (A·x=b through ml-matrix).
+- The DoD workspace round-trip rides the P15 directory codec + the P1
+  export/import seam (CalcNav) — verified by unit round-trip and the
+  reload e2e on the live 50g (store in a subdirectory, reload, RCL).
+- SD-card/filer affordances stay with LIBRARY's honest stubs.
+- HP-50g coverage oracle: GREEN — the ENTIRE RPL line (28C→50g) now has
+  zero inert keys (19 models live).
+
 ## Notes / risks
 - The 50g firmware exposes 500+ commands; scope to the documented ~340 in
   `hp/functions/HP-50g.md` and the shared engine — do not chase the full catalog or the

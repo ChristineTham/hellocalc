@@ -896,6 +896,52 @@ describe("P19 the 49G: number theory, CAS routing, heavy tier", () => {
   });
 });
 
+describe("P20 the 50g: consolidation", () => {
+  it("the last prints alias: STO▸, tick, CAT, 1/X", () => {
+    const s = createRpl();
+    line(s, "5");
+    dispatchRpl(s, "1/X");
+    expect(fmtTop(s)).toBe("0.2");
+    dispatchRpl(s, "CAT");
+    expect(s.menu?.name).toBe("CATALOG");
+    dispatchRpl(s, "ON");
+    dispatchRpl(s, "' (tick)");
+    expect(s.entry).toBe("'");
+  });
+
+  it("DoD: GRAD of 'X^2' wrt X → { '2*X' }; LINSOLVE solves A·x=b", async () => {
+    const { loadNerdamerProvider } = await import("@/lib/engine/cas/nerdamer-provider");
+    const { setCas } = await import("@/lib/engine/cas/provider");
+    setCas(await loadNerdamerProvider());
+    const s = createRpl();
+    line(s, "'X^2' 'X' GRAD");
+    expect(fmtTop(s)).toBe("{ '2*X' }");
+    line(s, "CLEAR [ [ 2 1 ] [ 1 3 ] ] [ 3 5 ] LINSOLVE");
+    const top = s.stack[0];
+    expect(top.k).toBe("arr");
+    if (top.k === "arr") {
+      expect(top.rows[0][0]).toBeCloseTo(0.8, 9);
+      expect(top.rows[0][1]).toBeCloseTo(1.4, 9);
+    }
+  });
+
+  it("DoD: directory state round-trips through the persistence codec", async () => {
+    const { snapshot, restore } = await import("@/lib/engine/persistence");
+    const { createRpn } = await import("@/lib/engine/rpn");
+    const s = createRpl();
+    line(s, "'MYDIR' CRDIR MYDIR 3 'A' STO « 2 × » 'DBL' STO");
+    const state = JSON.parse(JSON.stringify(snapshot(createRpn(), s, "HP-50g")));
+    const engines = restore(state);
+    expect(engines.rpl.path).toEqual(["MYDIR"]);
+    const back = engines.rpl;
+    // resolve from the restored path
+    line(back, "'A' RCL");
+    expect(nums(back.stack).slice(-1)).toEqual([3]);
+    line(back, "CLEAR 21 DBL");
+    expect(nums(back.stack)).toEqual([42]);
+  });
+});
+
 describe("P12 command line, editing, and recovery", () => {
   it("the ◆ key types the algebraic delimiter; operators append in text mode", () => {
     const s = createRpl();
