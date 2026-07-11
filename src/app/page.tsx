@@ -10,6 +10,7 @@ import { Topbar } from "@/components/calculator/Topbar";
 import { CalcNav } from "@/components/calculator/CalcNav";
 import { CheatSheet } from "@/components/calculator/CheatSheet";
 import { MODELS } from "@/components/calculator/models";
+import { NativeSurface } from "@/components/calculator/NativeSurface";
 import { useRpnCalculator } from "@/hooks/useRpnCalculator";
 import { useRplCalculator } from "@/hooks/useRplCalculator";
 import { useHotkeys } from "@/hooks/useHotkeys";
@@ -20,12 +21,15 @@ import { downloadStateFile, localStorageAdapter, readStateFile } from "@/lib/sto
 
 export default function Home() {
   const [modelId, setModelId] = useState<string>("HP-12C");
-  const model = MODELS[modelId];
+  const isNative = modelId === "native";
+  // native mode (P23) borrows the 48G's layout class for the shell templates;
+  // the machine region renders the NativeSurface instead of a faceplate
+  const model = MODELS[isNative ? "HP-48G" : modelId];
   // Voyager + classic share one 4-level RPN engine; RPL (HP-48G) has its own.
   // Both stay mounted so state survives model switches (FR-MODEL retention).
   const rpn = useRpnCalculator();
   const rpl = useRplCalculator();
-  const active = model.family === "rpl" ? rpl : rpn;
+  const active = isNative || model.family === "rpl" ? rpl : rpn;
   const [cheatOpen, setCheatOpen] = useState(false);
 
   // ── Persistence (FR-STATE-1/4, architecture §9) ─────────────────────────
@@ -40,7 +44,7 @@ export default function Home() {
       const engines = restore(state);
       rpn.restore(engines.rpn);
       rpl.restore(engines.rpl);
-      if (engines.activeModel in MODELS) {
+      if (engines.activeModel in MODELS || engines.activeModel === "native") {
         // mount-only client-data sync: localStorage is unreadable during the
         // static prerender, so restoring here (post-hydration) is the pattern —
         // a one-shot set, not an effect-driven state loop
@@ -77,7 +81,7 @@ export default function Home() {
         const engines = restore(state);
         rpn.restore(engines.rpn);
         rpl.restore(engines.rpl);
-        if (engines.activeModel in MODELS) setModelId(engines.activeModel);
+        if (engines.activeModel in MODELS || engines.activeModel === "native") setModelId(engines.activeModel);
       });
     },
     [rpn, rpl],
@@ -130,7 +134,7 @@ export default function Home() {
           <Topbar
             activeModel={modelId}
             onSelectModel={setModelId}
-            tags={model.sub.split("·").map((t) => t.trim())}
+            tags={(isNative ? "NATIVE · FULL ENGINE" : model.sub).split("·").map((t) => t.trim())}
             nav={<CalcNav onExport={onExport} onImportFile={onImportFile} onReset={onReset} />}
             panels={{
               // RPL glass owns its stack (§14.3 rev 3) — no paper stack panel
@@ -155,6 +159,9 @@ export default function Home() {
           </div>
         }
         machine={
+          isNative ? (
+            <NativeSurface rpl={rpl} />
+          ) : (
           <MachineUnit
             model={model}
             rpn={rpn}
@@ -181,6 +188,7 @@ export default function Home() {
               />
             }
           />
+          )
         }
         aux={aux}
       />

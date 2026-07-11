@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { MODELS } from "./models";
 import { MODEL_CATALOG, CATALOG_INDEX } from "./modelCatalog";
 
-const isAvailable = (id: string) => id in MODELS;
+const isAvailable = (id: string) => id in MODELS || id === "native"; // P23: native mode is live
 
 export interface ModelPickerProps {
   active: string;

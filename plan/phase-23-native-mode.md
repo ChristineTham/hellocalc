@@ -91,6 +91,25 @@ local storage only (no backend, base-path-safe per architecture §5 / NFR-1).
 - `pnpm lint` / `pnpm test` / `pnpm build` / `pnpm test:e2e` green. No `hp/layouts` fidelity check
   (native mode has no faceplate); instead assert full-engine reachability and FR-NATIVE coverage.
 
+## Delivery notes (as shipped)
+- Native mode mounts in the existing shell (the machine region renders
+  NativeSurface; the shell borrows the 48G layout class). The picker's
+  last disabled entry is now LIVE — the fleet plus native, all playable.
+- The surface drives the SHARED RPL engine (the full-engine evaluator
+  built P12–P19): a typed entry line (physical keyboard, datalist
+  autocomplete over the command catalog) runs through runLine; the P12
+  glass shows stack/KaTeX/menus/plots; a slim ENTER/SWAP/OVER/DROP/LAST/
+  CLEAR strip covers stack work (FR-NATIVE-1/2/3).
+- Expression library (FR-EXP-4): name/save/insert/delete, localStorage-
+  backed. Notebook (FR-UI-4): ordered blocks evaluated top-to-bottom into
+  ONE fresh engine per run — shared scope, spreadsheet-style downstream
+  re-evaluation (engine/notebook.ts, unit-tested).
+- Copy/paste rides the REAL input element (FR-IO-2); Copy-LaTeX (P14) and
+  workspace export/import (P1/P15) complete the interchange story.
+  Mathematica-style interchange stays sympy-mediated (P19, best-effort).
+- History/variables/user functions come from the engine as built (tape,
+  directory tree, DEF).
+
 ## Notes / risks
 - Full-engine exposure is the point (FR-NATIVE-2) — the command registry/autocomplete must cover
   every module (units, CAS, matrices, finance, stats, plotting) or features become undiscoverable;

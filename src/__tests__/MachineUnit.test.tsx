@@ -47,6 +47,7 @@ const rpl: RplCalculator = {
   prefix: "none",
   press: noop,
   soft: noop,
+  runLine: noop,
   arm: noop,
   recall: noop,
   fmt,

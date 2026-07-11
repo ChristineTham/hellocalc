@@ -48,6 +48,8 @@ export interface RplCalculator {
   arm: (p: RplPrefix) => void;
   /** Recall an exact history value onto the stack. */
   recall: (raw: string) => void;
+  /** Native mode (P23): put source text on the command line and ENTER it. */
+  runLine: (text: string) => void;
   fmt: (v: Value, dec?: number) => string;
   renderLatex: (tex: string) => { __html: string };
   /** Persistence seam (FR-STATE-1/4). */
@@ -192,6 +194,15 @@ export function useRplCalculator(): RplCalculator {
     });
   }, []);
 
+  const runLine = useCallback((text: string) => {
+    setEngine((prev) => {
+      const next = clone(prev);
+      next.entry = text;
+      dispatchRpl(next, "ENTER");
+      return next;
+    });
+  }, []);
+
   const arm = useCallback((p: RplPrefix) => {
     setPrefix((cur) => (cur === p ? "none" : p));
   }, []);
@@ -243,5 +254,5 @@ export function useRplCalculator(): RplCalculator {
     [],
   );
 
-  return { state, prefix, press, soft, arm, recall, fmt, renderLatex, engine, restore };
+  return { state, prefix, press, soft, arm, recall, runLine, fmt, renderLatex, engine, restore };
 }

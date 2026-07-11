@@ -463,6 +463,41 @@ test.describe("hellocalc — smoke", () => {
     await expect(glass().locator('[data-slot="menu-row"]').first()).toBeVisible();
   });
 
+  test("Phase 23: native mode — typed entry, strip, library, notebook", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await selectModel(page, "Native mode");
+    const glass = () => page.locator('[data-lcd-mode]:visible');
+    const entry = page.getByLabel("Native entry line");
+
+    // typed evaluation through the full engine (FR-NATIVE-1/2)
+    await entry.fill("2 3 +");
+    await page.getByRole("button", { name: "Evaluate line" }).click();
+    await expect(glass().getByText("5", { exact: true }).first()).toBeVisible();
+
+    // the slim RPN strip (FR-NATIVE-3): DROP empties, DEPTH proves it
+    await page.getByRole("button", { name: "DROP", exact: true }).click();
+    await entry.fill("DEPTH");
+    await page.getByRole("button", { name: "Evaluate line" }).click();
+    await expect(glass().getByText("0", { exact: true }).first()).toBeVisible();
+
+    // expression library (FR-EXP-4): save, then insert
+    await entry.fill("1 2 +");
+    await page.getByLabel("Library entry name").fill("add3");
+    await page.getByRole("button", { name: "Save line to library" }).click();
+    await entry.fill("");
+    await page.getByRole("button", { name: "Insert add3" }).click();
+    await expect(entry).toHaveValue("1 2 +");
+
+    // notebook (FR-UI-4): shared scope downstream
+    await page.getByLabel("Notebook block 1").fill("5 'A' STO A");
+    await page.getByRole("button", { name: "Add block" }).click();
+    await page.getByLabel("Notebook block 2").fill("A 2 +");
+    await page.getByRole("button", { name: "Run all blocks" }).click();
+    await expect(page.locator('[data-slot="native-notebook"]:visible')).toContainText("7");
+  });
+
   test("persistence: the session survives a reload (FR-STATE-1)", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "7", exact: true }).click();
@@ -479,12 +514,12 @@ test.describe("hellocalc — smoke", () => {
     );
   });
 
-  test("model picker groups models, searches, and disables unimplemented ones", async ({ page }) => {
+  test("model picker groups models, searches — the whole fleet is enabled", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "Select calculator model" }).click();
     await expect(page.getByText("Voyager", { exact: true })).toBeVisible();
-    // a planned-but-unimplemented model is shown disabled (native = Phase 23)
-    await expect(page.getByRole("option", { name: "Native mode", exact: true })).toBeDisabled();
+    // P23: the picker's last entry is LIVE — nothing is disabled any more
+    await expect(page.getByRole("option", { name: "Native mode", exact: true })).toBeEnabled();
     // search narrows the grouped list
     await page.getByRole("textbox", { name: "Search models" }).fill("48");
     await expect(page.getByRole("option", { name: "HP-48G", exact: true })).toBeVisible();

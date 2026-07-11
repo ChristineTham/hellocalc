@@ -53,13 +53,16 @@ See the [PRD](docs/prd.md) for the full, prioritized requirement set.
 
 ## Status
 
-**The UI foundation is built and deployed, ALL 21 model faceplates are playable, and the
-Phase-1 engine core has landed** at <https://christinetham.github.io/hellocalc/> — every
-keyboard authored or generated from the verified [`hp/`](hp/) reference data, computing on
-the **math.js/BigNumber value tower** (`0.1 + 0.2` is exactly `0.3`), with sessions
-autosaved to localStorage and exportable as versioned JSON. The HP-35 is the first fully
-wired model (no key inert, guarded by a coverage test); functions beyond the engine's
-current set render faithfully but stay inert until their engine phase. The design and full
+**ALL 23 PLAN PHASES ARE COMPLETE: every one of the 21 models is fully wired — zero inert
+keys, each guarded by a per-model coverage oracle — plus the keyboard-first NATIVE MODE**
+at <https://christinetham.github.io/hellocalc/>. Every keyboard is authored or generated
+from the verified [`hp/`](hp/) reference data and computes on the **math.js/BigNumber value
+tower** (`0.1 + 0.2` is exactly `0.3`). The engine spans the fixed 4-level RPN stack
+(HP-35 → HP-16C, with keystroke programs, decimal.js finance, complex, matrices, SOLVE/∫,
+the 16C integer universe) and the dynamic RPL object stack (28C → 50g: objects, directories,
+units, softkey menus, 2D/wireframe plotting, a light Nerdamer CAS and a lazy Pyodide+SymPy
+heavy tier), the 42S/35s/Prime menu-driven planes, and a native notebook/library surface.
+Sessions autosave to localStorage and export as versioned JSON. The design and full
 rationale live in [docs/responsive-layout.md](docs/responsive-layout.md); the highlights:
 
 - **The integrated machine** — nameplate, LCD and keyboard are ONE bezel that reflows across
