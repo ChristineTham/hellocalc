@@ -51,6 +51,9 @@ const ALIAS: Record<string, string> = {
   "FS?": "F?",
   PSE: "PAUSE",
   "← (backspace)": "←",
+  BSP: "←",
+  "x≷I": "x⇄I",
+  "x≷(i)": "x⇄(i)",
   // HP-25 parenthetical prints + hour-angle spellings (same math as D.MS)
   "x̄ (mean)": "x̄",
   "s (std dev)": "s",
@@ -147,6 +150,7 @@ export const MODEL_FN_OVERRIDES: Record<string, Record<string, string>> = {
     I: "RC I", // the desk unit's dedicated I key recalls the index register
   },
   "HP-12C": {
+    SL: "DEPR SL", // straight-line depreciation (the 16C's SL is shift-left)
     "Σ": "CLΣ", // the f-row under the 12C's CLEAR bracket
     REG: "CLEAR REG",
     PRGM: "CLEAR PRGM",
@@ -163,5 +167,11 @@ export const MODEL_FN_OVERRIDES: Record<string, Record<string, string>> = {
   "HP-15C": {
     "P/R": "W/PRGM",
     "(i)": "(i) cpx", // f-(i) toggles complex mode on the 15C
+  },
+  "HP-16C": {
+    "P/R": "W/PRGM",
+    I: "RC I",
+    ISZ: "ISZ I", // the 16C loops on the I register
+    DSZ: "DSZ I",
   },
 };

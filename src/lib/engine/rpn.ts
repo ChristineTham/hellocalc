@@ -10,6 +10,33 @@ import { DEFAULT_FORMAT, type DisplayFormat } from "./format";
 import { appendDigit, backspace, parseEntry, startExponent, toggleSign } from "./entry";
 import { determinant as det, Matrix } from "ml-matrix";
 import {
+  digitOk,
+  freshInt,
+  intAdd,
+  intAnd,
+  intAsr,
+  intCountBits,
+  intDblDiv,
+  intDblMul,
+  intDiv,
+  intFormat,
+  intLj,
+  intMask,
+  intMul,
+  intNot,
+  intOr,
+  intParse,
+  intRmd,
+  intRotate,
+  intSetBit,
+  intShift,
+  intSub,
+  intTestBit,
+  intXor,
+  type IntMode,
+  type WordResult,
+} from "./integer";
+import {
   addDays,
   bondPrice,
   bondYTM,
@@ -69,7 +96,9 @@ export interface PendingArg {
     | "X⇄"
     | "TEST"
     | "SOLVE"
-    | "∫";
+    | "∫"
+    | "WINDOW"
+    | "SHOW";
   /** the XEQ name being assigned (ASN) */
   name?: string;
   arith?: "+" | "−" | "×" | "÷";
@@ -125,6 +154,7 @@ export interface RpnEngine {
    * itself carried 10 digits, so float64 ≥ hardware precision */
   mats: Record<string, number[][]>;
   matResult: string; // RESULT descriptor target
+  int: IntMode; // the 16C integer universe (P10)
   fresh: boolean; // a value was just keyed/recalled — TVM keys STORE, not solve
   alpha: string; // the ALPHA register (P6, HP-41) — typed via α-prefixed ids
   userOn: boolean; // USER mode (P6): key assignments intercept dispatch
@@ -160,6 +190,7 @@ export function createRpn(): RpnEngine {
     imag: { x: zero, y: zero, z: zero, t: zero },
     mats: {},
     matResult: "C",
+    int: freshInt(),
     fresh: false,
     alpha: "",
     userOn: false,
@@ -176,12 +207,13 @@ export function createRpn(): RpnEngine {
 
 /** Current value of X, honouring an in-progress entry. */
 export function xval(s: RpnEngine): Value {
-  return s.entry === null ? s.x : parseEntry(s.entry);
+  if (s.entry === null) return s.x;
+  return s.int.on ? intParse(s.entry, s.int) : parseEntry(s.entry);
 }
 
 function commit(s: RpnEngine): void {
   if (s.entry !== null) {
-    s.x = parseEntry(s.entry);
+    s.x = s.int.on ? intParse(s.entry, s.int) : parseEntry(s.entry);
     s.entry = null;
   }
 }
@@ -208,6 +240,18 @@ export function pushX(s: RpnEngine, v: Value): void {
 
 export function inputDigit(s: RpnEngine, d: string): void {
   s.error = null;
+  if (s.int.on) {
+    // base entry (P10): digits legal for the base append, no point, no EEX
+    if (d === "." || !digitOk(d, s.int.base)) return;
+    if (s.entry === null) {
+      liftIfEnabled(s);
+      s.entry = d;
+      s.lift = false;
+    } else {
+      s.entry += d;
+    }
+    return;
+  }
   if (s.entry === null) {
     liftIfEnabled(s);
     s.entry = d === "." ? "0." : d;
@@ -412,7 +456,7 @@ const arith = (a: Value, b: Value, op: ArithOp): unknown =>
  * optional register arithmetic; FIX/SCI digit counts). Any key that can't be
  * part of the argument cancels the pending state and dispatches normally —
  * pressing STO then ENTER just ENTERs, exactly like walking away mid-prefix. */
-const isLabel = (fn: string): boolean => /^[0-9A-Ea-e]$/.test(fn);
+const isLabel = (fn: string): boolean => /^[0-9A-Fa-e]$/.test(fn);
 
 function resolvePending(s: RpnEngine, fn: string): boolean {
   const p = s.pending;
@@ -439,11 +483,36 @@ function resolvePending(s: RpnEngine, fn: string): boolean {
     runLabel(s, fn);
     return true;
   }
-  if ((p.op === "SF" || p.op === "CF" || p.op === "F?") && /^[0-3]$/.test(fn)) {
+  if ((p.op === "SF" || p.op === "CF" || p.op === "F?") && /^[0-5]$/.test(fn)) {
     s.pending = null;
-    if (p.op === "SF") s.prgm.flags[Number(fn)] = true;
-    else if (p.op === "CF") s.prgm.flags[Number(fn)] = false;
-    // F? outside a program: consume the digit, steer nothing
+    const i = Number(fn);
+    // the 16C mirrors flag 4 to CARRY and flag 5 to out-of-range
+    if (p.op === "SF") {
+      if (i === 4) s.int = { ...s.int, carry: true };
+      else if (i === 5) s.int = { ...s.int, oor: true };
+      else s.prgm.flags[i] = true;
+    } else if (p.op === "CF") {
+      if (i === 4) s.int = { ...s.int, carry: false };
+      else if (i === 5) s.int = { ...s.int, oor: false };
+      else s.prgm.flags[i] = false;
+    }
+    return true;
+  }
+  if (p.op === "WINDOW" && /^[0-9]$/.test(fn)) {
+    s.pending = null; // display windowing accepted (glass concern)
+    return true;
+  }
+  if (p.op === "SHOW" && (fn === "HEX" || fn === "DEC" || fn === "OCT" || fn === "BIN")) {
+    // flash X in another base — printed to the tape, like the 16C flashing it
+    s.pending = null;
+    const base = fn === "HEX" ? 16 : fn === "DEC" ? 10 : fn === "OCT" ? 8 : 2;
+    s.hist = [
+      ...s.hist.slice(-49),
+      {
+        op: `🖨 ${intFormat(xval(s), { ...s.int, base: base as 2 | 8 | 10 | 16 })}`,
+        raw: xval(s).trunc().toFixed(0),
+      },
+    ];
     return true;
   }
   if (p.op === "ASN") {
@@ -808,6 +877,25 @@ function execStep(s: RpnEngine): void {
   s.prgm.pc += 1;
 }
 
+/** Apply a word-op result to X with flags (unary shape). */
+function applyWord(s: RpnEngine, r: WordResult): void {
+  const x = xval(s);
+  commit(s);
+  s.lastX = x;
+  s.x = r.value;
+  s.int = { ...s.int, carry: r.carry, oor: r.oor };
+  s.lift = true;
+}
+
+/** Unary word transform without flag changes. */
+function applyWordFrom(s: RpnEngine, f: (x: Value) => Value): void {
+  const x = xval(s);
+  commit(s);
+  s.lastX = x;
+  s.x = f(x);
+  s.lift = true;
+}
+
 /** The 15C MATRIX menu (P9 subset — faithful where implemented):
  * 0 clear all · 1 reset R0/R1 · 4 transpose RESULT · 5 AᵀB → RESULT ·
  * 9 det(RESULT). Residuals/norms (6–8) and complex transforms (2–3) are
@@ -974,6 +1062,10 @@ export function runLabel(s: RpnEngine, label: string): void {
  */
 export function applyFunction(s: RpnEngine, fn: string): boolean {
   if (s.pending) return resolvePending(s, fn);
+  if (s.int.on && /^[A-F]$/.test(fn) && s.int.base === 16) {
+    inputDigit(s, fn);
+    return true;
+  }
   if (fn.length === 2 && fn.startsWith("α")) {
     // ALPHA-mode character (P6): append to the alpha register (24-char cap)
     if (s.alpha.length < 24) s.alpha += fn.slice(1);
@@ -1055,6 +1147,30 @@ export function applyFunction(s: RpnEngine, fn: string): boolean {
     case "×":
     case "÷":
     case "yˣ": {
+      if (s.int.on && fn !== "yˣ") {
+        // 16C word arithmetic with carry / out-of-range flags
+        const x = xval(s);
+        commit(s);
+        s.lastX = x;
+        const r =
+          fn === "+"
+            ? intAdd(s.y, x, s.int)
+            : fn === "−"
+              ? intSub(s.y, x, s.int)
+              : fn === "×"
+                ? intMul(s.y, x, s.int)
+                : intDiv(s.y, x, s.int);
+        if (r === null) {
+          s.error = "Error";
+          return true;
+        }
+        s.x = r.value;
+        s.int = { ...s.int, carry: r.carry, oor: r.oor };
+        s.y = s.z;
+        s.z = s.t;
+        s.lift = true;
+        return true;
+      }
       if (s.cpx && (!s.imag.x.isZero() || !s.imag.y.isZero())) {
         // complex mode with imaginary content: parallel-stack arithmetic
         const x = xval(s);
@@ -1201,6 +1317,7 @@ export function applyFunction(s: RpnEngine, fn: string): boolean {
     case "C":
     case "D":
     case "E":
+    case "F": // the 16C's label space reaches F (hex digits win in int mode)
       // user keys: run from LBL <letter> (inert without a program, like a
       // freshly cleared machine)
       runLabel(s, fn);
@@ -1722,15 +1839,15 @@ export function applyFunction(s: RpnEngine, fn: string): boolean {
         return a === null || b === null ? null : bn(daysBetween(a, b));
       });
       return true;
-    case "SL":
-    case "SOYD":
+    case "DEPR SL": // the 12C prints SL — model-override renames it to
+    case "SOYD": //     dodge the 16C's shift-left (same print, other machine)
     case "DB": {
       // cost=PV, salvage=FV, life=n (factor=i for DB); x = year number
       commit(s);
       const j = s.x;
       s.lastX = j;
       const out =
-        fn === "SL"
+        fn === "DEPR SL"
           ? depSL(s.fin.pv, s.fin.fv, s.fin.n, j)
           : fn === "SOYD"
             ? depSOYD(s.fin.pv, s.fin.fv, s.fin.n, j)
@@ -1826,6 +1943,198 @@ export function applyFunction(s: RpnEngine, fn: string): boolean {
     }
     case "MEM":
       s.hist = [...s.hist.slice(-49), { op: "🖨 MEM", raw: String(s.prgm.steps.length) }];
+      return true;
+    case "HEX":
+    case "DEC":
+    case "OCT":
+    case "BIN":
+      commit(s);
+      s.int = {
+        ...s.int,
+        on: true,
+        base: fn === "HEX" ? 16 : fn === "DEC" ? 10 : fn === "OCT" ? 8 : 2,
+      };
+      return true;
+    case "FLOAT":
+      // leave the integer universe; a following digit sets FIX digits
+      commit(s);
+      s.int = { ...s.int, on: false };
+      s.disp = { ...s.disp, mode: "FIX" };
+      s.pending = { op: "FIX" };
+      return true;
+    case "1'S":
+      s.int = { ...s.int, comp: "1S" };
+      return true;
+    case "2'S":
+      s.int = { ...s.int, comp: "2S" };
+      return true;
+    case "UNSGN":
+      s.int = { ...s.int, comp: "UNSGN" };
+      return true;
+    case "WSIZE": {
+      // pops X as the new word size (1–64), like the 16C
+      commit(s);
+      const ws = Math.max(1, Math.min(64, Math.trunc(num(s.x))));
+      s.int = { ...s.int, ws };
+      s.lastX = s.x;
+      s.x = s.y;
+      s.y = s.z;
+      s.z = s.t;
+      s.lift = true;
+      return true;
+    }
+    case "AND":
+    case "OR":
+    case "XOR":
+    case "RMD": {
+      const x = xval(s);
+      commit(s);
+      s.lastX = x;
+      const r: WordResult | null =
+        fn === "AND"
+          ? intAnd(s.y, x, s.int)
+          : fn === "OR"
+            ? intOr(s.y, x, s.int)
+            : fn === "XOR"
+              ? intXor(s.y, x, s.int)
+              : intRmd(s.y, x, s.int);
+      if (r === null) {
+        s.error = "Error";
+        return true;
+      }
+      s.x = r.value;
+      s.int = { ...s.int, carry: r.carry, oor: r.oor };
+      s.y = s.z;
+      s.z = s.t;
+      s.lift = true;
+      return true;
+    }
+    case "NOT":
+      applyWord(s, intNot(xval(s), s.int));
+      return true;
+    case "SL":
+      applyWord(s, intShift(xval(s), 1, "L", s.int));
+      return true;
+    case "SR":
+      applyWord(s, intShift(xval(s), 1, "R", s.int));
+      return true;
+    case "ASR":
+      applyWord(s, intAsr(xval(s), s.int));
+      return true;
+    case "RL":
+      applyWord(s, intRotate(xval(s), 1, "L", s.int, false, s.int.carry));
+      return true;
+    case "RR":
+      applyWord(s, intRotate(xval(s), 1, "R", s.int, false, s.int.carry));
+      return true;
+    case "RLC":
+      applyWord(s, intRotate(xval(s), 1, "L", s.int, true, s.int.carry));
+      return true;
+    case "RRC":
+      applyWord(s, intRotate(xval(s), 1, "R", s.int, true, s.int.carry));
+      return true;
+    case "RLn":
+    case "RRn":
+    case "RLCn":
+    case "RRCn": {
+      // count in X, value in Y (stack drops)
+      const x = xval(s);
+      commit(s);
+      s.lastX = x;
+      const count = Math.abs(Math.trunc(num(x)));
+      const dir = fn.includes("L") ? "L" : "R";
+      const thru = fn.includes("C");
+      const r = intRotate(s.y, count, dir, s.int, thru, s.int.carry);
+      s.x = r.value;
+      s.int = { ...s.int, carry: r.carry };
+      s.y = s.z;
+      s.z = s.t;
+      s.lift = true;
+      return true;
+    }
+    case "SB":
+    case "CB": {
+      // bit number in X, value in Y (stack drops)
+      const x = xval(s);
+      commit(s);
+      s.lastX = x;
+      const r = intSetBit(s.y, Math.abs(Math.trunc(num(x))), fn === "SB", s.int);
+      s.x = r.value;
+      s.y = s.z;
+      s.z = s.t;
+      s.lift = true;
+      return true;
+    }
+    case "B?": {
+      // direct press: the carry flag reports the bit (programs skip on it)
+      const x = xval(s);
+      commit(s);
+      s.int = { ...s.int, carry: intTestBit(s.y, Math.abs(Math.trunc(num(x))), s.int) };
+      return true;
+    }
+    case "MASKL":
+      applyWordFrom(s, (x) => intMask(Math.trunc(num(x)), "L", s.int));
+      return true;
+    case "MASKR":
+      applyWordFrom(s, (x) => intMask(Math.trunc(num(x)), "R", s.int));
+      return true;
+    case "#B":
+      applyWordFrom(s, (x) => intCountBits(x, s.int));
+      return true;
+    case "LJ": {
+      const x = xval(s);
+      commit(s);
+      s.lastX = x;
+      const r = intLj(x, s.int);
+      pushX(s, r.shifts);
+      pushX(s, r.value);
+      return true;
+    }
+    case "DBL×": {
+      const x = xval(s);
+      commit(s);
+      s.lastX = x;
+      const r = intDblMul(s.y, x, s.int);
+      s.y = r.high;
+      s.x = r.low;
+      s.lift = true;
+      return true;
+    }
+    case "DBL÷":
+    case "DBLR": {
+      // (Y high : Z low? — the 16C keeps the double dividend in Y and Z)
+      const x = xval(s);
+      commit(s);
+      s.lastX = x;
+      const r = intDblDiv(s.y, s.z, x, s.int, fn === "DBL÷" ? "Q" : "R");
+      if (r === null) {
+        s.error = "Error";
+        return true;
+      }
+      s.x = r.value;
+      s.y = s.t;
+      s.z = s.t;
+      s.lift = true;
+      return true;
+    }
+    case "WINDOW":
+      s.pending = { op: "WINDOW" };
+      return true;
+    case "SHOW":
+      s.pending = { op: "SHOW" };
+      return true;
+    case "STATUS":
+      s.hist = [
+        ...s.hist.slice(-49),
+        {
+          op: `🖨 ${s.int.comp} ws${s.int.ws} ${s.int.carry ? "C" : "·"}${s.int.oor ? " G" : ""}`,
+          raw: "0",
+        },
+      ];
+      return true;
+    case "<":
+    case ">":
+      // window scroll keys — display windowing is a glass concern, accepted
       return true;
     case "I": {
       // 15C f-I: Y + Xi forms a complex number (stack drops), complex mode on

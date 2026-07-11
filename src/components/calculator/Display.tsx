@@ -40,6 +40,8 @@ export interface RpnState {
   alpha?: string;
   /** formatted imaginary part of X (15C complex mode), when nonzero */
   imX?: string;
+  /** active integer base (16C): HEX / DEC / OCT / BIN */
+  intBase?: string;
   rpl?: Value[]; // RPL dynamic stack (bottom -> top)
   hist?: { op: string; v: string; raw?: string }[];
 }
@@ -111,6 +113,7 @@ function AnnunRow({
       <Annunciator label="g" hot={s.prefix === "g"} />
       {s.prefix === "h" && <Annunciator label="h" hot />}
       {s.prefix === "alpha" && family !== "rpl" && <Annunciator label="ALPHA" hot />}
+      {s.intBase && <Annunciator label={s.intBase} hot />}
       {showAngle && s.ang && <Annunciator label={s.ang} hot />}
       <Annunciator label={isRpl ? "RPL" : "RPN"} hot />
       {family === "voyager" && <Annunciator label={s.beg ? "BEG" : "END"} hot />}

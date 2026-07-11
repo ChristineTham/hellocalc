@@ -110,10 +110,16 @@ describe("model adapter (hp/mapping/mapping.json)", () => {
     expect(report.missing).toEqual([]);
   });
 
-  it("coverage reports honestly for models awaiting their engine phase", () => {
-    // the 16C's base/bitwise plane is Phase 10 — the report must SAY so
+  it("HP-16C: NO key remains inert — the integer plane is live (Phase-10 DoD)", () => {
     const report = coverage("HP-16C", rpnImplements);
-    expect(report.implemented.length).toBeGreaterThan(5);
+    expect(report.missing).toEqual([]);
+  });
+
+  it("coverage reports honestly for models awaiting their engine phase", async () => {
+    // the 28C's RPL object plane is Phase 12 — the report must SAY so
+    const rpl = await import("@/lib/engine/rpl");
+    const probe = (fn: string) => rpl.applyRplFunction(rpl.createRpl(), fn);
+    const report = coverage("HP-28C", probe);
     expect(report.missing.length).toBeGreaterThan(0);
   });
 });

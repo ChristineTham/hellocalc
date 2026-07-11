@@ -10,6 +10,7 @@ import { useCallback, useMemo, useState } from "react";
 import katex from "katex";
 import { createRpn, dispatch, pushX, xval, type RpnEngine } from "@/lib/engine/rpn";
 import { formatValue } from "@/lib/engine/format";
+import { intFormat } from "@/lib/engine/integer";
 import { bn, type Value } from "@/lib/engine/config";
 import type { RpnState } from "@/components/calculator/Display";
 
@@ -46,6 +47,7 @@ const clone = (e: RpnEngine): RpnEngine => ({
   fin: { ...e.fin, cfs: e.fin.cfs.map((c) => ({ ...c })) },
   imag: { ...e.imag },
   mats: { ...e.mats },
+  int: { ...e.int },
   sum: { ...e.sum },
   prgm: { ...e.prgm, steps: [...e.prgm.steps], flags: [...e.prgm.flags], ret: [...e.prgm.ret] },
   pending: e.pending ? { ...e.pending } : null,
@@ -57,8 +59,10 @@ export function useRpnCalculator(): RpnCalculator {
 
   const fmt = useCallback(
     (v: Value, d?: number) =>
-      formatValue(v, { mode: engine.disp.mode, digits: d ?? engine.disp.digits }),
-    [engine.disp],
+      engine.int.on
+        ? intFormat(v, engine.int) // the 16C's base display (P10)
+        : formatValue(v, { mode: engine.disp.mode, digits: d ?? engine.disp.digits }),
+    [engine.disp, engine.int],
   );
 
   const press = useCallback((fn: string) => {
@@ -114,6 +118,9 @@ export function useRpnCalculator(): RpnCalculator {
       latex: fmt(xval(engine)),
       err: engine.error ?? undefined,
       alpha: engine.alpha,
+      intBase: engine.int.on
+        ? { 16: "HEX", 10: "DEC", 8: "OCT", 2: "BIN" }[engine.int.base]
+        : undefined,
       imX: engine.cpx && !engine.imag.x.isZero() ? fmt(engine.imag.x) : undefined,
       beg: engine.fin.beg,
       reg: {

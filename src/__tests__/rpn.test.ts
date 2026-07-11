@@ -9,6 +9,7 @@ import {
   type RpnEngine,
 } from "@/lib/engine/rpn";
 import { bn, num, type Value } from "@/lib/engine/config";
+import { intFormat } from "@/lib/engine/integer";
 
 /** Down-convert for numeric assertions (display never does this). */
 const n = (v: Value) => num(v);
@@ -109,9 +110,9 @@ describe("RPN stack engine (BigNumber tower)", () => {
     expect(s2.error).toBe("Error");
   });
 
-  it("returns false for unimplemented functions (e.g. the 16C's RMD)", () => {
+  it("returns false for unimplemented functions (e.g. RPL's →LIST)", () => {
     const s = createRpn();
-    expect(applyFunction(s, "RMD")).toBe(false);
+    expect(applyFunction(s, "→LIST")).toBe(false);
   });
 
   it("x% of y: 200 ENTER 10 % = 20 (Y stays 200)", () => {
@@ -700,7 +701,7 @@ describe("Phase-7: the 12C finance engine", () => {
     for (const k of ["1", "0", "0", "0", "0", "PV"]) dispatch(s, k);
     for (const k of ["1", "0", "0", "0", "FV"]) dispatch(s, k);
     for (const k of ["5", "n"]) dispatch(s, k);
-    run(s, "1", "SL");
+    run(s, "1", "DEPR SL"); // the 12C's SL resolves via its model override
     expect(n(s.x)).toBe(1800);
     run(s, "1", "SOYD");
     expect(n(s.x)).toBe(3000);
@@ -895,6 +896,113 @@ describe("Phase-9: complex, matrices, SOLVE & ∫ (HP-15C)", () => {
     expect(n(s.x)).toBe(9);
     run(s, "RCL n", "4");
     expect(n(s.x)).toBe(3);
+  });
+});
+
+describe("Phase-10: the 16C integer universe", () => {
+  const hex = (s2: RpnEngine) => applyFunction(s2, "HEX");
+
+  it("hex entry with A–F digits; word arithmetic wraps and sets carry", () => {
+    const s = createRpn();
+    hex(s);
+    run(s, "8", "STO"); // keep an anchor in M (unrelated)
+    for (const k of ["F", "F"]) applyFunction(s, k); // FF
+    applyFunction(s, "ENTER");
+    applyFunction(s, "1");
+    // word size 8: FF + 1 wraps to 00 with carry
+    run(s, "CLx", "8", "WSIZE");
+    for (const k of ["F", "F"]) applyFunction(s, k);
+    applyFunction(s, "ENTER");
+    applyFunction(s, "1");
+    applyFunction(s, "+");
+    expect(xval(s).toString()).toBe("0");
+    expect(s.int.carry).toBe(true);
+  });
+
+  it("AND / OR / XOR / NOT are word-exact; DEC shows signed 2's complement", () => {
+    const s = createRpn();
+    hex(s);
+    run(s, "1", "6", "WSIZE"); // hex 16 = 22?? — careful: entry is HEX now
+    // set word size via decimal base to avoid confusion
+    applyFunction(s, "DEC");
+    run(s, "16", "WSIZE");
+    applyFunction(s, "HEX");
+    for (const k of ["F", "0"]) applyFunction(s, k);
+    applyFunction(s, "ENTER");
+    for (const k of ["3", "C"]) applyFunction(s, k);
+    applyFunction(s, "AND");
+    expect(xval(s).toString()).toBe("48"); // 0xF0 & 0x3C = 0x30
+    applyFunction(s, "NOT");
+    // ~0x30 in 16-bit 2's = 0xFFCF = −49 signed
+    expect(xval(s).toString()).toBe("-49");
+  });
+
+  it("CHS in 2's complement negates through the word (−1 shows FFFF h)", () => {
+    const s = createRpn();
+    hex(s);
+    applyFunction(s, "DEC");
+    run(s, "16", "WSIZE");
+    applyFunction(s, "HEX");
+    applyFunction(s, "1");
+    applyFunction(s, "CHS");
+    expect(intFormat(xval(s), s.int)).toBe("FFFF h");
+  });
+
+  it("shifts and rotates: SL carries the top bit out; RRn rotates by count", () => {
+    const s = createRpn();
+    hex(s);
+    applyFunction(s, "DEC");
+    run(s, "8", "WSIZE");
+    run(s, "129", "SL"); // 1000_0001 << 1 → 0000_0010, carry 1
+    expect(xval(s).toString()).toBe("2");
+    expect(s.int.carry).toBe(true);
+    const s2 = createRpn();
+    applyFunction(s2, "DEC");
+    run(s2, "8", "WSIZE");
+    run(s2, "1", "ENTER", "1", "RRn"); // rotate 1 right by 1 → 1000_0000 = −128
+    expect(xval(s2).toString()).toBe("-128");
+  });
+
+  it("bit ops: SB/CB set and clear; MASKR builds masks; #B counts bits", () => {
+    const s = createRpn();
+    applyFunction(s, "DEC");
+    run(s, "8", "WSIZE");
+    run(s, "0", "ENTER", "3", "SB");
+    expect(xval(s).toString()).toBe("8"); // bit 3 set
+    run(s, "ENTER", "3", "CB");
+    expect(xval(s).toString()).toBe("0");
+    run(s, "4", "MASKR");
+    expect(xval(s).toString()).toBe("15"); // 0000_1111
+    applyFunction(s, "#B");
+    expect(xval(s).toString()).toBe("4");
+  });
+
+  it("RMD and DBL×: remainder and the full double product", () => {
+    const s = createRpn();
+    applyFunction(s, "DEC");
+    run(s, "16", "WSIZE");
+    run(s, "7", "ENTER", "3", "RMD");
+    expect(xval(s).toString()).toBe("1");
+    applyFunction(s, "UNSGN");
+    run(s, "65535", "ENTER", "65535", "DBL×");
+    expect(s.x.toString()).toBe("1"); // low word of 0xFFFE0001
+    expect(s.y.toString()).toBe("65534"); // high word
+  });
+
+  it("FLOAT n leaves the integer universe with FIX digits", () => {
+    const s = createRpn();
+    hex(s);
+    run(s, "FLOAT", "4");
+    expect(s.int.on).toBe(false);
+    expect(s.disp).toEqual({ mode: "FIX", digits: 4 });
+  });
+
+  it("SF 4 / F? mirror the carry flag (the 16C's flag map)", () => {
+    const s = createRpn();
+    run(s, "SF", "4");
+    expect(s.int.carry).toBe(true);
+    run(s, "CF", "4");
+    expect(s.int.carry).toBe(false);
   });
 });
 

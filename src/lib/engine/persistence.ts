@@ -59,6 +59,14 @@ interface SerializedRpn {
   imag?: { x: TaggedValue; y: TaggedValue; z: TaggedValue; t: TaggedValue };
   mats?: Record<string, number[][]>;
   matResult?: string;
+  int?: {
+    on: boolean;
+    base: 2 | 8 | 10 | 16;
+    ws: number;
+    comp: "1S" | "2S" | "UNSGN";
+    carry: boolean;
+    oor: boolean;
+  };
   userOn?: boolean;
   userAsn?: Record<string, string>;
   entry: string | null;
@@ -134,6 +142,7 @@ export function snapshot(
         Object.entries(rpn.mats).map(([k, m]) => [k, m.map((r) => [...r])]),
       ),
       matResult: rpn.matResult,
+      int: { ...rpn.int },
       userOn: rpn.userOn,
       userAsn: { ...rpn.userAsn },
       entry: rpn.entry,
@@ -209,6 +218,7 @@ export function restore(state: EngineStateV1): {
       ? Object.fromEntries(Object.entries(state.rpn.mats).map(([k, m]) => [k, m.map((r) => [...r])]))
       : {},
     matResult: state.rpn.matResult ?? "C",
+    int: state.rpn.int ? { ...state.rpn.int } : fresh.int,
     userOn: state.rpn.userOn ?? false,
     userAsn: state.rpn.userAsn ? { ...state.rpn.userAsn } : {},
     entry: state.rpn.entry,
