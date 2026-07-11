@@ -180,11 +180,45 @@ test.describe("hellocalc — smoke", () => {
     await expect(page.locator(".lcd-panel")).toHaveAttribute("data-lcd-force", "line");
     await page.getByRole("button", { name: "Expand display" }).click();
     await expect(page.locator('[data-lcd-mode="mini"]')).toBeVisible();
-    // history/stack is behind a toggle → opens a drawer, then closes
+    // history/stack is behind a toggle → opens a BOTTOM sheet (§12.4), Escape closes
     await page.getByRole("button", { name: "Toggle history and stack" }).click();
-    await expect(page.getByRole("dialog", { name: "History and stack" })).toBeVisible();
-    await page.getByRole("button", { name: "Close panel", exact: true }).click();
-    await expect(page.getByRole("dialog", { name: "History and stack" })).toHaveCount(0);
+    const sheet = page.getByRole("dialog", { name: "History and stack" });
+    await expect(sheet).toBeVisible();
+    await expect(sheet).toHaveAttribute("data-side", "bottom");
+    // toBeVisible ignores opacity — assert the enter transition actually
+    // completes (Base UI removes data-starting-style via rAF; a regression
+    // here leaves the sheet permanently invisible at opacity 0)
+    await expect
+      .poll(async () =>
+        sheet.evaluate((el) => Number(getComputedStyle(el).opacity)),
+      )
+      .toBe(1);
+    await page.keyboard.press("Escape");
+    await expect(sheet).toHaveCount(0);
+  });
+
+  test("chrome: left nav sheet below lg; persistent sidebar at lg+ (§12.4)", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 393, height: 852 });
+    await page.goto("/");
+    await page.getByRole("button", { name: "Open navigation" }).click();
+    const nav = page.getByRole("dialog", { name: "Navigation" });
+    await expect(nav).toBeVisible();
+    await expect(nav).toHaveAttribute("data-side", "left");
+    // FR-STATE-4 entry points are surfaced
+    await expect(nav.getByRole("button", { name: /Import state/ })).toBeVisible();
+    await expect(nav.getByRole("button", { name: /Export state/ })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(nav).toHaveCount(0);
+
+    // lg+: hamburger gone; the persistent sidebar hosts the same nav
+    await page.setViewportSize({ width: 1366, height: 800 });
+    await expect(page.getByRole("button", { name: "Open navigation" })).toBeHidden();
+    const sidebar = page.locator('[data-region="sidebar"]');
+    await expect(sidebar).toBeVisible();
+    await expect(sidebar.getByRole("button", { name: /Export state/ })).toBeVisible();
+    await expect(sidebar.getByRole("button", { name: "About" })).toBeVisible();
   });
 
   test("KaTeX hero renders a .katex node in the mini LCD (AGENTS §6)", async ({ page }) => {
