@@ -129,12 +129,14 @@
   );
   --calc-machine-lcd-cap: 19rem; /* LCD contribution to the machine's natural height */
   --calc-lcd-side-h: 11rem; /* side-variant LCD slot (< mini threshold ⇒ line state) */
-  /* Key-legend type scale (§13.5, pulled forward): proportional to the machine
-     module's width (cqi against the .kbd-module inline-size container) with
-     floors/caps, so key min-content can never outgrow the aspect box — fixed
-     px legends clipped the Voyager band on narrow phones. */
-  --text-key-primary: clamp(9px, 2.9cqi, 16px);
-  --text-key-shift: clamp(6px, 1.55cqi, 9px);
+  /* Key-legend type scale (§13.5, accessibility-sized): proportional to KEY
+     PITCH — cqi (the .machine-kbd container width) divided by the model's
+     column count — so a 10-col Voyager and a 5-col classic get the SAME
+     fraction of their key face, as large as the tightest face (Voyager:
+     three legend planes in a wider-than-tall key) safely holds. Floors keep
+     phones legible; caps bind at the key-pitch maximum. */
+  --text-key-primary: clamp(11px, calc(36cqi / var(--kbd-cols)), 26px);
+  --text-key-shift: clamp(8px, calc(15cqi / var(--kbd-cols)), 12px);
   /* LCD */
   --hp-lcd-aspect-mini: 4 / 3;
   /* The real HP-48 pixel grid — also the target for the future dot-grid
@@ -489,9 +491,10 @@
      min-content clips the aspect-locked band — hide the planes and give the
      primary the whole face (like the real device at arm's length). An ARMED
      plane (`key-hot`, set while f/g is armed) always shows: quiet by default,
-     informative exactly when it matters (§12.3). Threshold literal ~30rem —
-     container queries cannot read custom properties. */
-  @container kbdmod (max-width: 30rem) {
+     informative exactly when it matters (§12.3). Threshold literal ~36rem —
+     container queries cannot read custom properties; sized so the enlarged
+     (§13.5) three-plane Voyager face always fits its aspect box. */
+  @container kbdmod (max-width: 36rem) {
     .machine-kbd .key-shift {
       display: none;
     }

@@ -93,8 +93,26 @@ export function RplKeyboard({ rows, geometry, prefix, onArm, onPress }: RplKeybo
             >
               {/* left-shift (purple) / right-shift (green) legends — armed
                   prefix shifts the plane (§12.3): armed side glows, the other
-                  side and the primaries dim */}
-              {(k.ls || k.rs) && (
+                  side and the primaries dim. When both shifts share one word
+                  (CST → MODES/MODES) it prints ONCE, spanning both colours —
+                  as on the real 48G. */}
+              {k.ls && k.ls === k.rs ? (
+                <span
+                  className={cn(
+                    "key-shift pointer-events-none absolute inset-x-1 top-0.5 flex justify-center text-key-shift leading-none font-semibold",
+                    (prefix === "ls" || prefix === "rs") && "key-hot",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "bg-gradient-to-r from-hp-shift-ls to-hp-shift-rs bg-clip-text text-transparent transition-opacity",
+                      prefix === "alpha" && "opacity-30",
+                    )}
+                  >
+                    {k.ls}
+                  </span>
+                </span>
+              ) : (k.ls || k.rs) && (
                 <span
                   className={cn(
                     // `key-shift` auto-hides at narrow module widths except
