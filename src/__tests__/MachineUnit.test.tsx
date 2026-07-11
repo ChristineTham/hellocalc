@@ -63,9 +63,27 @@ describe("MachineUnit", () => {
     expect(machine.querySelector('[data-testid="the-lcd"]')).not.toBeNull();
     expect(machine.querySelector('[data-testid="the-paper"]')).not.toBeNull();
     expect(machine.querySelector('[data-slot="keyboard"]')).not.toBeNull();
-    // nameplate badge
-    expect(machine.textContent).toContain("HEWLETT·PACKARD");
-    expect(machine.textContent).toContain("HP-12C");
+    // nameplate: our brand + the BARE model number, no third-party marks (§14 rev 7)
+    expect(machine.textContent).toContain("HELLO·CALC");
+    expect(machine.textContent).not.toContain("HEWLETT");
+    expect(machine.textContent).not.toContain("HP-12C");
+    expect(machine.querySelector('[data-slot="machine-np"]')?.textContent).toContain("12C");
+    expect(machine.querySelector('[data-slot="hc-badge"]')).not.toBeNull();
+    expect(machine.dataset.family).toBe("voyager");
+  });
+
+  it("classic machines wear a centred text-only nameplate (below the keys via CSS)", () => {
+    const { container } = render(
+      <MachineUnit model={MODELS["HP-35"]} rpn={rpn} rpl={rpl} lcd={<div />} />,
+    );
+    const machine = container.querySelector<HTMLElement>('[data-slot="machine"]');
+    if (!machine) throw new Error("no machine bezel");
+    expect(machine.dataset.family).toBe("classic");
+    const np = machine.querySelector('[data-slot="machine-np"]');
+    expect(np?.textContent).toContain("HELLO·CALC");
+    expect(np?.textContent).toContain("35");
+    // the classic 35 printed no logo on the face
+    expect(np?.querySelector('[data-slot="hc-badge"]')).toBeNull();
   });
 
   it("renders the family keyboard for RPL models too", () => {

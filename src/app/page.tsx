@@ -57,6 +57,7 @@ export default function Home() {
           <Topbar
             activeModel={modelId}
             onSelectModel={setModelId}
+            tags={model.sub.split("·").map((t) => t.trim())}
             nav={<CalcNav />}
             panels={{
               // RPL glass owns its stack (§14.3 rev 3) — no paper stack panel

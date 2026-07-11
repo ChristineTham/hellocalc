@@ -11,10 +11,17 @@
 import { Keyboard } from "./Keyboard";
 import { ClassicKeyboard } from "./ClassicKeyboard";
 import { RplKeyboard } from "./RplKeyboard";
+import { HCBadge } from "./HCBadge";
 import type { Model } from "./models";
 import type { RpnCalculator } from "@/hooks/useRpnCalculator";
 import type { RplCalculator } from "@/hooks/useRplCalculator";
 import { cn } from "@/lib/utils";
+
+/** Nameplate model number — bare, as the real machines print it ("12C", not
+ * "HP-12C"); no third-party marks on the device face (§14 rev 7). */
+export function nameplateModel(name: string): string {
+  return name.replace(/^HP-?/i, "");
+}
 
 export interface MachineUnitProps {
   model: Model;
@@ -27,9 +34,11 @@ export interface MachineUnitProps {
 }
 
 export function MachineUnit({ model, rpn, rpl, lcd, paper }: MachineUnitProps) {
+  const badgeName = nameplateModel(model.name);
   return (
     <div
       data-slot="machine"
+      data-family={model.family}
       className={cn(
         // machine plane (§13.1): the elevated instrument under warm light
         "machine rounded-[var(--radius-bezel)] border border-hp-bezel-border bg-hp-bezel shadow-[0_18px_36px_-14px_var(--color-shadow-warm)]",
@@ -38,24 +47,40 @@ export function MachineUnit({ model, rpn, rpl, lcd, paper }: MachineUnitProps) {
           "shadow-[inset_0_1px_0_rgb(255_255_255/0.5),inset_0_0_0_1px_rgb(255_255_255/0.22),0_18px_36px_-14px_var(--color-shadow-warm)]",
       )}
     >
-      {/* nameplate — the machine's badge (§13.5) */}
-      <div
-        data-slot="machine-np"
-        className="machine-np flex items-end justify-between"
-        style={{ blockSize: "var(--calc-nameplate-h)" }}
-      >
-        <div className="flex min-w-0 flex-col leading-tight">
-          <span className="font-sans text-[10px] font-bold tracking-[0.22em] text-hp-key-fg opacity-70">
-            HEWLETT·PACKARD
+      {/* nameplate — authentic to the family (§14 rev 7): maker's mark +
+          wordmark left, BARE model number right (the real units print "12C",
+          not "HP-12C"); classics centre a single line below the keys; the
+          sub-labels (RPN · FINANCIAL…) live in the topbar as badges now. */}
+      {model.family === "classic" ? (
+        <div
+          data-slot="machine-np"
+          className="machine-np flex items-center justify-center gap-2"
+          style={{ blockSize: "var(--calc-nameplate-h)" }}
+        >
+          <span className="font-sans text-[11px] font-bold tracking-[0.24em] text-hp-key-fg opacity-70">
+            HELLO·CALC
           </span>
-          <span className="truncate font-mono text-[10px] tracking-[0.14em] text-muted-foreground">
-            {model.sub}
+          <span className="font-sans text-[11px] font-bold tracking-[0.24em] text-hp-key-fg">
+            {badgeName}
           </span>
         </div>
-        <span className="font-sans text-xl font-black tracking-tight text-hp-key-fg">
-          {model.name}
-        </span>
-      </div>
+      ) : (
+        <div
+          data-slot="machine-np"
+          className="machine-np flex items-end justify-between"
+          style={{ blockSize: "var(--calc-nameplate-h)" }}
+        >
+          <div className="flex min-w-0 items-center gap-2">
+            <HCBadge className="h-5 w-5 shrink-0" />
+            <span className="truncate font-sans text-[10px] font-bold tracking-[0.22em] text-hp-key-fg opacity-70">
+              HELLO·CALC
+            </span>
+          </div>
+          <span className="font-sans text-xl font-black tracking-tight text-hp-key-fg">
+            {badgeName}
+          </span>
+        </div>
+      )}
 
       {/* the glass, inside the machine (line ↔ mini via @container/lcd) */}
       <div data-slot="machine-lcd" className="machine-lcd">

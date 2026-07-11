@@ -15,10 +15,14 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { ModelPicker } from "./ModelPicker";
+import { HCBadge } from "./HCBadge";
 
 export interface TopbarProps {
   activeModel: string;
   onSelectModel: (id: string) => void;
+  /** the model's mode tags (RPN, FINANCIAL…) — worn as topbar badges so the
+      machine's nameplate stays authentic (§14 rev 7) */
+  tags?: string[];
   /** nav content (CalcNav) — hosted in the left sheet below lg */
   nav: React.ReactNode;
   /** the paper components (§14.3), each behind its own toggle below md;
@@ -64,7 +68,7 @@ function PanelSheet({
   );
 }
 
-export function Topbar({ activeModel, onSelectModel, nav, panels }: TopbarProps) {
+export function Topbar({ activeModel, onSelectModel, tags, nav, panels }: TopbarProps) {
   return (
     <header className="flex h-full items-center gap-2 border-b border-border px-3">
       {/* nav: hamburger → LEFT sheet (below lg; the sidebar replaces it at lg+) */}
@@ -88,10 +92,23 @@ export function Topbar({ activeModel, onSelectModel, nav, panels }: TopbarProps)
 
       {/* the brand yields its room to the panel chips on phones (§14.4) —
           the nav sheet still carries the full wordmark */}
-      <h1 className="hidden min-w-0 flex-1 truncate text-xl font-extrabold tracking-tight text-primary sm:block">
+      <HCBadge className="h-6 w-6 shrink-0" />
+      <h1 className="hidden min-w-0 truncate text-xl font-extrabold tracking-tight text-primary sm:block">
         Hello Calc
       </h1>
-      <div aria-hidden className="flex-1 sm:hidden" />
+
+      {/* mode badges — the tags the nameplate used to wear (§14 rev 7) */}
+      <div className="hidden min-w-0 items-center gap-1.5 pl-1 md:flex">
+        {(tags ?? []).map((tag) => (
+          <span
+            key={tag}
+            className="rounded-full border border-border bg-card px-2 py-0.5 font-mono text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase"
+          >
+            {tag}
+          </span>
+        ))}
+      </div>
+      <div aria-hidden className="flex-1" />
 
       {/* individual paper-panel toggles (§14.3) — sheet-hosted below md */}
       {panels.stack && (

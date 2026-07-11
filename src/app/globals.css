@@ -84,6 +84,7 @@
   /* Paper plane (§14.3) */
   --color-paper: var(--paper);
   --color-paper-line: var(--paper-line);
+  --color-hc-pink: var(--hc-pink);
 
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
@@ -187,6 +188,7 @@
      Warmer and lighter than the desk so it reads as paper resting on it. */
   --paper: #faf7ee;
   --paper-line: #e5dfcf;
+  --hc-pink: #cc4b78; /* the maker's-mark pink (vintage-badge spirit, our colour) */
   --ring: #bd5d47;
   --chart-1: #a9832f;
   --chart-2: #35619e;
@@ -248,6 +250,7 @@
   --shadow-warm: rgb(0 0 0 / 0.55);
   --paper: #24221c;
   --paper-line: #3a372e;
+  --hc-pink: #e37fa4;
   --ring: #e08a7a;
   --chart-1: #d3a441;
   --chart-2: #5b8fd6;
@@ -386,6 +389,12 @@
   }
   .machine-np {
     grid-area: np;
+  }
+  /* Classic machines (HP-35 era) print the maker's mark BELOW the keys —
+     the stacked grid reorders; the side variant keeps np top-left. */
+  .machine[data-family="classic"] {
+    grid-template-areas: "lcd" "kbd" "np";
+    grid-template-rows: minmax(var(--calc-lcd-line-h), 1fr) auto auto;
   }
   .machine-lcd {
     grid-area: lcd;

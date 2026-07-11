@@ -1410,6 +1410,17 @@ their dimmed primary — which is what they still execute. This supersedes the
 narrow-module legend reveal: on phones the promoted word appears at full
 primary size instead of an 8px hint.
 
+### 14.4f Revision 7 — authentic nameplates, trademark-safe
+
+Nameplates now match each family's real layout with our own marks (no
+Hewlett-Packard name or logo anywhere): a pink rounded-square **hc** badge
+(SVG, `--hc-pink`) + HELLO·CALC wordmark left and the BARE model number right
+("12C", "48G" — the real units never printed the HP- prefix on the face);
+classic machines centre a text-only "HELLO·CALC 35" BELOW the keys, as the
+originals did. The mode tags (RPN · FINANCIAL…) moved off the machine into
+the topbar as pill badges. The model picker keeps the factual HP-* names —
+nominative reference to what is being emulated.
+
 ### 14.5 Clamshell note (HP-28, still deferred)
 
 When the 28-series lands: large displays render the two keyboard halves side by side under
