@@ -20,7 +20,8 @@ test.describe("hellocalc — smoke", () => {
     await page.getByRole("button", { name: "ENTER", exact: true }).click();
     await page.getByRole("button", { name: "3", exact: true }).click();
     await page.getByRole("button", { name: "+", exact: true }).click();
-    await expect(page.getByText("5.00").first()).toBeVisible();
+    // scope to the visible mini subtree — the hidden line subtree echoes values too
+    await expect(page.locator('[data-lcd-mode="mini"]').getByText("5.00").first()).toBeVisible();
   });
 
   test("model picker groups models, searches, and disables unimplemented ones", async ({ page }) => {
@@ -59,6 +60,9 @@ test.describe("hellocalc — smoke", () => {
     if (!box) throw new Error("no keyboard box (phone)");
     expect(box.width).toBeGreaterThan(340); // fills the width (minus bezel chrome)
     expect(box.y + box.height).toBeGreaterThan(852 - 80); // anchored at the bottom
+    // …and NOT clipped: key min-content must never outgrow the band (§13.5 —
+    // fixed-px legends once pushed the Voyager grid past the viewport)
+    expect(box.y + box.height).toBeLessThanOrEqual(852 + 1);
     await expect(page.locator("main.calc-shell")).toHaveAttribute("data-template", "stack");
 
     // desktop 1366×800, portrait model (HP-48G) — `desktop-wide`: right column
@@ -123,7 +127,7 @@ test.describe("hellocalc — smoke", () => {
     await page.getByRole("button", { name: "ENTER↑", exact: true }).click();
     await page.getByRole("button", { name: "3", exact: true }).click();
     await page.getByRole("button", { name: "+", exact: true }).click();
-    await expect(page.getByText("5.00").first()).toBeVisible();
+    await expect(page.locator('[data-lcd-mode="mini"]').getByText("5.00").first()).toBeVisible();
   });
 
   test("HP-48G RPL faceplate pushes and adds on the dynamic stack", async ({ page }) => {
@@ -133,7 +137,7 @@ test.describe("hellocalc — smoke", () => {
     await page.getByRole("button", { name: "ENTER", exact: true }).click();
     await page.getByRole("button", { name: "3", exact: true }).click();
     await page.getByRole("button", { name: "+", exact: true }).click();
-    await expect(page.getByText("5.00").first()).toBeVisible();
+    await expect(page.locator('[data-lcd-mode="mini"]').getByText("5.00").first()).toBeVisible();
   });
 
   test("keyboard blocks keep their real aspect ratio (Priority 1 regression guard)", async ({ page }) => {
@@ -156,20 +160,40 @@ test.describe("hellocalc — smoke", () => {
     }
   });
 
-  test("small screens: faceplate fits, LCD collapses, history is a drawer", async ({ page }) => {
+  test("small screens: keyboard fits, LCD fills the estate, history is a drawer", async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 375, height: 700 });
     await page.goto("/");
-    // faceplate scaled to fit — no horizontal page overflow
+    // no horizontal page overflow
     const noOverflow = await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth + 1,
     );
     expect(noOverflow).toBe(true);
-    // LCD starts compact on small screens → an "Expand display" control is shown
-    await expect(page.getByRole("button", { name: "Expand display" })).toBeVisible();
+    // the LCD slot is tall enough on a phone → container default is MINI
+    // ("LCD takes most of the remaining estate"); user can force the
+    // single-line state and back (§5.3 data-lcd-force)
+    await expect(page.locator('[data-lcd-mode="mini"]')).toBeVisible();
+    await page.getByRole("button", { name: "Collapse display" }).click();
+    await expect(page.locator('[data-lcd-mode="line"]')).toBeVisible();
+    await expect(page.locator('[data-lcd-mode="mini"]')).toBeHidden();
+    await expect(page.locator(".lcd-panel")).toHaveAttribute("data-lcd-force", "line");
+    await page.getByRole("button", { name: "Expand display" }).click();
+    await expect(page.locator('[data-lcd-mode="mini"]')).toBeVisible();
     // history/stack is behind a toggle → opens a drawer, then closes
     await page.getByRole("button", { name: "Toggle history and stack" }).click();
     await expect(page.getByRole("dialog", { name: "History and stack" })).toBeVisible();
     await page.getByRole("button", { name: "Close panel", exact: true }).click();
     await expect(page.getByRole("dialog", { name: "History and stack" })).toHaveCount(0);
+  });
+
+  test("KaTeX hero renders a .katex node in the mini LCD (AGENTS §6)", async ({ page }) => {
+    await page.goto("/"); // desktop default: lcd slot tall → mini
+    await expect(page.locator('[data-lcd-mode="mini"]')).toBeVisible();
+    await page.getByRole("button", { name: "2", exact: true }).click();
+    await page.getByRole("button", { name: "ENTER", exact: true }).click();
+    await page.getByRole("button", { name: "3", exact: true }).click();
+    await page.getByRole("button", { name: "+", exact: true }).click();
+    await expect(page.locator('[data-lcd-mode="mini"] .katex').first()).toBeVisible();
   });
 });

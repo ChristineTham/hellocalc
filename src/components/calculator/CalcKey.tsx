@@ -12,9 +12,11 @@ import { cn } from "@/lib/utils";
 /** Base face styling by key role. Legends are layered as absolute children. */
 // No min-height floor: key height comes from the keyboard's aspect-locked
 // equal-1fr row tracks (docs/responsive-layout.md §4.3) — a floor would fight
-// the uniform pitch when the block scales down.
+// the uniform pitch when the block scales down. The key face is a 3-row grid
+// (f-shift / primary / g-shift) so the legend planes can NEVER overlap, at any
+// pitch — absolute overlays collided at phone key heights (§13.5).
 export const calcKeyVariants = cva(
-  "relative flex select-none items-center justify-center rounded-[var(--radius-key)] font-legend font-bold leading-none shadow-[0_2px_0_var(--color-hp-key-border),0_3px_5px_rgb(0_0_0/0.35)] transition-transform duration-[50ms] outline-none active:translate-y-0.5 focus-visible:brightness-110",
+  "relative grid select-none grid-rows-[auto_1fr_auto] rounded-[var(--radius-key)] px-0.5 py-0.5 font-legend font-bold leading-none shadow-[0_2px_0_var(--color-hp-key-border),0_3px_5px_rgb(0_0_0/0.35)] transition-transform duration-[50ms] outline-none active:translate-y-0.5 focus-visible:brightness-110",
   {
     variants: {
       tone: {
@@ -81,40 +83,38 @@ export function CalcKey({
       className={cn(
         calcKeyVariants({ tone, active: fHot || gHot }),
         (fHot || gHot) && (fHot ? "ring-hp-shift-f" : "ring-hp-shift-g"),
-        f && "pt-2.5",
-        g && "pb-2",
         className,
       )}
       style={gridStyle}
       {...props}
     >
-      {f && (
-        <span
-          className={cn(
-            "pointer-events-none absolute inset-x-0 top-1 text-center text-[8.5px] font-bold leading-none text-hp-shift-f transition-all",
-            fHot
-              ? "-translate-y-px [text-shadow:0_0_7px_var(--color-hp-shift-f)]"
-              : "opacity-90",
-          )}
-        >
-          {f}
-        </span>
-      )}
-      <span className="z-10 text-[15px] leading-none">
+      {/* row 1 — gold f plane. `key-shift` auto-hides at narrow module widths
+          (globals.css @container kbdmod) except when armed (`key-hot`). */}
+      <span
+        className={cn(
+          "key-shift pointer-events-none row-start-1 text-center text-key-shift text-hp-shift-f transition-all",
+          fHot
+            ? "key-hot [text-shadow:0_0_7px_var(--color-hp-shift-f)]"
+            : "opacity-90",
+        )}
+      >
+        {f}
+      </span>
+      {/* row 2 — primary legend, optically centred in the remaining face */}
+      <span className="row-start-2 self-center text-center text-key-primary">
         {tone === "f" ? "f" : tone === "g" ? "g" : primary}
       </span>
-      {g && (
-        <span
-          className={cn(
-            "pointer-events-none absolute inset-x-0 bottom-0.5 text-center text-[8.5px] font-bold leading-none text-hp-shift-g transition-all",
-            gHot
-              ? "translate-y-px [text-shadow:0_0_7px_var(--color-hp-shift-g)]"
-              : "opacity-90",
-          )}
-        >
-          {g}
-        </span>
-      )}
+      {/* row 3 — blue g plane */}
+      <span
+        className={cn(
+          "key-shift pointer-events-none row-start-3 text-center text-key-shift text-hp-shift-g transition-all",
+          gHot
+            ? "key-hot [text-shadow:0_0_7px_var(--color-hp-shift-g)]"
+            : "opacity-90",
+        )}
+      >
+        {g}
+      </span>
     </ButtonPrimitive>
   );
 }

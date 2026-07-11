@@ -7,6 +7,7 @@ import { KeyboardFitter } from "@/components/calculator/KeyboardFitter";
 import { KeyboardZone } from "@/components/calculator/KeyboardZone";
 import { LcdRegion } from "@/components/calculator/LcdRegion";
 import { Display, StackPanel } from "@/components/calculator/Display";
+import { AuxPanel } from "@/components/calculator/AuxPanel";
 import { ModelPicker } from "@/components/calculator/ModelPicker";
 import { MODELS } from "@/components/calculator/models";
 import { useRpnCalculator } from "@/hooks/useRpnCalculator";
@@ -64,14 +65,7 @@ export default function Home() {
             <KeyboardZone model={model} rpn={rpn} rpl={rpl} />
           </KeyboardFitter>
         }
-        aux={
-          <StackPanel
-            state={active.state}
-            family={model.family}
-            fmt={active.fmt}
-            className="size-full min-w-0 max-w-none"
-          />
-        }
+        aux={<AuxPanel state={active.state} family={model.family} fmt={active.fmt} />}
       />
 
       {/* below md: history/stack as a drawer (replaced by a bottom Sheet in Step 4) */}

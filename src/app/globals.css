@@ -114,6 +114,12 @@
   --calc-nameplate-h: 2.5rem;
   --calc-bezel-pad: 0.875rem;
   --calc-kbd-chrome-h: calc(var(--calc-nameplate-h) + 2 * var(--calc-bezel-pad));
+  /* Key-legend type scale (§13.5, pulled forward): proportional to the machine
+     module's width (cqi against the .kbd-module inline-size container) with
+     floors/caps, so key min-content can never outgrow the aspect box — fixed
+     px legends clipped the Voyager band on narrow phones. */
+  --text-key-primary: clamp(9px, 2.9cqi, 16px);
+  --text-key-shift: clamp(6px, 1.55cqi, 9px);
   /* LCD */
   --hp-lcd-aspect-mini: 4 / 3;
   --calc-lcd-line-h: 3.25rem;
@@ -322,6 +328,67 @@
       calc(var(--kbd-cols) * var(--calc-key-max-pitch))
     );
     margin: auto;
+    /* inline-size container so key-legend cq tokens (§13.5) track the MODULE
+       width (the slot can be much wider than the capped module). */
+    container: kbdmod / inline-size;
+  }
+
+  /* ── Key shift-plane legibility (§13.5) ──────────────────────────────────
+     At narrow machine-module widths the 6px f/g legends are noise and their
+     min-content clips the aspect-locked band — hide the planes and give the
+     primary the whole face (like the real device at arm's length). An ARMED
+     plane (`key-hot`, set while f/g is armed) always shows: quiet by default,
+     informative exactly when it matters (§12.3). Threshold literal ~30rem —
+     container queries cannot read custom properties. */
+  @container kbdmod (max-width: 30rem) {
+    [data-slot="calc-key"] .key-shift {
+      display: none;
+    }
+    [data-slot="calc-key"] .key-shift.key-hot {
+      display: block;
+    }
+  }
+
+  /* ── LCD line ↔ mini (§5.3) ──────────────────────────────────────────────
+     Both subtrees are always in the DOM. The @container/lcd size query picks
+     the default; the data-lcd-force attribute rules carry higher specificity
+     (0,3,0 vs 0,2,0 — container queries add none), so a user/test override
+     wins regardless of slot size. Display is set ONLY here — never via
+     utility classes on the subtrees (the utilities layer would win). */
+  .lcd-panel .lcd-line {
+    display: flex;
+    flex-direction: column;
+  }
+  .lcd-panel .lcd-mini {
+    display: none;
+    flex-direction: column;
+    /* mini 4:3 glass: capped by the slot's height, centred; content may
+       stretch it taller than 4:3 (aspect-ratio yields to min-content). */
+    aspect-ratio: var(--hp-lcd-aspect-mini);
+    inline-size: min(100%, calc(100cqb * 4 / 3));
+    margin-inline: auto;
+  }
+  /* threshold literal MUST equal --calc-lcd-mini-min-h (size container
+     queries cannot read custom properties) */
+  @container lcd (min-height: 13rem) {
+    .lcd-panel .lcd-line {
+      display: none;
+    }
+    .lcd-panel .lcd-mini {
+      display: flex;
+    }
+  }
+  .lcd-panel[data-lcd-force="mini"] .lcd-line {
+    display: none;
+  }
+  .lcd-panel[data-lcd-force="mini"] .lcd-mini {
+    display: flex;
+  }
+  .lcd-panel[data-lcd-force="line"] .lcd-mini {
+    display: none;
+  }
+  .lcd-panel[data-lcd-force="line"] .lcd-line {
+    display: flex;
   }
 
   /* ── TEMPLATE `stack` — phone + sm (<48rem), ALL aspect classes ──────────── */

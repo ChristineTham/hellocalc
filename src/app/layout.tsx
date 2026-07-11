@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Archivo, Barlow_Semi_Condensed, IBM_Plex_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
+// KaTeX styles at the shell level so typeset math is styled on first paint
+// (docs/responsive-layout.md §11 FOUC row).
+import "katex/dist/katex.min.css";
 
 // 7-segment LCD numerals (DSEG7 Classic, OFL-1.1 — see fonts/NOTICE.md).
 // next/font/local self-hosts and generates a base-path-safe @font-face.

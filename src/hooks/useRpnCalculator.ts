@@ -5,6 +5,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import katex from "katex";
 import {
   applyFunction,
   createRpn,
@@ -28,9 +29,6 @@ export interface RpnCalculator {
   fmt: (n: number, dec?: number) => string;
   renderLatex: (tex: string) => { __html: string };
 }
-
-const escapeHtml = (s: string) =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 export function useRpnCalculator(dec = 2): RpnCalculator {
   const [engine, setEngine] = useState<RpnEngine>(() => createRpn());
@@ -79,8 +77,10 @@ export function useRpnCalculator(dec = 2): RpnCalculator {
     [engine, prefix, dec, fmt, hist],
   );
 
+  // Math output is always typeset (AGENTS §3): KaTeX renders synchronously at
+  // first render — no post-mount flash. katex.min.css is imported in layout.tsx.
   const renderLatex = useCallback(
-    (tex: string) => ({ __html: escapeHtml(tex) }),
+    (tex: string) => ({ __html: katex.renderToString(tex, { throwOnError: false }) }),
     [],
   );
 

@@ -5,6 +5,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import katex from "katex";
 import { applyRplFunction, createRpl, type RplEngine } from "@/lib/engine/rpl";
 import type { RpnState } from "@/components/calculator/Display";
 
@@ -18,9 +19,6 @@ export interface RplCalculator {
   fmt: (n: number, dec?: number) => string;
   renderLatex: (tex: string) => { __html: string };
 }
-
-const escapeHtml = (s: string) =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 export function useRplCalculator(dec = 2): RplCalculator {
   const [engine, setEngine] = useState<RplEngine>(() => createRpl());
@@ -62,8 +60,9 @@ export function useRplCalculator(dec = 2): RplCalculator {
     [engine, prefix, dec],
   );
 
+  // Math output is always typeset (AGENTS §3) — same KaTeX seam as the RPN hook.
   const renderLatex = useCallback(
-    (tex: string) => ({ __html: escapeHtml(tex) }),
+    (tex: string) => ({ __html: katex.renderToString(tex, { throwOnError: false }) }),
     [],
   );
 
