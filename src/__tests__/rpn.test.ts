@@ -109,9 +109,9 @@ describe("RPN stack engine (BigNumber tower)", () => {
     expect(s2.error).toBe("Error");
   });
 
-  it("returns false for unimplemented functions (e.g. the 15C's MATRIX)", () => {
+  it("returns false for unimplemented functions (e.g. the 16C's RMD)", () => {
     const s = createRpn();
-    expect(applyFunction(s, "MATRIX")).toBe(false);
+    expect(applyFunction(s, "RMD")).toBe(false);
   });
 
   it("x% of y: 200 ENTER 10 % = 20 (Y stays 200)", () => {
@@ -808,6 +808,92 @@ describe("Phase-8: probability + 11C extras", () => {
     applyFunction(s, "x⇄(i)");
     expect(n(s.x)).toBe(9);
     run(s, "RCL n", "5");
+    expect(n(s.x)).toBe(3);
+  });
+});
+
+describe("Phase-9: complex, matrices, SOLVE & ∫ (HP-15C)", () => {
+  it("complex arithmetic on the parallel stack: (2+3i)(4+5i) = −7+22i", () => {
+    const s = createRpn();
+    run(s, "2", "ENTER", "3", "I"); // 2+3i
+    run(s, "4", "ENTER", "5", "I"); // 4+5i
+    applyFunction(s, "×");
+    expect(n(s.x)).toBeCloseTo(-7, 10);
+    expect(n(s.imag.x)).toBeCloseTo(22, 10);
+  });
+
+  it("Re≷Im swaps the parts; (i) cpx toggles complex mode off and clears imag", () => {
+    const s = createRpn();
+    run(s, "1", "ENTER", "2", "I");
+    applyFunction(s, "Re≷Im");
+    expect(n(s.x)).toBe(2);
+    expect(n(s.imag.x)).toBe(1);
+    applyFunction(s, "(i) cpx");
+    expect(s.cpx).toBe(false);
+    expect(n(s.imag.x)).toBe(0);
+  });
+
+  it("DIM + the R0/R1 element protocol fills a matrix; MATRIX 9 takes its det", () => {
+    const s = createRpn();
+    run(s, "2", "ENTER", "2", "DIM", "A"); // A: 2×2
+    run(s, "MATRIX", "1"); // R0=R1=1
+    for (const v of ["1", "2", "3", "4"]) {
+      run(s, v, "STO n", "A"); // elements walk col-first with wrap
+    }
+    run(s, "RESULT", "A");
+    run(s, "MATRIX", "9"); // det → X
+    expect(n(xval(s))).toBeCloseTo(-2, 10);
+  });
+
+  it("MATRIX 5 forms AᵀB into RESULT", () => {
+    const s = createRpn();
+    run(s, "2", "ENTER", "2", "DIM", "A");
+    run(s, "2", "ENTER", "2", "DIM", "B");
+    run(s, "MATRIX", "1");
+    for (const v of ["1", "0", "0", "1"]) run(s, v, "STO n", "A"); // identity
+    run(s, "MATRIX", "1");
+    for (const v of ["5", "6", "7", "8"]) run(s, v, "STO n", "B");
+    run(s, "RESULT", "C");
+    run(s, "MATRIX", "5"); // C = Aᵀ·B = B
+    expect(s.mats["C"]).toEqual([[5, 6], [7, 8]]);
+  });
+
+  it("SOLVE finds the root of a programmed f(x): x²−4 → 2", () => {
+    const s = createRpn();
+    dispatch(s, "W/PRGM");
+    for (const k of ["LBL", "A", "x²", "4", "−", "RTN"]) dispatch(s, k);
+    dispatch(s, "W/PRGM");
+    run(s, "1", "ENTER", "3"); // guesses
+    run(s, "SOLVE", "A");
+    expect(n(xval(s))).toBeCloseTo(2, 9);
+  });
+
+  it("∫ˣy integrates a programmed f: ∫₀^π sin = 2 (RAD)", () => {
+    const s = createRpn();
+    applyFunction(s, "RAD");
+    dispatch(s, "W/PRGM");
+    for (const k of ["LBL", "B", "SIN", "RTN"]) dispatch(s, k);
+    dispatch(s, "W/PRGM");
+    run(s, "0", "ENTER", "π", "∫ˣy", "B");
+    expect(n(xval(s))).toBeCloseTo(2, 6);
+  });
+
+  it("TEST n steers program flow (TEST 5 is x=y)", () => {
+    const s = createRpn();
+    dispatch(s, "W/PRGM");
+    for (const k of ["TEST", "5", "GTO", "1", "0", "R/S", "LBL", "1", "1", "R/S"]) dispatch(s, k);
+    dispatch(s, "W/PRGM");
+    run(s, "4", "ENTER", "4");
+    applyFunction(s, "R/S");
+    expect(n(xval(s))).toBe(1);
+  });
+
+  it("x≷ n exchanges X with a register", () => {
+    const s = createRpn();
+    run(s, "9", "STO n", "4", "CLx", "3");
+    run(s, "x≷", "4");
+    expect(n(s.x)).toBe(9);
+    run(s, "RCL n", "4");
     expect(n(s.x)).toBe(3);
   });
 });

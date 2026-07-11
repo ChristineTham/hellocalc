@@ -105,10 +105,15 @@ describe("model adapter (hp/mapping/mapping.json)", () => {
     expect(report.missing).toEqual([]);
   });
 
-  it("coverage reports honestly for models awaiting their engine phase", () => {
-    // the 15C's matrix/complex plane is Phase 9 — the report must SAY so
+  it("HP-15C: NO key remains inert — complex/matrix/SOLVE live (Phase-9 DoD)", () => {
     const report = coverage("HP-15C", rpnImplements);
-    expect(report.implemented.length).toBeGreaterThan(10);
+    expect(report.missing).toEqual([]);
+  });
+
+  it("coverage reports honestly for models awaiting their engine phase", () => {
+    // the 16C's base/bitwise plane is Phase 10 — the report must SAY so
+    const report = coverage("HP-16C", rpnImplements);
+    expect(report.implemented.length).toBeGreaterThan(5);
     expect(report.missing.length).toBeGreaterThan(0);
   });
 });

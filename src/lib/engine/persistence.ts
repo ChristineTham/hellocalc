@@ -55,6 +55,10 @@ interface SerializedRpn {
   prgm?: PrgmState;
   alpha?: string;
   rng?: number;
+  cpx?: boolean;
+  imag?: { x: TaggedValue; y: TaggedValue; z: TaggedValue; t: TaggedValue };
+  mats?: Record<string, number[][]>;
+  matResult?: string;
   userOn?: boolean;
   userAsn?: Record<string, string>;
   entry: string | null;
@@ -119,6 +123,17 @@ export function snapshot(
       prgm: { ...rpn.prgm, steps: [...rpn.prgm.steps] },
       alpha: rpn.alpha,
       rng: rpn.rng,
+      cpx: rpn.cpx,
+      imag: {
+        x: encodeValue(rpn.imag.x),
+        y: encodeValue(rpn.imag.y),
+        z: encodeValue(rpn.imag.z),
+        t: encodeValue(rpn.imag.t),
+      },
+      mats: Object.fromEntries(
+        Object.entries(rpn.mats).map(([k, m]) => [k, m.map((r) => [...r])]),
+      ),
+      matResult: rpn.matResult,
       userOn: rpn.userOn,
       userAsn: { ...rpn.userAsn },
       entry: rpn.entry,
@@ -181,6 +196,19 @@ export function restore(state: EngineStateV1): {
       : fresh.prgm,
     alpha: state.rpn.alpha ?? "",
     rng: state.rpn.rng ?? 12345,
+    cpx: state.rpn.cpx ?? false,
+    imag: state.rpn.imag
+      ? {
+          x: decodeValue(state.rpn.imag.x),
+          y: decodeValue(state.rpn.imag.y),
+          z: decodeValue(state.rpn.imag.z),
+          t: decodeValue(state.rpn.imag.t),
+        }
+      : fresh.imag,
+    mats: state.rpn.mats
+      ? Object.fromEntries(Object.entries(state.rpn.mats).map(([k, m]) => [k, m.map((r) => [...r])]))
+      : {},
+    matResult: state.rpn.matResult ?? "C",
     userOn: state.rpn.userOn ?? false,
     userAsn: state.rpn.userAsn ? { ...state.rpn.userAsn } : {},
     entry: state.rpn.entry,

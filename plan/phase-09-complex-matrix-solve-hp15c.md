@@ -73,6 +73,17 @@ Extends architecture §3 value tower + feature modules (§4.5 matrices, §4.6 nu
 - The existing UI suites (geometry, promotion, typing) stay green.
 - `pnpm lint` / `pnpm test` / `pnpm build` / `pnpm test:e2e` green.
 
+## Delivery notes (as shipped)
+- MATRIX menu subset shipped faithfully: 0 (clear), 1 (reset R0/R1),
+  4 (transpose RESULT), 5 (AᵀB→RESULT), 9 (det RESULT); element access via
+  the real R0/R1 walking protocol. Descriptor-on-stack arithmetic (matrix
+  inverse via 1/x on a recalled descriptor, residuals 6, norms 7–8, complex
+  transforms 2–3) is deferred until the descriptor/object work — the keys
+  dispatch and are accepted, not faked.
+- Complex mode uses a parallel imaginary stack with float64 complex
+  arithmetic (mathjs Complex) — beyond the hardware's 10 digits; the real
+  tower stays BigNumber.
+
 ## Notes / risks
 - Complex mode's parallel imaginary stack must interact correctly with lift/drop from P1 — cover
   edge cases (real op leaving imaginary part intact) in tests.

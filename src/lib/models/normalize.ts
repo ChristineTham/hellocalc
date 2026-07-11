@@ -74,6 +74,8 @@ const ALIAS: Record<string, string> = {
   "−x−": "PRINT x",
   "CL PRGM": "CLEAR PRGM",
   "CL REG": "CLEAR REG",
+  "CLEAR Σ": "CLΣ",
+  "CLEAR PREFIX": "PREFIX",
   // 42S/35s/Prime spellings
   ASIN: "SIN⁻¹",
   ACOS: "COS⁻¹",
@@ -157,5 +159,9 @@ export const MODEL_FN_OVERRIDES: Record<string, Record<string, string>> = {
     PRGM: "CLEAR PRGM",
     "P/R": "W/PRGM",
     I: "RC I",
+  },
+  "HP-15C": {
+    "P/R": "W/PRGM",
+    "(i)": "(i) cpx", // f-(i) toggles complex mode on the 15C
   },
 };

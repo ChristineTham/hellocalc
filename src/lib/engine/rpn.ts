@@ -8,6 +8,7 @@
 import { asReal, bn, math, num, PI, type Value } from "./config";
 import { DEFAULT_FORMAT, type DisplayFormat } from "./format";
 import { appendDigit, backspace, parseEntry, startExponent, toggleSign } from "./entry";
+import { determinant as det, Matrix } from "ml-matrix";
 import {
   addDays,
   bondPrice,
@@ -61,7 +62,14 @@ export interface PendingArg {
     | "ISG"
     | "DSE"
     | "HYP"
-    | "HYP⁻¹";
+    | "HYP⁻¹"
+    | "DIM"
+    | "MATRIX"
+    | "RESULT"
+    | "X⇄"
+    | "TEST"
+    | "SOLVE"
+    | "∫";
   /** the XEQ name being assigned (ASN) */
   name?: string;
   arith?: "+" | "−" | "×" | "÷";
@@ -111,6 +119,12 @@ export interface RpnEngine {
   prgm: PrgmState; // keystroke program (P3)
   fin: FinRegs; // financial registers (P7, HP-12C)
   rng: number; // RAN# LCG seed (deterministic, persisted)
+  cpx: boolean; // complex mode (15C f-I); imag mirrors the stack
+  imag: { x: Value; y: Value; z: Value; t: Value };
+  /** matrix store A–E (P9, HP-15C) — float64 rows via ml-matrix; the 15C
+   * itself carried 10 digits, so float64 ≥ hardware precision */
+  mats: Record<string, number[][]>;
+  matResult: string; // RESULT descriptor target
   fresh: boolean; // a value was just keyed/recalled — TVM keys STORE, not solve
   alpha: string; // the ALPHA register (P6, HP-41) — typed via α-prefixed ids
   userOn: boolean; // USER mode (P6): key assignments intercept dispatch
@@ -142,6 +156,10 @@ export function createRpn(): RpnEngine {
     prgm: freshPrgm(),
     fin: freshFin(),
     rng: 12345,
+    cpx: false,
+    imag: { x: zero, y: zero, z: zero, t: zero },
+    mats: {},
+    matResult: "C",
     fresh: false,
     alpha: "",
     userOn: false,
@@ -173,6 +191,10 @@ function liftIfEnabled(s: RpnEngine): void {
     s.t = s.z;
     s.z = s.y;
     s.y = s.x;
+    s.imag.t = s.imag.z;
+    s.imag.z = s.imag.y;
+    s.imag.y = s.imag.x;
+    s.imag.x = bn(0); // a freshly keyed number is real
   }
 }
 
@@ -200,6 +222,9 @@ export function enter(s: RpnEngine): void {
   s.t = s.z;
   s.z = s.y;
   s.y = s.x;
+  s.imag.t = s.imag.z;
+  s.imag.z = s.imag.y;
+  s.imag.y = s.imag.x;
   s.lift = false; // next digit overwrites X (no lift)
 }
 
@@ -252,6 +277,9 @@ export function binary(s: RpnEngine, op: (y: Value, x: Value) => unknown): void 
   s.x = r ?? bn(0);
   s.y = s.z;
   s.z = s.t; // T duplicated
+  s.imag.x = bn(0);
+  s.imag.y = s.imag.z;
+  s.imag.z = s.imag.t;
   s.lift = true;
 }
 
@@ -271,6 +299,9 @@ export function swap(s: RpnEngine): void {
   const a = s.x;
   s.x = s.y;
   s.y = a;
+  const ai = s.imag.x;
+  s.imag.x = s.imag.y;
+  s.imag.y = ai;
   s.lift = true;
 }
 
@@ -281,6 +312,11 @@ export function rollDown(s: RpnEngine): void {
   s.y = s.z;
   s.z = s.t;
   s.t = a;
+  const ai = s.imag.x;
+  s.imag.x = s.imag.y;
+  s.imag.y = s.imag.z;
+  s.imag.z = s.imag.t;
+  s.imag.t = ai;
   s.lift = true;
 }
 
@@ -292,6 +328,11 @@ export function rollUp(s: RpnEngine): void {
   s.z = s.y;
   s.y = s.x;
   s.x = a;
+  const ai = s.imag.t;
+  s.imag.t = s.imag.z;
+  s.imag.z = s.imag.y;
+  s.imag.y = s.imag.x;
+  s.imag.x = ai;
   s.lift = true;
 }
 
@@ -439,6 +480,76 @@ function resolvePending(s: RpnEngine, fn: string): boolean {
     );
     return true;
   }
+  if (p.op === "DIM" && /^[A-E]$/.test(fn)) {
+    // rows in Y, cols in X (2 ENTER 3 f DIM A → 2×3 zero matrix)
+    s.pending = null;
+    commit(s);
+    const rows = Math.max(1, Math.trunc(num(s.y)));
+    const cols = Math.max(1, Math.trunc(num(s.x)));
+    s.mats = { ...s.mats, [fn]: Matrix.zeros(rows, cols).to2DArray() };
+    s.lift = true;
+    return true;
+  }
+  if (p.op === "RESULT" && /^[A-E]$/.test(fn)) {
+    s.pending = null;
+    s.matResult = fn;
+    return true;
+  }
+  if (p.op === "MATRIX" && /^[0-9]$/.test(fn)) {
+    s.pending = null;
+    matrixMenu(s, Number(fn));
+    return true;
+  }
+  if (p.op === "X⇄" && /^[0-9]$/.test(fn)) {
+    // x≷ n: exchange X with a storage register
+    s.pending = null;
+    commit(s);
+    const i = Number(fn);
+    const a = s.x;
+    s.x = s.regs[i];
+    s.regs[i] = a;
+    s.lift = true;
+    return true;
+  }
+  if (p.op === "TEST" && /^[0-9]$/.test(fn)) {
+    // TEST n outside a program: consume the digit (flow control only)
+    s.pending = null;
+    return true;
+  }
+  if ((p.op === "SOLVE" || p.op === "∫") && isLabel(fn)) {
+    s.pending = null;
+    if (p.op === "SOLVE") solveLabel(s, fn);
+    else integrateLabel(s, fn);
+    return true;
+  }
+  if ((p.op === "STO" || p.op === "RCL") && /^[A-E]$/.test(fn) && s.mats[fn]) {
+    // matrix element access via the R0/R1 counters (the 15C protocol):
+    // row = R0, col = R1, auto-incrementing column-then-row
+    s.pending = null;
+    const m = s.mats[fn];
+    const r0 = Math.max(1, Math.trunc(num(s.regs[0])));
+    const r1 = Math.max(1, Math.trunc(num(s.regs[1])));
+    if (r0 > m.length || r1 > m[0].length) {
+      s.error = "Error";
+      return true;
+    }
+    if (p.op === "STO") {
+      commit(s);
+      const rows = m.map((row) => [...row]);
+      rows[r0 - 1][r1 - 1] = num(s.x);
+      s.mats = { ...s.mats, [fn]: rows };
+      s.lift = true;
+    } else {
+      pushX(s, bn(m[r0 - 1][r1 - 1]));
+    }
+    // advance the element counters with wrap (col-first)
+    if (r1 < m[0].length) s.regs[1] = bn(r1 + 1);
+    else {
+      s.regs[1] = bn(1);
+      s.regs[0] = r0 < m.length ? bn(r0 + 1) : bn(1);
+    }
+    return true;
+  }
   if ((p.op === "STO" || p.op === "RCL" || p.op === "GTO") && fn === "(i)") {
     // indirect addressing through I (HP-67/97): the argument comes from the
     // I register — register index for STO/RCL, a digit label for GTO
@@ -507,7 +618,7 @@ function findLabel(steps: string[], label: string): number | null {
 
 /** Steps whose next step is an argument (skip both on a false conditional). */
 const ARG_TAKERS = new Set([
-  "GTO", "LBL", "GSB", "STO n", "RCL n", "FIX", "SCI", "ENG", "DSP", "SF", "CF", "F?", "ISG", "DSE", "VIEW",
+  "GTO", "LBL", "GSB", "STO n", "RCL n", "FIX", "SCI", "ENG", "DSP", "SF", "CF", "F?", "ISG", "DSE", "VIEW", "TEST", "SOLVE", "∫ˣy", "DIM", "MATRIX", "RESULT", "x≷",
 ]);
 
 const CONDITIONALS = new Set(["x=y", "x≠y", "x≤y", "x>y", "x<y", "x≥y", "x<0", "x=0", "x≠0", "x>0", "x≥0"]);
@@ -529,6 +640,38 @@ function testCondition(s: RpnEngine, fn: string): boolean {
     case "x≥0": return !x.isNegative() || x.isZero();
     case "x>0": return !x.isNegative() && !x.isZero();
     default: return true;
+  }
+}
+
+/** Complex arithmetic (15C complex mode): route through mathjs Complex —
+ * float64, which exceeds the hardware's 10 digits. Returns [re, im] or null. */
+function cpxBinary(
+  yre: Value, yim: Value, xre: Value, xim: Value,
+  op: "+" | "−" | "×" | "÷" | "yˣ",
+): [Value, Value] | null {
+  try {
+    const a = math.complex(num(yre), num(yim));
+    const b = math.complex(num(xre), num(xim));
+    const r: unknown =
+      op === "+" ? math.add(a, b)
+      : op === "−" ? math.subtract(a, b)
+      : op === "×" ? math.multiply(a, b)
+      : op === "÷" ? math.divide(a, b)
+      : math.pow(a, b);
+    // results come back as Complex or (purely real) number/BigNumber
+    if (math.isComplex(r)) {
+      if (!Number.isFinite(r.re) || !Number.isFinite(r.im)) return null;
+      return [bn(r.re), bn(r.im)];
+    }
+    if (typeof r === "number") {
+      return Number.isFinite(r) ? [bn(r), bn(0)] : null;
+    }
+    if (math.isBigNumber(r)) {
+      return r.isFinite() ? [r, bn(0)] : null;
+    }
+    return null;
+  } catch {
+    return null;
   }
 }
 
@@ -607,6 +750,19 @@ function execStep(s: RpnEngine): void {
     }
     return;
   }
+  if (fn === "TEST") {
+    // TEST n: the 15C's numbered comparison set
+    const d = Number(steps[s.prgm.pc + 1] ?? "0");
+    const table = ["x≠0", "x>0", "x<0", "x≥0", "x≤0", "x=y", "x≠y", "x>y", "x<y", "x≥y"];
+    const cond = table[d] ?? "x≠0";
+    const pass = cond === "x≤0" ? !testCondition(s, "x>0") : testCondition(s, cond);
+    s.prgm.pc += 2;
+    if (!pass) {
+      const next = steps[s.prgm.pc];
+      s.prgm.pc += next !== undefined && ARG_TAKERS.has(next) ? 2 : 1;
+    }
+    return;
+  }
   if (fn === "ISG" || fn === "DSE") {
     // increment/decrement loop control over an encoded register
     const d = Number(steps[s.prgm.pc + 1] ?? "0");
@@ -650,6 +806,126 @@ function execStep(s: RpnEngine): void {
   }
   applyFunction(s, fn);
   s.prgm.pc += 1;
+}
+
+/** The 15C MATRIX menu (P9 subset — faithful where implemented):
+ * 0 clear all · 1 reset R0/R1 · 4 transpose RESULT · 5 AᵀB → RESULT ·
+ * 9 det(RESULT). Residuals/norms (6–8) and complex transforms (2–3) are
+ * deferred with the descriptor-stack work — noted in plan/phase-09. */
+function matrixMenu(s: RpnEngine, n: number): void {
+  if (n === 0) {
+    s.mats = {};
+    return;
+  }
+  if (n === 1) {
+    s.regs[0] = bn(1);
+    s.regs[1] = bn(1);
+    return;
+  }
+  if (n === 4) {
+    const m = s.mats[s.matResult];
+    if (!m) {
+      s.error = "Error";
+      return;
+    }
+    s.mats = { ...s.mats, [s.matResult]: new Matrix(m).transpose().to2DArray() };
+    return;
+  }
+  if (n === 5) {
+    const a = s.mats["A"];
+    const b = s.mats["B"];
+    if (!a || !b) {
+      s.error = "Error";
+      return;
+    }
+    try {
+      const r = new Matrix(a).transpose().mmul(new Matrix(b));
+      s.mats = { ...s.mats, [s.matResult]: r.to2DArray() };
+    } catch {
+      s.error = "Error";
+    }
+    return;
+  }
+  if (n === 9) {
+    const m = s.mats[s.matResult];
+    if (!m || m.length !== m[0].length) {
+      s.error = "Error";
+      return;
+    }
+    try {
+      pushX(s, bn(det(new Matrix(m))));
+    } catch {
+      s.error = "Error";
+    }
+    return;
+  }
+  // 2/3/6/7/8: accepted, deferred (see plan/phase-09 notes)
+}
+
+/** f(x) through a program label: x → X, run, read X. */
+function evalLabel(s: RpnEngine, label: string, x: Value): Value | null {
+  pushX(s, x);
+  runLabel(s, label);
+  return s.error ? null : xval(s);
+}
+
+/** SOLVE (15C): secant iterations from the guesses in Y (a) and X (b). */
+function solveLabel(s: RpnEngine, label: string): void {
+  commit(s);
+  let a = s.y;
+  let b = s.x;
+  if (a.eq(b)) a = b.plus(1);
+  let fa = evalLabel(s, label, a);
+  let fb = evalLabel(s, label, b);
+  if (fa === null || fb === null) {
+    s.error = "Error";
+    return;
+  }
+  for (let it = 0; it < 100; it++) {
+    if (fb.abs().lt(bn("1e-12"))) {
+      pushX(s, b);
+      return;
+    }
+    const denom = fb.minus(fa);
+    if (denom.isZero()) break;
+    const c = b.minus(fb.times(b.minus(a)).div(denom));
+    a = b;
+    fa = fb;
+    b = c;
+    fb = evalLabel(s, label, b);
+    if (fb === null) {
+      s.error = "Error";
+      return;
+    }
+  }
+  s.error = "Error"; // no root found (the 15C shows Error 8)
+}
+
+/** ∫ˣy (15C): composite Simpson over [Y, X] with 128 panels. */
+function integrateLabel(s: RpnEngine, label: string): void {
+  commit(s);
+  const lo = s.y;
+  const hi = s.x;
+  const nPanels = 128;
+  const h = hi.minus(lo).div(nPanels);
+  let acc = bn(0);
+  for (let k = 0; k <= nPanels; k++) {
+    const xk = lo.plus(h.times(k));
+    const fx = evalLabel(s, label, xk);
+    if (fx === null) {
+      s.error = "Error";
+      return;
+    }
+    const w = k === 0 || k === nPanels ? 1 : k % 2 === 1 ? 4 : 2;
+    acc = acc.plus(fx.times(w));
+  }
+  const result = acc.times(h).div(3);
+  // stack like a binary op: limits consumed, integral to X
+  s.lastX = hi;
+  s.x = result;
+  s.y = s.z;
+  s.z = s.t;
+  s.lift = true;
 }
 
 /** RUN from the current pointer until R/S, RTN, the end, or the op budget. */
@@ -775,20 +1051,33 @@ export function applyFunction(s: RpnEngine, fn: string): boolean {
       s.pending = { op: "ENG" };
       return true;
     case "+":
-      binary(s, (y, x) => math.add(y, x));
-      return true;
     case "−":
-      binary(s, (y, x) => math.subtract(y, x));
-      return true;
     case "×":
-      binary(s, (y, x) => math.multiply(y, x));
-      return true;
     case "÷":
-      binary(s, (y, x) => math.divide(y, x));
+    case "yˣ": {
+      if (s.cpx && (!s.imag.x.isZero() || !s.imag.y.isZero())) {
+        // complex mode with imaginary content: parallel-stack arithmetic
+        const x = xval(s);
+        commit(s);
+        s.lastX = x;
+        const r = cpxBinary(s.y, s.imag.y, x, s.imag.x, fn);
+        s.error = r === null ? "Error" : null;
+        s.x = r ? r[0] : bn(0);
+        s.imag.x = r ? r[1] : bn(0);
+        s.y = s.z;
+        s.z = s.t;
+        s.imag.y = s.imag.z;
+        s.imag.z = s.imag.t;
+        s.lift = true;
+        return true;
+      }
+      if (fn === "+") binary(s, (y, x) => math.add(y, x));
+      else if (fn === "−") binary(s, (y, x) => math.subtract(y, x));
+      else if (fn === "×") binary(s, (y, x) => math.multiply(y, x));
+      else if (fn === "÷") binary(s, (y, x) => math.divide(y, x));
+      else binary(s, (y, x) => math.pow(y, x));
       return true;
-    case "yˣ":
-      binary(s, (y, x) => math.pow(y, x));
-      return true;
+    }
     case "ˣ√y":
       // x-th root of y — the HP-65 f⁻¹ of yˣ
       binary(s, (y, x) => math.pow(y, bn(1).div(x)));
@@ -1537,6 +1826,56 @@ export function applyFunction(s: RpnEngine, fn: string): boolean {
     }
     case "MEM":
       s.hist = [...s.hist.slice(-49), { op: "🖨 MEM", raw: String(s.prgm.steps.length) }];
+      return true;
+    case "I": {
+      // 15C f-I: Y + Xi forms a complex number (stack drops), complex mode on
+      const im = xval(s);
+      commit(s);
+      s.lastX = im;
+      s.cpx = true;
+      s.x = s.y;
+      s.imag.x = im;
+      s.y = s.z;
+      s.z = s.t;
+      s.imag.y = s.imag.z;
+      s.imag.z = s.imag.t;
+      s.lift = true;
+      return true;
+    }
+    case "Re≷Im": {
+      commit(s);
+      const a = s.x;
+      s.x = s.imag.x;
+      s.imag.x = a;
+      s.cpx = true;
+      s.lift = true;
+      return true;
+    }
+    case "(i) cpx":
+      // 15C f-(i): toggle complex mode (clears the imaginary stack on exit)
+      s.cpx = !s.cpx;
+      if (!s.cpx) s.imag = { x: bn(0), y: bn(0), z: bn(0), t: bn(0) };
+      return true;
+    case "DIM":
+      s.pending = { op: "DIM" };
+      return true;
+    case "MATRIX":
+      s.pending = { op: "MATRIX" };
+      return true;
+    case "RESULT":
+      s.pending = { op: "RESULT" };
+      return true;
+    case "x≷":
+      s.pending = { op: "X⇄" };
+      return true;
+    case "TEST":
+      s.pending = { op: "TEST" };
+      return true;
+    case "SOLVE":
+      s.pending = { op: "SOLVE" };
+      return true;
+    case "∫ˣy":
+      s.pending = { op: "∫" };
       return true;
     case "%": {
       // x% of y (HP-12C leaves Y in place)

@@ -44,6 +44,8 @@ const clone = (e: RpnEngine): RpnEngine => ({
   regsS: [...e.regsS],
   userAsn: { ...e.userAsn },
   fin: { ...e.fin, cfs: e.fin.cfs.map((c) => ({ ...c })) },
+  imag: { ...e.imag },
+  mats: { ...e.mats },
   sum: { ...e.sum },
   prgm: { ...e.prgm, steps: [...e.prgm.steps], flags: [...e.prgm.flags], ret: [...e.prgm.ret] },
   pending: e.pending ? { ...e.pending } : null,
@@ -95,6 +97,9 @@ export function useRpnCalculator(): RpnCalculator {
       if (!r.isZero()) registers.push({ name: `R${i}`, value: fmt(r) });
     });
     if (!engine.iReg.isZero()) registers.push({ name: "I", value: fmt(engine.iReg) });
+    for (const [name, m] of Object.entries(engine.mats)) {
+      registers.push({ name: `MAT ${name}`, value: `${m.length}×${m[0]?.length ?? 0}` });
+    }
     if (!engine.sum.n.isZero()) registers.push({ name: "Σn", value: fmt(engine.sum.n, 0) });
     return {
       T: engine.t,
@@ -109,6 +114,7 @@ export function useRpnCalculator(): RpnCalculator {
       latex: fmt(xval(engine)),
       err: engine.error ?? undefined,
       alpha: engine.alpha,
+      imX: engine.cpx && !engine.imag.x.isZero() ? fmt(engine.imag.x) : undefined,
       beg: engine.fin.beg,
       reg: {
         n: fmt(engine.fin.n),

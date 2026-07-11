@@ -38,6 +38,8 @@ export interface RpnState {
   prgm?: { mode: "RUN" | "PRGM"; pc: number; steps: string[] };
   /** the ALPHA register (P6, HP-41) — shown on the glass while ALPHA is armed */
   alpha?: string;
+  /** formatted imaginary part of X (15C complex mode), when nonzero */
+  imX?: string;
   rpl?: Value[]; // RPL dynamic stack (bottom -> top)
   hist?: { op: string; v: string; raw?: string }[];
 }
@@ -148,7 +150,9 @@ export function Display({
           ? s.rpl && s.rpl.length
             ? fmt(s.rpl[s.rpl.length - 1], s.dec)
             : "0"
-          : fmt(s.X, s.dec);
+          : s.imX
+            ? `${fmt(s.X, s.dec)} +${s.imX}i`
+            : fmt(s.X, s.dec);
   // Line-state stack echo (§11 #8): the register just under the top.
   const echo = isRpl
     ? s.rpl && s.rpl.length > 1
