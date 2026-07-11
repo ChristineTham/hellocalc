@@ -9,6 +9,7 @@
 import { bn, type Value } from "./config";
 import { createRpn, type Angle, type HistEntry, type PrgmState, type RpnEngine } from "./rpn";
 import { createRpl, type RplEngine } from "./rpl";
+import type { RplObj } from "./rpl/object";
 import type { DisplayFormat } from "./format";
 
 export const STATE_VERSION = 1 as const;
@@ -22,6 +23,65 @@ export interface TaggedValue {
 
 export const encodeValue = (v: Value): TaggedValue => ({ t: "bn", v: v.toString() });
 export const decodeValue = (t: TaggedValue): Value => bn(t.v);
+
+/** Recursive codec for RPL objects (P12). `{t:"bn"}` doubles as the real
+ * object, so pre-P12 saves (plain number stacks) decode unchanged. */
+export type TaggedObj =
+  | TaggedValue
+  | { t: "cpx"; re: number; im: number }
+  | { t: "str"; v: string }
+  | { t: "name"; v: string }
+  | { t: "alg"; v: string }
+  | { t: "prog"; v: string }
+  | { t: "bin"; v: string }
+  | { t: "list"; items: TaggedObj[] }
+  | { t: "arr"; rows: number[][]; vec: boolean };
+
+export function encodeObj(o: RplObj): TaggedObj {
+  switch (o.k) {
+    case "real":
+      return { t: "bn", v: o.v.toString() };
+    case "cpx":
+      return { t: "cpx", re: o.re, im: o.im };
+    case "str":
+      return { t: "str", v: o.v };
+    case "name":
+      return { t: "name", v: o.v };
+    case "alg":
+      return { t: "alg", v: o.src };
+    case "prog":
+      return { t: "prog", v: o.body };
+    case "bin":
+      return { t: "bin", v: o.v.toString() };
+    case "list":
+      return { t: "list", items: o.items.map(encodeObj) };
+    case "arr":
+      return { t: "arr", rows: o.rows.map((r) => [...r]), vec: o.vec };
+  }
+}
+
+export function decodeObj(t: TaggedObj): RplObj {
+  switch (t.t) {
+    case "bn":
+      return { k: "real", v: bn(t.v) };
+    case "cpx":
+      return { k: "cpx", re: t.re, im: t.im };
+    case "str":
+      return { k: "str", v: t.v };
+    case "name":
+      return { k: "name", v: t.v };
+    case "alg":
+      return { k: "alg", src: t.v };
+    case "prog":
+      return { k: "prog", body: t.v };
+    case "bin":
+      return { k: "bin", v: BigInt(t.v) };
+    case "list":
+      return { k: "list", items: t.items.map(decodeObj) };
+    case "arr":
+      return { k: "arr", rows: t.rows.map((r) => [...r]), vec: t.vec };
+  }
+}
 
 interface SerializedRpn {
   x: TaggedValue;
@@ -77,11 +137,15 @@ interface SerializedRpn {
 }
 
 interface SerializedRpl {
-  stack: TaggedValue[];
+  stack: TaggedObj[];
   entry: string | null;
   angle: Angle;
   disp: DisplayFormat;
   hist: HistEntry[];
+  /** P12 additions — optional so pre-P12 saves stay valid */
+  vars?: Record<string, TaggedObj>;
+  base?: 2 | 8 | 10 | 16;
+  ws?: number;
 }
 
 export interface EngineStateV1 {
@@ -152,11 +216,14 @@ export function snapshot(
       hist: rpn.hist.map((h) => ({ ...h })),
     },
     rpl: {
-      stack: rpl.stack.map(encodeValue),
+      stack: rpl.stack.map(encodeObj),
       entry: rpl.entry,
       angle: rpl.angle,
       disp: { ...rpl.disp },
       hist: rpl.hist.map((h) => ({ ...h })),
+      vars: Object.fromEntries(Object.entries(rpl.vars).map(([k, v]) => [k, encodeObj(v)])),
+      base: rpl.base,
+      ws: rpl.ws,
     },
   };
 }
@@ -227,13 +294,19 @@ export function restore(state: EngineStateV1): {
     disp: { ...state.rpn.disp },
     hist: state.rpn.hist.map((h) => ({ ...h })),
   };
+  const freshR = createRpl();
   const rpl: RplEngine = {
-    ...createRpl(),
-    stack: state.rpl.stack.map(decodeValue),
+    ...freshR,
+    stack: state.rpl.stack.map(decodeObj),
     entry: state.rpl.entry,
     angle: state.rpl.angle,
     disp: { ...state.rpl.disp },
     hist: state.rpl.hist.map((h) => ({ ...h })),
+    vars: state.rpl.vars
+      ? Object.fromEntries(Object.entries(state.rpl.vars).map(([k, v]) => [k, decodeObj(v)]))
+      : freshR.vars,
+    base: state.rpl.base ?? freshR.base,
+    ws: state.rpl.ws ?? freshR.ws,
   };
   return { rpn, rpl, activeModel: state.activeModel };
 }
@@ -245,6 +318,38 @@ const isTagged = (v: unknown): v is TaggedValue =>
   v !== null &&
   (v as TaggedValue).t === "bn" &&
   typeof (v as TaggedValue).v === "string";
+
+function isTaggedObj(v: unknown): v is TaggedObj {
+  if (typeof v !== "object" || v === null) return false;
+  const o = v as Partial<TaggedObj> & { t?: string };
+  switch (o.t) {
+    case "bn":
+    case "str":
+    case "name":
+    case "alg":
+    case "prog":
+    case "bin":
+      return typeof (o as { v?: unknown }).v === "string";
+    case "cpx": {
+      const c = o as { re?: unknown; im?: unknown };
+      return typeof c.re === "number" && typeof c.im === "number";
+    }
+    case "list": {
+      const l = o as { items?: unknown };
+      return Array.isArray(l.items) && l.items.every(isTaggedObj);
+    }
+    case "arr": {
+      const a = o as { rows?: unknown; vec?: unknown };
+      return (
+        Array.isArray(a.rows) &&
+        a.rows.every((r) => Array.isArray(r) && r.every((n) => typeof n === "number")) &&
+        typeof a.vec === "boolean"
+      );
+    }
+    default:
+      return false;
+  }
+}
 
 const ANGLES: readonly string[] = ["DEG", "RAD", "GRD"];
 
@@ -282,7 +387,11 @@ function isSerializedRpl(v: unknown): v is SerializedRpl {
   const s = v as Partial<SerializedRpl>;
   return (
     Array.isArray(s.stack) &&
-    s.stack.every(isTagged) &&
+    s.stack.every(isTaggedObj) &&
+    (s.vars === undefined ||
+      (typeof s.vars === "object" &&
+        s.vars !== null &&
+        Object.values(s.vars).every(isTaggedObj))) &&
     (s.entry === null || typeof s.entry === "string") &&
     typeof s.angle === "string" &&
     ANGLES.includes(s.angle) &&

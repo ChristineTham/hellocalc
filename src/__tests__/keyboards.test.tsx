@@ -437,7 +437,7 @@ describe("per-model shift palette (MachineUnit override)", () => {
       <MachineUnit
         model={model}
         rpn={{ ...stub, engine: createRpn(), restore: noop }}
-        rpl={{ ...stub, engine: createRpl(), restore: noop }}
+        rpl={{ ...stub, soft: noop, engine: createRpl(), restore: noop }}
         lcd={<div />}
       />,
     );
@@ -449,7 +449,7 @@ describe("per-model shift palette (MachineUnit override)", () => {
       <MachineUnit
         model={MODELS["HP-48G"]}
         rpn={{ ...stub, engine: createRpn(), restore: noop }}
-        rpl={{ ...stub, engine: createRpl(), restore: noop }}
+        rpl={{ ...stub, soft: noop, engine: createRpl(), restore: noop }}
         lcd={<div />}
       />,
     );

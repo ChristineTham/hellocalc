@@ -77,6 +77,35 @@ None — RPL is built on the existing value tower and the P3 Web-Worker interpre
 - `pnpm lint` / `pnpm test` / `pnpm build` / `pnpm test:e2e` green; the existing UI suites
   (geometry, promotion, typing) stay green.
 
+## Delivery notes (as shipped)
+- **Object tower** (`src/lib/engine/rpl/object.ts`): real (BigNumber), complex +
+  array elements float64 (same posture as P9, ≥ hardware digits), string, list,
+  vector/matrix, program (source text), algebraic (source text), name, binary
+  (# unsigned word, STWS 1–64). `TYPE` follows the 28C's numbering.
+- **Parser/evaluator** (`rpl/parse.ts` + `rpl.ts`): one tokenizer reads the
+  command line, «…» bodies and STR→; algebraics evaluate NUMERICALLY through a
+  private recursive-descent grammar (nothing symbolic — algebraics with
+  unresolved names stay on the stack unchanged; rewriting is P14). Programs run
+  structured (IF/IFERR, START/FOR…NEXT/STEP, DO…UNTIL, WHILE…REPEAT, → locals)
+  under a 20 000-op budget — Web-Worker isolation remains deferred, documented,
+  same as P3.
+- **Menus** (`rpl/menu.ts`): rosters straight from `hp/functions/HP-28C.md`;
+  USER/CATALOG/SOLVR resolve dynamically; NEXT/PREV page; the glass shows the
+  6-label row and the blank soft keys acquire the labels. BRANCH/CTRL structure
+  words TYPE into the command line, as on the machine.
+- **Entry**: the command line is real source text — ◆ types the ' delimiter
+  (per the layout note), « opens program entry where command keys type their
+  names; DEL backspaces, EDIT/VISIT round-trip level n via `objToSrc`,
+  COMMAND/UNDO/LAST recover, α LOCK is a typing lock.
+- **Deferred honestly**: UNITS/CONVERT (P13); ALGEBRA-menu commands, ∫, d/dx,
+  ISOL/QUAD/SHOW (P14 — the menu opens, commands report "Unimplemented until
+  P14"); DRAW/DRAX/PIXEL (P17) and SCLΣ/DRWΣ (P18). The adapter oracle pins
+  the key-plane deferral set to exactly {UNITS, CONVERT, ∫, d/dx}.
+- **Simplifications documented**: WAIT is a no-op (synchronous engine); KEY
+  pushes 0 (no key buffer); DISP drives a single message line; MEM reports a
+  constant; UTPC/UTPT/UTPF integrate their pdfs numerically (~1e-8); stats run
+  on a ΣDAT row store (float64) with COLΣ column pairs.
+
 ## Notes / risks
 - This is the second stack machine — keep the adapter's stack-mode selection clean so Voyager
   (4-level) and RPL (dynamic) models coexist and state migrates sensibly on switch (FR-STATE-2).

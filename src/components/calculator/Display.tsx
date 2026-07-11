@@ -42,7 +42,13 @@ export interface RpnState {
   imX?: string;
   /** active integer base (16C): HEX / DEC / OCT / BIN */
   intBase?: string;
-  rpl?: Value[]; // RPL dynamic stack (bottom -> top)
+  /** RPL dynamic stack, PRE-FORMATTED display rows (bottom -> top) — the
+   * hook renders objects (P12); the glass never sees engine values */
+  rpl?: string[];
+  /** RPL softkey menu row (P12): 6 labels + paging state */
+  menu?: { name: string; labels: string[]; page: number; pages: number };
+  /** RPL DISP message line (P12) */
+  msg?: string;
   hist?: { op: string; v: string; raw?: string }[];
 }
 
@@ -151,7 +157,7 @@ export function Display({
         ? s.entry
         : isRpl
           ? s.rpl && s.rpl.length
-            ? fmt(s.rpl[s.rpl.length - 1], s.dec)
+            ? s.rpl[s.rpl.length - 1]
             : "0"
           : s.imX
             ? `${fmt(s.X, s.dec)} +${s.imX}i`
@@ -159,7 +165,7 @@ export function Display({
   // Line-state stack echo (§11 #8): the register just under the top.
   const echo = isRpl
     ? s.rpl && s.rpl.length > 1
-      ? { label: "2:", value: fmt(s.rpl[s.rpl.length - 2], s.dec) }
+      ? { label: "2:", value: s.rpl[s.rpl.length - 2] }
       : null
     : { label: "Y", value: fmt(s.Y, s.dec) };
 
@@ -253,7 +259,7 @@ export function Display({
             in-plane, glass otherwise, §14.3 rev 3); the RPL glass ALWAYS
             shows its stack — that is what a 48G display is */}
         {isRpl ? (
-          <RplStack rpl={s.rpl ?? []} entry={s.entry} fmt={(n) => fmt(n, s.dec)} />
+          <RplStack rpl={s.rpl ?? []} entry={s.entry} msg={s.msg} menu={s.menu} />
         ) : (
           <div className="lcd-stack mt-2">
             <StackRow label="T" value={fmt(s.T, s.dec)} muted />
@@ -320,18 +326,28 @@ function StackRow({
 function RplStack({
   rpl,
   entry,
-  fmt,
+  msg,
+  menu,
 }: {
-  rpl: Value[];
+  rpl: string[];
   entry: string | null;
-  fmt: (n: Value) => string;
+  msg?: string;
+  menu?: { name: string; labels: string[]; page: number; pages: number };
 }) {
   const start = Math.max(0, rpl.length - 6);
   const lines = rpl
     .slice(start)
-    .map((val, i) => ({ lvl: rpl.length - (start + i), val: fmt(val) }));
+    .map((val, i) => ({ lvl: rpl.length - (start + i), val }));
   return (
     <div className="mt-1 flex flex-1 flex-col justify-end gap-px">
+      {msg && (
+        <div
+          data-slot="lcd-msg"
+          className={cn("truncate border-t border-black/10 py-[3px]", dotNum, "text-hp-lcd-stack")}
+        >
+          {msg}
+        </div>
+      )}
       {lines.length === 0 ? (
         <div className="py-5 text-center font-mono text-hp-lcd-stack text-hp-display-dim">
           ( empty stack )
@@ -353,6 +369,25 @@ function RplStack({
         <span className="font-mono text-hp-lcd-reg text-hp-display-dim">⊳</span>
         <span className={cn("flex-1 text-hp-lcd-stack", dotNum)}>{entry ?? ""}</span>
       </div>
+      {menu && (
+        // the softkey label row (P12): bottom LCD line, 6 boxed labels — the
+        // blank keys directly below the glass acquire these meanings
+        <div data-slot="menu-row" className="mt-1 grid grid-cols-6 gap-[3px]">
+          {menu.labels.map((label, i) => (
+            <span
+              key={`${menu.name}-${i}`}
+              className={cn(
+                "truncate rounded-[3px] px-0.5 py-[2px] text-center font-mono text-hp-lcd-annun font-bold tracking-tight",
+                label
+                  ? "bg-hp-display-fg/85 text-hp-display"
+                  : "bg-hp-display-dim/25 text-hp-display-dim",
+              )}
+            >
+              {label || "—"}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

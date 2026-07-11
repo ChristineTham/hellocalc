@@ -45,6 +45,7 @@ const rpl: RplCalculator = {
   state: { ...state, rpl: [] },
   prefix: "none",
   press: noop,
+  soft: noop,
   arm: noop,
   recall: noop,
   fmt,

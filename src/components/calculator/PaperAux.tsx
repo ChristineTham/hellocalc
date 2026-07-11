@@ -102,7 +102,7 @@ export function StackNote({
         for (let i = st.length - 1; i >= Math.max(0, st.length - 5); i--)
           out.push({
             lab: `${st.length - i}:`,
-            val: fmt(st[i], s.dec),
+            val: st[i], // pre-formatted object rows (P12)
             hot: i === st.length - 1,
           });
         return out.length ? out : [{ lab: "1:", val: "—", hot: true }];

@@ -144,8 +144,10 @@ export function MachineUnit({ model, rpn, rpl, lcd, paper }: MachineUnitProps) {
             rows={model.rows}
             geometry={model.geometry}
             prefix={rpl.prefix}
+            menuLabels={rpl.state.menu?.labels}
             onArm={rpl.arm}
             onPress={rpl.press}
+            onSoft={rpl.soft}
           />
         )}
       </div>

@@ -85,7 +85,7 @@ describe("Display — §5.3 line↔mini mechanism (prop-driven)", () => {
   it("RPL line echo shows level 2 when the stack is ≥2 deep", () => {
     const { container } = renderDisplay({
       family: "rpl",
-      state: { ...state, rpl: [bn(7), bn(9)] },
+      state: { ...state, rpl: ["7.00", "9.00"] },
     });
     const line = subtree(container, "line");
     expect(within(line).getByText("2:")).toBeTruthy();
@@ -93,7 +93,7 @@ describe("Display — §5.3 line↔mini mechanism (prop-driven)", () => {
   });
 
   it("RPL glass uses dot-matrix numerals; segment families keep DSEG7 (the 48 is a 131×64 pixel matrix)", () => {
-    const rpl = renderDisplay({ family: "rpl", state: { ...state, rpl: [bn(5)] } });
+    const rpl = renderDisplay({ family: "rpl", state: { ...state, rpl: ["5.00"] } });
     expect(panel(rpl.container).dataset.lcdFamily).toBe("rpl");
     expect(rpl.container.querySelector(".font-lcd-dot")).toBeTruthy();
     expect(rpl.container.querySelector(".font-display")).toBeNull();

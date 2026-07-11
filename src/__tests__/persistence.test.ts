@@ -32,7 +32,7 @@ describe("EngineState snapshot/restore", () => {
     expect(xval(engines.rpn).toString()).toBe("0.3");
     expect(engines.rpn.mem.toString()).toBe("0.3");
     expect(engines.rpn.hist.map((h) => h.op)).toEqual(["ENTER", "+", "STO"]);
-    expect(engines.rpl.stack.map((v) => v.toString())).toEqual(["14"]);
+    expect(engines.rpl.stack.map((o) => o.k === "real" && o.v.toString())).toEqual(["14"]);
     expect(engines.activeModel).toBe("HP-35");
   });
 

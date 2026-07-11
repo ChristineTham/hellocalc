@@ -8,8 +8,8 @@
 import { bn, type Value } from "./config";
 
 export interface DisplayFormat {
-  mode: "FIX" | "SCI" | "ENG";
-  digits: number; // decimal places (FIX) / mantissa places (SCI/ENG)
+  mode: "FIX" | "SCI" | "ENG" | "STD";
+  digits: number; // decimal places (FIX) / mantissa places (SCI/ENG); STD ignores
 }
 
 export const DEFAULT_FORMAT: DisplayFormat = { mode: "FIX", digits: 2 };
@@ -32,6 +32,15 @@ function eng(v: Value, digits: number): string {
 
 export function formatValue(v: Value, f: DisplayFormat): string {
   if (!v.isFinite()) return "Error";
+  if (f.mode === "STD") {
+    // the RPL machines' STD: up to 12 significant digits, no trailing zeros
+    const t = v.toSignificantDigits(12);
+    const a = t.abs();
+    if (!t.isZero() && (a.gte(FIX_MAX.times(100)) || a.lt(bn("1e-9")))) {
+      return t.toExponential().replace("e+", "e");
+    }
+    return t.toString();
+  }
   if (f.mode === "SCI") return sci(v, f.digits);
   if (f.mode === "ENG") return eng(v, f.digits);
   const a = v.abs();

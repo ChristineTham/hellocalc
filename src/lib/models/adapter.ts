@@ -74,6 +74,9 @@ const FACEPLATE_LOCAL = new Set([
   "arc", "f", "g", "h", "f⁻¹", "ALPHA", "α", "[gold shift key]",
   "ENTER (cont.)", "[ENTER↑]", // the tall ENTER's lower half in the mapping
   "ON",
+  // RPL clamshell hardware keys (P12): the shift itself, the six blank
+  // menu keys (dispatched by softkey index), and the cursor/mode rocker
+  "(red shift)", "(menu key)", "◄▶ (mode key)",
 ]);
 
 /** Coverage report for the no-inert-keys DoD line: which of a model's mapped

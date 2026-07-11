@@ -115,11 +115,20 @@ describe("model adapter (hp/mapping/mapping.json)", () => {
     expect(report.missing).toEqual([]);
   });
 
-  it("coverage reports honestly for models awaiting their engine phase", async () => {
-    // the 28C's RPL object plane is Phase 12 — the report must SAY so
+  it("HP-28C: NO key remains inert except the documented P13/P14 planes (Phase-12 DoD)", async () => {
     const rpl = await import("@/lib/engine/rpl");
-    const probe = (fn: string) => rpl.applyRplFunction(rpl.createRpl(), fn);
+    const probe = (fn: string) => rpl.dispatchRpl(rpl.createRpl(), fn);
     const report = coverage("HP-28C", probe);
+    // units (P13) and the CAS keys (P14) are the phase plan's stated deferrals
+    const deferred = new Set(["UNITS", "CONVERT", "∫", "d/dx"]);
+    expect(report.missing.filter((fn) => !deferred.has(fn))).toEqual([]);
+  });
+
+  it("coverage reports honestly for models awaiting their engine phase", async () => {
+    // the 48G's catalog/apps plane is Phase 17 — the report must SAY so
+    const rpl = await import("@/lib/engine/rpl");
+    const probe = (fn: string) => rpl.dispatchRpl(rpl.createRpl(), fn);
+    const report = coverage("HP-48G", probe);
     expect(report.missing.length).toBeGreaterThan(0);
   });
 });

@@ -123,6 +123,42 @@ test.describe("hellocalc — smoke", () => {
     ).toBeVisible();
   });
 
+  test("Phase 12 on the live HP-28C: STACK menu softkeys, algebraic STO/EVAL, retention", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await selectModel(page, "HP-28C");
+    const key = (name: string) =>
+      page.getByRole("button", { name, exact: true }).click();
+    const glass = () => page.locator('[data-lcd-mode]:visible');
+
+    // red-shift G opens the STACK menu — its labels take over the soft keys
+    await key("7");
+    await key("ENTER");
+    await key("◄"); // the single red shift
+    await key("G"); // → STACK
+    const soft1 = page.getByRole("button", { name: "menu" }).first();
+    await expect(soft1).toContainText("DUP");
+    await soft1.click(); // softkey DUP duplicates level 1
+    await expect(glass().getByText("2:").first()).toBeVisible();
+
+    // algebraic entry via the ◆ delimiter key: 'X+1', then 4 'X' STO, EVAL → 5
+    for (const k of ["◆", "X", "+", "1", "◆"]) await key(k);
+    await key("ENTER");
+    await key("4");
+    await key("ENTER");
+    for (const k of ["◆", "X", "◆"]) await key(k);
+    await key("ENTER");
+    await key("STO");
+    await key("EVAL");
+    await expect(glass().getByText("5", { exact: true }).first()).toBeVisible();
+
+    // model switch and back: the RPL object stack is retained (FR-STATE-2)
+    await selectModel(page, "HP-12C");
+    await selectModel(page, "HP-28C");
+    await expect(glass().getByText("5", { exact: true }).first()).toBeVisible();
+  });
+
   test("persistence: the session survives a reload (FR-STATE-1)", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "7", exact: true }).click();
@@ -328,8 +364,9 @@ test.describe("hellocalc — smoke", () => {
     await page.getByRole("button", { name: "ENTER", exact: true }).click();
     await page.getByRole("button", { name: "3", exact: true }).click();
     await page.getByRole("button", { name: "+", exact: true }).click();
+    // the RPL machines power on in STD display (P12) — no fixed decimals
     await expect(
-      page.locator('[data-lcd-mode]:visible').getByText("5.00").first(),
+      page.locator('[data-lcd-mode]:visible').getByText("5", { exact: true }).first(),
     ).toBeVisible();
   });
 

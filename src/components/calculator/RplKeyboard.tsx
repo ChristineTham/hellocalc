@@ -47,15 +47,40 @@ export interface RplKeyboardProps {
   rows: RplKey[][];
   geometry: KeyboardGeometry;
   prefix: RplPrefix;
+  /** active softkey MENU labels (P12) — shown on and dispatched by the
+   * blank soft keys, in order */
+  menuLabels?: string[];
   onArm: (p: RplPrefix) => void;
   onPress: (fn: string) => void;
+  /** softkey press by index (P12) — resolved against the engine's menu */
+  onSoft?: (i: number) => void;
 }
 
-export function RplKeyboard({ rows, geometry, prefix, onArm, onPress }: RplKeyboardProps) {
+export function RplKeyboard({
+  rows,
+  geometry,
+  prefix,
+  menuLabels,
+  onArm,
+  onPress,
+  onSoft,
+}: RplKeyboardProps) {
+  // soft keys number 0..n in row-major order (the 28C's 6 under the glass)
+  let softSeq = 0;
+  const softIndex = new Map<RplKey, number>();
+  for (const row of rows)
+    for (const k of row) if (k.kind === "soft") softIndex.set(k, softSeq++);
+
   const handle = (k: RplKey) => {
     if (k.kind === "ls") return onArm("ls");
     if (k.kind === "rs") return onArm("rs");
     if (k.kind === "alpha") return onArm("alpha");
+    if (k.kind === "soft") {
+      // shifted soft keys keep their editing functions (INS/DEL/cursor)
+      const shifted = prefix === "ls" ? k.ls : prefix === "rs" ? k.rs : "";
+      if (shifted) return onPress(shifted);
+      return onSoft?.(softIndex.get(k) ?? 0);
+    }
     const fn = resolve(k, prefix);
     if (fn) onPress(fn);
   };
@@ -163,9 +188,13 @@ export function RplKeyboard({ rows, geometry, prefix, onArm, onPress }: RplKeybo
                     : prefix !== "none" &&
                         !["ls", "rs", "alpha", "on"].includes(k.kind) &&
                         "opacity-40",
+                  k.kind === "soft" && !promoted && "text-[0.85em] tracking-tight",
                 )}
               >
-                {promoted || k.p}
+                {promoted ||
+                  (k.kind === "soft" && menuLabels
+                    ? menuLabels[softIndex.get(k) ?? 0] || k.p
+                    : k.p)}
               </span>
               {k.al && (
                 <span className="key-shift pointer-events-none absolute right-1 bottom-0.5 text-key-shift leading-none text-hp-key-fg opacity-45 transition-all">
