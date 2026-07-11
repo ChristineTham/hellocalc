@@ -78,6 +78,8 @@ const FACEPLATE_LOCAL = new Set([
   // menu keys (dispatched by softkey index), and the cursor/mode rocker
   "(red shift)", "(menu key)", "◄▶ (mode key)",
   "■ (shift)", // the 42S/pioneer shift key print (P16)
+  // the 48-series shift/alpha keys + blank spacers (P17)
+  "◄ (left-shift key)", "► (right-shift key)", "α (ALPHA)", "(blank)",
 ]);
 
 /** Coverage report for the no-inert-keys DoD line: which of a model's mapped

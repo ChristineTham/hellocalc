@@ -69,6 +69,36 @@ a 48SX. It is the RPL-line counterpart to the menu-RPN HP-42S of Phase 16.
 - `pnpm lint`/`test`/`build`/`test:e2e` green; function-plot confirmed absent from the initial
   chunk; the existing UI suites (geometry, promotion, typing) stay green.
 
+## Delivery notes (as shipped)
+- **Plotting**: the engine SAMPLES (rpl/plot.ts — pure TS, testable: the
+  parabola-crossing DoD runs headless); the UI's PlotPanel draws the series
+  through function-plot, dynamic-imported inside the component so the D3
+  grapher stays out of the initial bundle (NFR-3). FUNCTION + POLAR types
+  ship (PTYPE/2D/POLAR); PARAMETRIC/CONIC and the statistical charts land
+  with the 48G (P18) alongside 3D — "3D"/SCLΣ/DRWΣ/DGTIZ defer honestly.
+- **PICT/GROB-lite**: PIXON/PIXOFF/LINE/BOX on a 131×64 pixel set,
+  PVIEW renders it through the same PlotPanel, PX→C/C→PX transform via
+  PPAR; →GROB emits a textual placeholder (real bitmap objects are P18
+  polish). →LCD/LCD→ drive the message line.
+- **EquationWriter-lite**: the EQUATION key opens algebraic entry and the
+  KaTeX hero typesets it; a full 2D structural editor is out of scope
+  (documented) — entry + typeset preview covers the FR-CAS-6/FR-IO-1 loop.
+- ENTER **auto-completes open delimiters** (« { [ ( ' ") — the 48's own
+  behavior, which also makes every paired-delimiter key usable from the
+  faceplate's opening half.
+- New commands: PROOT (companion-matrix eigenvalues via ml-matrix) /
+  PEVAL, →V2/→V3/V→, OBJ→, →Q (continued fractions), DEF ('F(X)=expr' →
+  « → X 'expr' », the 48's expansion; user-function CALLS inside other
+  algebraics remain unsupported in the light grammar — documented), !,
+  REVIEW, CLR, TIME menu on a second injectable clock (setRplClock),
+  DDAYS/TSTR; SIN⁻¹/COS⁻¹/TAN⁻¹ canonical ids accepted.
+- **I/O and LIBRARY are honest stubs** ("No I/O port / card ports in the
+  emulator") — the plug-in Port registry idea is deferred until a card
+  model exists to attach (documented divergence from the plan).
+- The α plane now dispatches on the RPL faceplates (α-ids type letters);
+  the 48SX MTH/PRG submenus nest with label-opens-roster semantics.
+- HP-48SX coverage oracle: GREEN — no key remains inert (16 models live).
+
 ## Notes / risks
 - function-plot is D3/DOM — keep it strictly in the UI layer; the engine emits only a
   serializable plot spec so it stays Web-Worker-safe and unit-testable.

@@ -101,7 +101,13 @@ function parseOne(r: Reader, base: number): RplItem | null {
     if (IDENT_RE.test(src) && !FN_NAMES.has(src.toUpperCase())) {
       return { lit: { k: "name", v: src } };
     }
-    parseExpr(src); // validate now so ENTER reports Syntax Error, not EVAL
+    try {
+      parseExpr(src); // validate now so ENTER reports Syntax Error, not EVAL
+    } catch (e) {
+      // DEF definitions ('F(X)=expr') carry a user-function head the strict
+      // grammar rejects — accept the shape; DEF consumes it before any EVAL
+      if (!/^[A-Za-z][A-Za-z0-9]*\([^)]*\)=.+$/.test(src)) throw e;
+    }
     return { lit: { k: "alg", src } };
   }
   if (c === "{") {

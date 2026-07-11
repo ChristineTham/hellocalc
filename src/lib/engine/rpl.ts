@@ -8,7 +8,7 @@
 // documented). Reals compute on the BigNumber tower; complex numbers and
 // array elements are float64 like the P9 modules. Pure TS — no React/DOM.
 
-import { determinant as det, inverse, Matrix } from "ml-matrix";
+import { determinant as det, EigenvalueDecomposition, inverse, Matrix } from "ml-matrix";
 import { bn, math, num, PI, type Value } from "./config";
 import type { DisplayFormat } from "./format";
 import type { HistEntry } from "./rpn";
@@ -37,6 +37,9 @@ import {
 } from "./units";
 import { UNIT_CATEGORIES, UNIT_MENUS } from "./units-catalog";
 import { getCas } from "./cas/provider";
+import {
+  cToPx, PICT_H, PICT_W, type PlotPoint, type PlotReq, pxToC, rasterLine, sampleSeries,
+} from "./rpl/plot";
 
 export type Angle = "DEG" | "RAD" | "GRD";
 
@@ -93,6 +96,11 @@ export interface RplEngine {
   cols: [number, number]; // COLΣ pair (1-based)
   ppar: PlotParams;
   msg: string | null; // DISP output line
+  /** the 48-series plot subsystem (P17): active request + type + PICT */
+  plot: PlotReq | null;
+  ptype: "FUNCTION" | "POLAR";
+  pict: string[]; // lit pixels as "x,y" keys (GROB-lite)
+  menuStack48: string[]; // submenu nesting (MTH → PROB …)
   error: string | null;
   errN: number; // ERRN / ERRM (IFERR)
   errM: string;
@@ -123,6 +131,10 @@ export function createRpl(): RplEngine {
     cols: [1, 2],
     ppar: { pmin: [-6.8, -1.5], pmax: [6.8, 1.6], indep: "X", res: 1, axes: [0, 0] },
     msg: null,
+    plot: null,
+    ptype: "FUNCTION",
+    pict: [],
+    menuStack48: [],
     error: null,
     errN: 0,
     errM: "",
@@ -596,6 +608,49 @@ function envOf(s: RplEngine, ctx: Ctx) {
   };
 }
 
+/** Numeric sample of an algebraic at indep = t (plot sampler seam). */
+function evalAtPoint(s: RplEngine, src: string, indep: string, t: number): number | null {
+  try {
+    const env = envOf(s, freshCtx());
+    const inner = env.get.bind(env);
+    const v = evalExpr(parseExpr(src), {
+      ...env,
+      get: (q: string) => (q === indep ? bn(String(t)) : inner(q)),
+    });
+    return num(v);
+  } catch {
+    return null;
+  }
+}
+
+/** DRAW: sample the current equation over the PPAR window (FR-PLOT-1). */
+function drawPlot(s: RplEngine): void {
+  const eq = lookupVar(s, "EQ");
+  if (!eq || (eq.k !== "alg" && eq.k !== "name")) throw err("No Current Equation");
+  const srcTxt = eq.k === "alg" ? eq.src : eq.v;
+  const [xmin] = s.ppar.pmin;
+  const [xmax] = s.ppar.pmax;
+  const polar = s.ptype === "POLAR";
+  const lo = polar ? 0 : xmin;
+  const hi = polar ? 2 * Math.PI : xmax;
+  const points = sampleSeries(
+    (t) => evalAtPoint(s, srcTxt, s.ppar.indep, t),
+    lo,
+    hi,
+    131 * Math.max(1, s.ppar.res),
+    polar,
+  );
+  if (points.every((p) => p.y === null)) throw err("Invalid PPAR / Undefined Name");
+  s.plot = {
+    kind: polar ? "polar" : "fn",
+    points,
+    src: srcTxt,
+    pmin: [...s.ppar.pmin],
+    pmax: [...s.ppar.pmax],
+    axes: true,
+  };
+}
+
 /** EVAL an algebraic: numeric result when every name resolves, else the
  * algebraic stays on the stack unchanged (symbolic rewriting is P14). */
 function evalAlg(s: RplEngine, o: Extract<RplObj, { k: "alg" }>, ctx: Ctx): void {
@@ -651,6 +706,23 @@ function execToken(s: RplEngine, w: string, ctx: Ctx): void {
     return;
   }
   s.stack.push(mkName(w));
+}
+
+// ---- the 48 clock (P17): injectable, shared shape with the P11 module -------------
+
+let clock48: () => Date = () => new Date();
+export function setRplClock(fn: () => Date): void {
+  clock48 = fn;
+}
+/** MM.DDYYYY → UTC date (the 48's default M.DY format). */
+function decodeDate48(v: number): Date | null {
+  const m = Math.trunc(v);
+  const rest = Math.round((v - m) * 1e6);
+  const day = Math.trunc(rest / 10000);
+  const year = rest % 10000;
+  if (m < 1 || m > 12 || day < 1 || day > 31) return null;
+  const d = new Date(Date.UTC(year, m - 1, day));
+  return d.getUTCMonth() === m - 1 ? d : null;
 }
 
 // ---- printing (the tape is the printer, like the P5 HP-97) -------------------------
@@ -743,9 +815,8 @@ const fPdf = (n1: number, n2: number) => (t: number): number =>
 const DEFERRED: Record<string, string> = {
   // positional subexpression editing needs the FORM UI — heavy-tier era
   FORM: "P19", OBSUB: "P19", EXSUB: "P19", OBGET: "P19", EXGET: "P19",
-  // plotting / display bitmaps (P17/P18)
-  DRAW: "P17", DRAX: "P17", PIXEL: "P17", SCLΣ: "P18", DRWΣ: "P18",
-  "→LCD": "P17", "LCD→": "P17", DGTIZ: "P17",
+  // 3D + statistical plotting and interactive digitizing arrive with the 48G
+  "3D": "P18", SCLΣ: "P18", DRWΣ: "P18", DGTIZ: "P18",
 };
 
 function binaryNum(s: RplEngine, f: (a: Value, b: Value) => unknown): void {
@@ -1211,12 +1282,15 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
       unaryNum(s, (a) => math.tan(toRad(s, a)));
       return true;
     case "ASIN":
+    case "SIN⁻¹": // the adapter's canonical print for the inverse plane
       unaryNum(s, (a) => fromRad(s, tryReal(() => math.asin(a))));
       return true;
     case "ACOS":
+    case "COS⁻¹":
       unaryNum(s, (a) => fromRad(s, tryReal(() => math.acos(a))));
       return true;
     case "ATAN":
+    case "TAN⁻¹":
       unaryNum(s, (a) => fromRad(s, tryReal(() => math.atan(a))));
       return true;
     case "D→R":
@@ -2223,6 +2297,237 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
       s.stack.push({ k: "list", items: exprNames(src2).map((nm) => mkName(nm)) });
       return true;
     }
+    // ---- 48-series additions (P17) ---------------------------------------------------------------
+    case "PROOT": {
+      // roots of the coefficient vector [an … a1 a0] via companion eigenvalues
+      const a = wantArr(pop1(s));
+      const c = (a.vec ? a.rows[0] : a.rows.map((r) => r[0])).map(Number);
+      while (c.length && c[0] === 0) c.shift();
+      const n = c.length - 1;
+      if (n < 1) throw err("Bad Argument Value");
+      const comp = Array.from({ length: n }, (_, i) =>
+        Array.from({ length: n }, (_, j) => (i === 0 ? -c[j + 1] / c[0] : i - 1 === j ? 1 : 0)),
+      );
+      const ev = new EigenvalueDecomposition(new Matrix(comp));
+      const re = ev.realEigenvalues;
+      const im = ev.imaginaryEigenvalues;
+      const items: RplObj[] = re.map((r, i) =>
+        Math.abs(im[i]) < 1e-12 ? realOf(r) : cpx(r, im[i]),
+      );
+      s.stack.push(a.vec ? arrOf([re], true) && { k: "list", items } : { k: "list", items });
+      return true;
+    }
+    case "PEVAL": {
+      // Horner: coefficients in level 2, x in level 1
+      const [aO, xO] = popN(s, 2);
+      const a = wantArr(aO);
+      const c = (a.vec ? a.rows[0] : a.rows.map((r) => r[0])).map(Number);
+      const x = fRe(xO);
+      s.stack.push(realOf(c.reduce((acc, k) => acc * x + k, 0)));
+      return true;
+    }
+    case "→V2": {
+      const [a, b] = popN(s, 2);
+      s.stack.push(arrOf([[fRe(a), fRe(b)]], true));
+      return true;
+    }
+    case "→V3": {
+      const [a, b, c] = popN(s, 3);
+      s.stack.push(arrOf([[fRe(a), fRe(b), fRe(c)]], true));
+      return true;
+    }
+    case "V→": {
+      const a = wantArr(pop1(s));
+      if (!a.vec) throw err("Bad Argument Type");
+      a.rows[0].forEach((v) => s.stack.push(realOf(v)));
+      return true;
+    }
+    case "OBJ→": {
+      const o = pop1(s);
+      if (o.k === "list") {
+        s.stack.push(...o.items, real(bn(o.items.length)));
+      } else if (o.k === "cpx") {
+        s.stack.push(realOf(o.re), realOf(o.im));
+      } else if (o.k === "str") {
+        const items = parseItems(o.v, s.base);
+        const pos = { i: 0 };
+        runNodes(s, buildNodes(items, pos, []).nodes, ctx);
+      } else if (o.k === "arr") {
+        return execWord(s, "ARRY→", ctx);
+      } else if (o.k === "alg" || o.k === "prog") {
+        s.stack.push(o); // structural decomposition is FORM territory (P19)
+      } else throw err("Bad Argument Type");
+      return true;
+    }
+    case "!":
+      return execWord(s, "FACT", ctx);
+    case "→Q": {
+      // rational approximation by continued fractions (the 48's ≈ 1e-10)
+      const v = num(wantReal(pop1(s)));
+      let [p0, q0, p1, q1] = [1, 0, Math.floor(v), 1];
+      let frac = v - Math.floor(v);
+      for (let i = 0; i < 24 && Math.abs(p1 / q1 - v) > 1e-10; i++) {
+        if (frac === 0) break;
+        const a = Math.floor(1 / frac);
+        frac = 1 / frac - a;
+        [p0, q0, p1, q1] = [p1, q1, a * p1 + p0, a * q1 + q0];
+      }
+      s.stack.push(q1 === 1 ? realOf(p1) : { k: "alg", src: `${p1}/${q1}` });
+      return true;
+    }
+    case "DEF": {
+      // DEF 'F(X)=expr' → F = « → X 'expr' » (the 48's exact expansion)
+      const o = pop1(s);
+      if (o.k !== "alg") throw err("Bad Argument Type");
+      const m = o.src.match(/^([A-Za-z][A-Za-z0-9]*)\(([^)]*)\)=(.+)$/);
+      if (!m) throw err("Bad Argument Value");
+      const args = m[2].split(",").map((t) => t.trim()).filter(Boolean);
+      storeVar(s, m[1], { k: "prog", body: `→ ${args.join(" ")} '${m[3]}'` });
+      return true;
+    }
+    case "DRAW":
+      drawPlot(s);
+      return true;
+    case "GRAPH": // the GRAPH key re-enters the picture (draws if EQ is set)
+      drawPlot(s);
+      return true;
+    case "DRAX":
+      if (s.plot) s.plot = { ...s.plot, axes: true };
+      return true;
+    case "ERASE":
+      s.plot = null;
+      s.pict = [];
+      return true;
+    case "2D":
+      s.ptype = "FUNCTION";
+      return true;
+    case "POLAR":
+      s.ptype = s.ptype === "POLAR" ? "FUNCTION" : "POLAR";
+      return true;
+    case "PTYPE": {
+      const nm = wantNameOf(pop1(s));
+      if (nm !== "FUNCTION" && nm !== "POLAR") throw err("Bad Argument Value");
+      s.ptype = nm;
+      return true;
+    }
+    case "REVIEW":
+      print(s, Object.keys(curDir(s).vars).join(" ") || "(no user variables)");
+      return true;
+    // PICT / GROB-lite primitives
+    case "PIXON":
+    case "PIXOFF": {
+      const z = asCpx(pop1(s));
+      const [px, py] = cToPx(z.re, z.im, s.ppar.pmin, s.ppar.pmax);
+      const key = `${px},${py}`;
+      s.pict = w === "PIXON" ? [...new Set([...s.pict, key])] : s.pict.filter((k) => k !== key);
+      return true;
+    }
+    case "PIXEL": // the 28C name for PIXON
+      return execWord(s, "PIXON", ctx);
+    case "LINE":
+    case "BOX": {
+      const [aO, bO] = popN(s, 2);
+      const a = asCpx(aO);
+      const b = asCpx(bO);
+      const [x0, y0] = cToPx(a.re, a.im, s.ppar.pmin, s.ppar.pmax);
+      const [x1, y1] = cToPx(b.re, b.im, s.ppar.pmin, s.ppar.pmax);
+      const px =
+        w === "LINE"
+          ? rasterLine(x0, y0, x1, y1)
+          : [
+              ...rasterLine(x0, y0, x1, y0),
+              ...rasterLine(x1, y0, x1, y1),
+              ...rasterLine(x1, y1, x0, y1),
+              ...rasterLine(x0, y1, x0, y0),
+            ];
+      s.pict = [...new Set([...s.pict, ...px.map(([x, y]) => `${x},${y}`)])];
+      return true;
+    }
+    case "PVIEW": {
+      const pts: PlotPoint[] = s.pict.map((k) => {
+        const [px, py] = k.split(",").map(Number);
+        const [x, y] = pxToC(px, py, s.ppar.pmin, s.ppar.pmax);
+        return { x, y };
+      });
+      s.plot = { kind: "pict", points: pts, pmin: [...s.ppar.pmin], pmax: [...s.ppar.pmax], axes: false };
+      return true;
+    }
+    case "PX→C": {
+      const z = asCpx(pop1(s));
+      const [x, y] = pxToC(z.re, z.im, s.ppar.pmin, s.ppar.pmax);
+      s.stack.push(cpx(x, y));
+      return true;
+    }
+    case "C→PX": {
+      const z = asCpx(pop1(s));
+      const [px, py] = cToPx(z.re, z.im, s.ppar.pmin, s.ppar.pmax);
+      s.stack.push(cpx(px, py));
+      return true;
+    }
+    case "→GROB": {
+      // textual GROB placeholder (real bitmap objects arrive with P18 polish)
+      const [o] = popN(s, 2); // size argument accepted and ignored
+      s.stack.push(mkStr(`GROB ${PICT_W} ${PICT_H} ${formatObj(o, s.disp, s.base)}`));
+      return true;
+    }
+    case "→LCD": {
+      s.msg = wantStr(pop1(s));
+      return true;
+    }
+    case "LCD→":
+      s.stack.push(mkStr(s.msg ?? ""));
+      return true;
+    // the TIME menu (shares the P11 injectable clock)
+    case "TIME": {
+      const d = clock48();
+      s.stack.push(
+        real(bn(d.getHours()).plus(bn(d.getMinutes()).div(100)).plus(bn(d.getSeconds()).div(10000))),
+      );
+      return true;
+    }
+    case "DATE": {
+      const d = clock48();
+      s.stack.push(
+        real(
+          bn(d.getMonth() + 1)
+            .plus(bn(d.getDate()).div(100))
+            .plus(bn(d.getFullYear()).div(1000000)),
+        ),
+      );
+      return true;
+    }
+    case "TSTR": {
+      popN(s, 2); // date+time arguments accepted
+      s.stack.push(mkStr(clock48().toString().slice(0, 24)));
+      return true;
+    }
+    case "DDAYS": {
+      const [a, b] = popN(s, 2);
+      const da = decodeDate48(fRe(a));
+      const db = decodeDate48(fRe(b));
+      if (!da || !db) throw err("Bad Argument Value");
+      s.stack.push(realOf(Math.round((db.getTime() - da.getTime()) / 86_400_000)));
+      return true;
+    }
+    case "→DATE":
+    case "→TIME":
+      pop1(s); // setting the emulator clock is a no-op (documented)
+      return true;
+    // I/O + LIBRARY are honest stubs — no serial port / card slots here
+    case "SEND":
+    case "RECV":
+    case "SERVER":
+    case "KGET":
+    case "FINISH":
+    case "PKT":
+      throw err("No I/O port in the emulator");
+    case "ATTACH":
+    case "DETACH":
+    case "PORTS":
+      throw err("No card ports in the emulator");
+    case "CLR": // the 48 prints CLR for CLEAR
+      s.stack = [];
+      return true;
     // ---- UNITS (P13, FR-UNIT-1/2/3) ----------------------------------------------------------------
     case "CONVERT": {
       const [q, t] = popN(s, 2);
@@ -2266,6 +2571,10 @@ const MENU_OPEN: Record<string, string> = {
   LOGS: "LOGS", MODE: "MODE", STAT: "STAT", PLOT: "PLOT", PRINT: "PRINT",
   SOLV: "SOLVE", ALGEBRA: "ALGEBRA", ALGBRA: "ALGEBRA", CATALOG: "CATALOG",
   USER: "USER", UNITS: "UNITS", MEMORY: "MEMORY", CUSTOM: "CUSTOM", MENUS: "MENUS",
+  // 48-series keys (P17)
+  MTH: "MTH", PRG: "PRG", VAR: "USER", CST: "CUSTOM", USR: "USER", MODES: "MODE",
+  SOLVE: "SOLVE", "I/O": "IO", LIBRARY: "LIBRARY", MATRIX: "MATR",
+  TIMEMENU: "TIME48",
 };
 
 /** The 28S MENUS key: a meta-menu of every menu (softkey opens it). */
@@ -2283,10 +2592,20 @@ const TYPES_WORD = new Set([
 
 /** Single-character typing keys (append to the command line). */
 const TYPE_CHARS: Record<string, string> = {
-  SPACE: " ", NEWLINE: " ", "«": "« ", "≫": " »", "»": " »", "◆": "'", "'": "'",
-  "=": "=", "?": "?", "|": "|", "\\": "\\", "{": "{", "}": "}", "[": "[",
-  "]": "]", "(": "(", ")": ")", '"': '"', "°": "°", µ: "µ", Σ: "Σ", "→": "→ ",
-  ",": ",", "#": "# ",
+  SPACE: " ", SPC: " ", NEWLINE: " ", "↵": " ", "«": "« ", "≫": " »", "»": " »",
+  "◆": "'", "'": "'", "′": "'", "=": "=", "?": "?", "|": "|", "\\": "\\", "{": "{", "}": "}",
+  "[": "[", "]": "]", "(": "(", ")": ")", '"': '"', "°": "°", µ: "µ", Σ: "Σ",
+  "→": "→ ", ",": ",", "#": "# ", "::": ":: ", "∡": "∡", _: "_",
+};
+
+/** The 48SX mapping prints its editing keys with parenthetical names —
+ * translate to the engine's canonical ids before dispatch (P17). */
+const PRINT48: Record<string, string> = {
+  "◄ (backspace)": "DEL", "▲ (up)": "▲", "▼ (down)": "▼", "◄ (left)": "◄",
+  "► (right)": "►", ", (comma)": ",", ". (decimal)": ".", "_ (underscore)": "_",
+  "′ (tick)": "'", "↵ (newline)": "NEWLINE", "∡ (angle)": "∡", "( )": "(",
+  "[ ]": "[", "{ }": "{", "«  »": "«", '"  "': '"', "« »": "«", '" "': '"',
+  TIME: "TIMEMENU", // the TIME KEY opens the menu; the TIME command stays typed
 };
 
 /** Ops that shouldn't print a history line (typing, paging, editing). */
@@ -2317,7 +2636,23 @@ const append = (s: RplEngine, text: string): void => {
 /** Commit the command line: parse and run it. Keeps the line on a syntax
  * error so the user can fix it (the 28C's behavior). */
 function runLine(s: RplEngine): boolean {
-  const text = s.entry ?? "";
+  let text = s.entry ?? "";
+  // the 48's ENTER auto-completes open delimiters (« { [ ( ' ")
+  const closers: [string, string, string][] = [
+    ["«", "»", " »"], ["{", "}", " }"], ["[", "]", " ]"], ["(", ")", ")"],
+  ];
+  for (const [open, close, suffix] of closers) {
+    let depth = 0;
+    for (const c of text) {
+      if (c === open) depth++;
+      else if (c === close) depth--;
+    }
+    while (depth-- > 0) text += suffix;
+  }
+  for (const q of ["'", '"']) {
+    if ((text.split(q).length - 1) % 2 === 1) text += q;
+  }
+  s.entry = text;
   let items: RplItem[];
   try {
     items = parseItems(text, s.base);
@@ -2451,6 +2786,12 @@ export function pressSoft(s: RplEngine, i: number): void {
     append(s, `${label} `);
     return;
   }
+  // a label naming another roster opens it (MTH → PROB → …, P17)
+  if (RPL_MENUS[label] && label !== "SUB") {
+    s.menuStack48 = s.menu ? [...s.menuStack48, s.menu.name] : s.menuStack48;
+    s.menu = { name: label, page: 0 };
+    return;
+  }
   if (s.entry !== null && !runLine(s)) return;
   if (!execTop(s, label)) s.error = "Unimplemented";
   recordTape(s, label);
@@ -2502,12 +2843,31 @@ function recordTape(s: RplEngine, fn: string): void {
  * coverage oracle's probe — unknown ids must return false). */
 export function dispatchRpl(s: RplEngine, fn: string): boolean {
   s.error = null;
+  fn = PRINT48[fn] ?? fn;
+
+  // alpha-access presses arrive as α-prefixed ids from the adapter (P17)
+  const alphaChar = fn.match(/^α(.)$/);
+  if (alphaChar) {
+    append(s, s.lc ? alphaChar[1].toLowerCase() : alphaChar[1]);
+    return true;
+  }
+  if (fn === "EQUATION") {
+    // EquationWriter-lite: open an algebraic entry; the hero line typesets
+    // the partial expression live (delivery note)
+    append(s, "'");
+    return true;
+  }
+  if (fn === "ENTRY") {
+    s.alphaLock = !s.alphaLock;
+    return true;
+  }
 
   // ---- editing / control keys first --------------------------------------------
   if (fn === "ON" || fn === "ATTN") {
     s.entry = null;
     s.msg = null;
     s.menu = null;
+    s.plot = null;
     return true;
   }
   if (fn === "OFF" || fn === "CONT") return true;
@@ -2528,8 +2888,8 @@ export function dispatchRpl(s: RplEngine, fn: string): boolean {
     s.alphaLock = !s.alphaLock;
     return true;
   }
-  if (fn === "NEXT" || fn === "PREV") {
-    if (s.menu) s.menu = { ...s.menu, page: s.menu.page + (fn === "NEXT" ? 1 : -1) };
+  if (fn === "NEXT" || fn === "NXT" || fn === "PREV") {
+    if (s.menu) s.menu = { ...s.menu, page: s.menu.page + (fn === "PREV" ? -1 : 1) };
     return true;
   }
   if (fn === "EDIT" || fn === "VISIT") {

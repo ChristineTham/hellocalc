@@ -38,7 +38,8 @@ const bgFor = (kind: RplKey["kind"]) => {
 function resolve(k: RplKey, prefix: RplPrefix): string {
   if (prefix === "ls") return k.ls || k.p;
   if (prefix === "rs") return k.rs || k.p;
-  if (prefix === "alpha") return ""; // letters aren't dispatched on the numeric stack yet
+  // the α plane types the key's letter (P17): α-ids append to the command line
+  if (prefix === "alpha") return k.al ? `α${k.al}` : "";
   if (k.kind === "bksp") return "DROP";
   return k.p;
 }

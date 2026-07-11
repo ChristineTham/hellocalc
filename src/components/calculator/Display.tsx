@@ -14,6 +14,7 @@ import { ChevronsDownUp, ChevronsUpDown, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Family } from "./models";
 import type { Value } from "@/lib/engine/config";
+import { PlotPanel } from "./PlotPanel";
 
 // ---- shared types the engine/hook exposes ----------------------------------
 // Values are BigNumbers end-to-end (Phase 1 value tower); components never
@@ -49,6 +50,15 @@ export interface RpnState {
   menu?: { name: string; labels: string[]; page: number; pages: number };
   /** RPL DISP message line (P12) */
   msg?: string;
+  /** the 48-series plot request (P17) — rendered by the lazy PlotPanel */
+  plot?: {
+    kind: "fn" | "polar" | "pict";
+    points: { x: number; y: number | null }[];
+    src?: string;
+    pmin: [number, number];
+    pmax: [number, number];
+    axes: boolean;
+  };
   hist?: { op: string; v: string; raw?: string }[];
 }
 
@@ -231,6 +241,7 @@ export function Display({
         {/* the softkey row shows in BOTH LCD states (P16 — the 42S is a
             two-line machine; its menu row is always visible) */}
         {s.menu && <MenuRow menu={s.menu} />}
+        {s.plot && <PlotPanel plot={s.plot} />}
       </div>
 
       {/* ── State B: mini 4:3 multi-line (§5.2) ─────────────────────────────── */}
@@ -275,7 +286,10 @@ export function Display({
             in-plane, glass otherwise, §14.3 rev 3); the RPL glass ALWAYS
             shows its stack — that is what a 48G display is */}
         {isRpl ? (
-          <RplStack rpl={s.rpl ?? []} entry={s.entry} msg={s.msg} menu={s.menu} />
+          <>
+            {s.plot && <PlotPanel plot={s.plot} />}
+            <RplStack rpl={s.rpl ?? []} entry={s.entry} msg={s.msg} menu={s.menu} />
+          </>
         ) : (
           <div className="lcd-stack mt-2">
             <StackRow label="T" value={fmt(s.T, s.dec)} muted />

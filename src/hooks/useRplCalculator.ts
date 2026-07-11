@@ -52,6 +52,9 @@ const clone = (e: RplEngine): RplEngine => ({
   home: cloneDir(e.home),
   path: [...e.path],
   custom: [...e.custom],
+  pict: [...e.pict],
+  menuStack48: [...e.menuStack48],
+  plot: e.plot ? { ...e.plot, points: [...e.plot.points] } : null,
   flags: [...e.flags],
   last: [...e.last],
   lastCmd: [...e.lastCmd],
@@ -166,6 +169,7 @@ export function useRplCalculator(): RplCalculator {
       })(),
       err: engine.error ?? undefined,
       msg: engine.msg ?? undefined,
+      plot: engine.plot ?? undefined,
       rpl: engine.stack.map((o) => formatObj(o, engine.disp, engine.base)),
       menu: engine.menu
         ? {

@@ -284,6 +284,49 @@ test.describe("hellocalc — smoke", () => {
     await expect(glass().getByText("1.00").first()).toBeVisible();
   });
 
+  test("Phase 17 on the live HP-48SX: plot SIN(X) via STEQ/DRAW; EquationWriter entry", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await selectModel(page, "HP-48SX");
+    const key = (name: string) =>
+      page.getByRole("button", { name, exact: true }).click();
+    const glass = () => page.locator('[data-lcd-mode]:visible');
+    const soft = (i: number) => page.getByRole("button", { name: "menu" }).nth(i).click();
+    // the 48SX prints ◄ three times (cursor/backspace/shift) — target by kind
+    const ls = () => page.locator('button[data-kind="ls"]').click();
+
+    // build 'SIN(X)' — tick opens the algebraic, α+1/x types X, ENTER auto-closes
+    await key("′");
+    await key("SIN");
+    await ls(); // left shift
+    await key("÷"); // → ( )
+    await key("α");
+    await key("1/x"); // → X
+    await key("ENTER");
+    // SOLVE menu (left-shift 7) → STEQ stores the equation
+    await ls();
+    await key("7"); // → SOLVE
+    await soft(0); // STEQ
+    // PLOT menu (left-shift 8) → DRAW samples and the panel renders
+    await ls();
+    await key("8"); // → PLOT
+    await soft(5); // DRAW
+    await expect(glass().locator('[data-slot="plot-panel"] svg').first()).toBeVisible({
+      timeout: 15000,
+    });
+    await key("ON"); // ATTN clears the picture
+    await expect(glass().locator('[data-slot="plot-panel"]')).toHaveCount(0);
+
+    // EquationWriter-lite: left-shift ENTER opens algebraic entry
+    await ls();
+    await key("ENTER"); // → EQUATION
+    await key("α");
+    await key("1/x"); // X
+    await key("ENTER");
+    await expect(glass().getByText("'X'").first()).toBeVisible();
+  });
+
   test("persistence: the session survives a reload (FR-STATE-1)", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "7", exact: true }).click();

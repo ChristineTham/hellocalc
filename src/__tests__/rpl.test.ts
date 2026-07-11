@@ -557,6 +557,129 @@ describe("P14 light CAS (nerdamer tier behind CasProvider)", () => {
   });
 });
 
+describe("P17 the 48SX: plotting, polynomials, 48 keys", () => {
+  it("DoD: 'X^2-3' STEQ DRAW samples a parabola crossing zero near ±√3", () => {
+    const s = createRpl();
+    line(s, "'X^2-3' STEQ");
+    dispatchRpl(s, "DRAW");
+    expect(s.plot?.kind).toBe("fn");
+    const pts = (s.plot?.points ?? []).filter((p) => p.y !== null) as { x: number; y: number }[];
+    expect(pts.length).toBeGreaterThan(100);
+    // sign change brackets √3 ≈ 1.732
+    const cross = pts.find((p, i) => i > 0 && pts[i - 1].y < 0 && p.y >= 0 && p.x > 0);
+    expect(cross && Math.abs(cross.x - Math.sqrt(3)) < 0.2).toBe(true);
+    dispatchRpl(s, "ERASE");
+    expect(s.plot).toBeNull();
+  });
+
+  it("POLAR plots r(θ) in cartesian space", () => {
+    const s = createRpl();
+    line(s, "RAD '2' STEQ POLAR DRAW"); // r = 2 → a circle of radius 2
+    const pts = (s.plot?.points ?? []).filter((p) => p.y !== null) as { x: number; y: number }[];
+    expect(s.plot?.kind).toBe("polar");
+    for (const p of pts.slice(0, 10)) {
+      expect(Math.hypot(p.x, p.y)).toBeCloseTo(2, 9);
+    }
+    dispatchRpl(s, "ON");
+    expect(s.plot).toBeNull();
+  });
+
+  it("DoD: PROOT of [1 0 -3] → ±√3; PEVAL evaluates by Horner", () => {
+    const s = createRpl();
+    line(s, "[ 1 0 -3 ] PROOT");
+    const top = s.stack[0];
+    expect(top.k).toBe("list");
+    if (top.k === "list") {
+      const roots = top.items.map((o) => (o.k === "real" ? num(o.v) : NaN)).sort((a, b) => a - b);
+      expect(roots[0]).toBeCloseTo(-Math.sqrt(3), 7);
+      expect(roots[1]).toBeCloseTo(Math.sqrt(3), 7);
+    }
+    line(s, "CLEAR [ 2 3 4 ] 10 PEVAL"); // 2x²+3x+4 at 10
+    expect(nums(s.stack)).toEqual([234]);
+  });
+
+  it("→V2/→V3/V→ build and explode vectors; OBJ→ decomposes", () => {
+    const s = createRpl();
+    line(s, "3 4 →V2 ABS");
+    expect(nums(s.stack)).toEqual([5]);
+    line(s, "CLEAR 1 2 3 →V3 V→");
+    expect(nums(s.stack)).toEqual([1, 2, 3]);
+    line(s, "CLEAR { 7 8 } OBJ→");
+    expect(nums(s.stack)).toEqual([7, 8, 2]);
+    line(s, "CLEAR (3,4) OBJ→");
+    expect(nums(s.stack)).toEqual([3, 4]);
+  });
+
+  it("→Q finds the rational form; DEF defines a callable function", () => {
+    const s = createRpl();
+    line(s, "0.5 →Q");
+    expect(s.stack[0]).toEqual({ k: "alg", src: "1/2" });
+    line(s, "CLEAR 'F(X)=X^2+1' DEF 4 F");
+    expect(nums(s.stack)).toEqual([17]);
+  });
+
+  it("ENTER auto-closes open delimiters, like the 48", () => {
+    const s = createRpl();
+    s.entry = "« 1 2 +";
+    dispatchRpl(s, "ENTER");
+    expect(s.stack[0]).toEqual({ k: "prog", body: "1 2 +" });
+    line(s, "CLEAR");
+    s.entry = "{ 1 2";
+    dispatchRpl(s, "ENTER");
+    expect(fmtTop(s)).toBe("{ 1 2 }");
+  });
+
+  it("alpha-access ids (αA) type; MTH nests submenus; VAR is the vars menu", () => {
+    const s = createRpl();
+    dispatchRpl(s, "αA");
+    dispatchRpl(s, "αB");
+    expect(s.entry).toBe("AB");
+    dispatchRpl(s, "ON");
+    dispatchRpl(s, "MTH");
+    expect(menuLabels(s)).toEqual(["PARTS", "PROB", "HYP", "MATR", "VECTR", "BASE"]);
+    pressSoft(s, 1); // PROB
+    expect(menuLabels(s)[0]).toBe("COMB");
+    line(s, "5 3");
+    pressSoft(s, 0); // COMB
+    expect(nums(s.stack)).toEqual([10]);
+    dispatchRpl(s, "VAR");
+    expect(s.menu?.name).toBe("USER");
+  });
+
+  it("PICT primitives: PIXON, LINE, PVIEW, PX→C round-trip", () => {
+    const s = createRpl();
+    line(s, "(0,0) PIXON (1,1) (0,0) LINE");
+    expect(s.pict.length).toBeGreaterThan(1);
+    dispatchRpl(s, "PVIEW");
+    expect(s.plot?.kind).toBe("pict");
+    line(s, "CLEAR (65,32) PX→C C→PX"); // centre pixel round-trips
+    const z = s.stack[0];
+    expect(z.k === "cpx" && Math.abs(z.re - 65) <= 1).toBe(true);
+  });
+
+  it("the TIME key opens its menu; TIME/DATE ride the injectable clock", async () => {
+    const { setRplClock } = await import("@/lib/engine/rpl");
+    setRplClock(() => new Date(2026, 6, 11, 9, 5, 30));
+    const s = createRpl();
+    dispatchRpl(s, "TIME"); // the KEY opens the menu
+    expect(menuLabels(s)[0]).toBe("DATE");
+    pressSoft(s, 1); // the TIME command
+    expect(fmtTop(s)).toBe("9.053");
+    pressSoft(s, 0); // DATE → 7.112026
+    expect(fmtTop(s)).toBe("7.112026");
+    setRplClock(() => new Date());
+  });
+
+  it("I/O and LIBRARY stub honestly; EQUATION opens algebraic entry", () => {
+    const s = createRpl();
+    dispatchRpl(s, "I/O");
+    pressSoft(s, 0); // SEND
+    expect(s.error).toMatch(/No I\/O port/);
+    dispatchRpl(s, "EQUATION");
+    expect(s.entry).toBe("'");
+  });
+});
+
 describe("P12 command line, editing, and recovery", () => {
   it("the ◆ key types the algebraic delimiter; operators append in text mode", () => {
     const s = createRpl();
@@ -576,10 +699,10 @@ describe("P12 command line, editing, and recovery", () => {
 
   it("a syntax error keeps the command line for correction", () => {
     const s = createRpl();
-    s.entry = "« 1 +"; // unclosed
+    s.entry = "1 ) 2"; // stray closer (unclosed delimiters auto-close, P17)
     dispatchRpl(s, "ENTER");
     expect(s.error).toBe("Syntax Error");
-    expect(s.entry).toBe("« 1 +");
+    expect(s.entry).toBe("1 ) 2");
   });
 
   it("DEL backspaces the line; ON clears it", () => {

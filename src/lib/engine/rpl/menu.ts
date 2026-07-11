@@ -27,6 +27,21 @@ export const RPL_MENUS: Record<string, string[]> = {
   SOLVE: ["STEQ", "RCEQ", "SOLVR", "ISOL", "QUAD", "SHOW", "ROOT"],
   // labels render; execution defers to the P14 CAS (delivery note)
   ALGEBRA: ["COLCT", "EXPAN", "SIZE", "FORM", "OBSUB", "EXSUB", "TAYLR", "ISOL", "QUAD", "SHOW", "OBGET", "EXGET"],
+  // ---- 48-series menus (P17) — labels naming another roster OPEN it ----------
+  MTH: ["PARTS", "PROB", "HYP", "MATR", "VECTR", "BASE"],
+  PARTS: ["ABS", "SIGN", "IP", "FP", "FLOOR", "CEIL", "RND", "MANT", "XPON", "MAX", "MIN", "MOD", "%T", "%CH"],
+  PROB: ["COMB", "PERM", "!", "RAND", "RDZ", "UTPC", "UTPF", "UTPN", "UTPT"],
+  HYP: ["SINH", "ASINH", "COSH", "ACOSH", "TANH", "ATANH", "EXPM", "LNP1"],
+  MATR: ["DET", "TRN", "INV", "RSD", "RNRM", "CNRM", "→ARRY", "ARRY→", "RDM", "CON", "IDN", "PROOT", "PEVAL"],
+  VECTR: ["→V2", "→V3", "V→", "CROSS", "DOT", "ABS"],
+  BASE: ["HEX", "DEC", "OCT", "BIN", "STWS", "RCWS", "R→B", "B→R"],
+  PRG: ["STACK", "OBJ", "DSPL", "CTRL", "BRANCH", "TEST"],
+  OBJ: ["→STR", "STR→", "→LIST", "LIST→", "→ARRY", "ARRY→", "OBJ→", "TYPE", "→Q"],
+  DSPL: ["PIXON", "PIXOFF", "LINE", "BOX", "→GROB", "PVIEW", "CLLCD", "DISP", "→LCD", "LCD→"],
+  IO: ["SEND", "RECV", "SERVER", "KGET", "FINISH"],
+  LIBRARY: ["PORTS", "ATTACH", "DETACH"],
+  TIME48: ["DATE", "TIME", "DDAYS", "TSTR", "→DATE", "→TIME"],
+  PLOTP: ["STEQ", "RCEQ", "PTYPE", "DRAW", "ERASE", "PVIEW"],
 };
 
 /** Every command the static rosters mention — the CATALOG's inventory. */
