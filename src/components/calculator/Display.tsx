@@ -162,7 +162,12 @@ export function Display({
   const force = userForce ?? defaultMode ?? null;
   // dot-matrix glass: the RPL machines AND the menu-driven/modern RPN line
   // (42S/35s/Prime) — segment digits belong to the LED/LCD-digit eras
-  const num = isRpl || family === "pioneer" ? dotNum : segNum;
+  const isDot = isRpl || family === "pioneer";
+  const num = isDot ? dotNum : segNum;
+  // the primary number: dot displays get the big, vertically-stretched HERO
+  // treatment (.lcd-dot-hero); segment displays keep their size tokens
+  const heroValue = isDot ? "lcd-dot-hero" : "text-hp-lcd-value";
+  const heroX = isDot ? "lcd-dot-hero" : "text-hp-lcd-hero";
 
   const lineValue =
     s.prefix === "alpha" && !isRpl
@@ -216,10 +221,10 @@ export function Display({
         <div
           role="status"
           aria-label="Display"
-          className="flex items-center justify-end"
+          className="flex flex-1 items-center justify-end"
           style={{ minBlockSize: "var(--calc-lcd-line-h)" }}
         >
-          <span className={cn(num, "text-hp-lcd-value")}>{lineValue}</span>
+          <span className={cn(num, heroValue)}>{lineValue}</span>
         </div>
         {showStack !== false && echo && (
           // RPN echo is `lcd-stack`: hidden when a paper stack is in-plane
@@ -306,7 +311,7 @@ export function Display({
               <span className="font-mono text-hp-lcd-reg font-bold tracking-[0.1em] text-hp-display-fg opacity-70">
                 X
               </span>
-              <span className={cn(num, "text-hp-lcd-hero")}>
+              <span className={cn(num, heroX)}>
                 {s.entry != null ? s.entry : fmt(s.X, s.dec)}
               </span>
             </div>
@@ -397,16 +402,16 @@ function RplStack({
             aria-label={l.lvl === 1 ? "Stack level 1" : undefined}
             className="flex items-baseline gap-2.5 border-t border-black/10 py-[3px]"
           >
-            <span className="min-w-[20px] font-mono text-hp-lcd-reg text-hp-display-dim">
+            <span className="min-w-[20px] font-mono text-hp-lcd-stack text-hp-display-dim">
               {l.lvl}:
             </span>
-            <span className={cn("flex-1 text-right text-hp-lcd-stack", dotNum)}>{l.val}</span>
+            <span className={cn("flex-1 text-right", dotNum, "lcd-dot-line")}>{l.val}</span>
           </div>
         ))
       )}
       <div className="mt-1.5 flex items-center gap-1.5 border-t-2 border-hp-display-border pt-1.5">
-        <span className="font-mono text-hp-lcd-reg text-hp-display-dim">⊳</span>
-        <span className={cn("flex-1 text-hp-lcd-stack", dotNum)}>{entry ?? ""}</span>
+        <span className="font-mono text-hp-lcd-stack text-hp-display-dim">⊳</span>
+        <span className={cn("flex-1 text-right", dotNum, "lcd-dot-line")}>{entry ?? ""}</span>
       </div>
       {menu && <MenuRow menu={menu} />}
     </div>

@@ -163,6 +163,12 @@
   --hp-lcd-pad: 1rem;
   --text-hp-lcd-hero: 30px;
   --text-hp-lcd-value: 32px;
+  /* dot-matrix primary number (Silkscreen) — big base, then scaleY(1.55) in
+     .lcd-dot-hero makes each glyph ~2:1 tall like the real matrix LCDs */
+  --text-hp-lcd-dot-hero: 44px;
+  /* dot-matrix RPL stack rows (28/48/49/50): smaller than the single-number
+     hero but still large + tall, since several levels stack */
+  --text-hp-lcd-dot-line: 26px;
   --text-hp-lcd-stack: 17px;
   --text-hp-lcd-annun: 9.5px;
   --text-hp-lcd-reg: 10px;
@@ -658,18 +664,29 @@
     display: flex;
   }
 
-  /* ── Dot-matrix HERO (§5) — the Silkscreen pixel font renders visually
-     smaller than the DSEG7 segment font at the same px, so on matrix-display
-     machines (RPL + pioneer: 42S/35s/Prime) the PRIMARY number is scaled up so
-     it stays the display's hero. Only the main value/hero spans grow; the
-     stack echo, registers and annunciators keep their token sizes. */
-  .lcd-panel .font-lcd-dot.text-hp-lcd-value {
-    font-size: calc(var(--text-hp-lcd-value) * 1.34);
-    line-height: 1.05;
+  /* ── Dot-matrix HERO (§5) — the Silkscreen pixel face renders small and
+     SQUAT, so on matrix-display machines (RPL + pioneer: 28C/28S/42S/35s/Prime)
+     the primary number gets its own hero treatment: a big size AND a vertical
+     stretch so each glyph stands ~2:1 tall like the real dot-matrix LCDs, and
+     it fills the glass instead of sitting tiny beside the annunciators. This is
+     a dedicated class (NOT the text-hp-lcd-* utilities) so it isn't overridden
+     by the utilities layer. Stack echo / registers keep their token sizes. */
+  .lcd-dot-hero {
+    display: inline-block;
+    font-size: var(--text-hp-lcd-dot-hero);
+    line-height: 1;
+    letter-spacing: 0.04em;
+    transform: scaleY(1.55);
+    transform-origin: right center;
   }
-  .lcd-panel .font-lcd-dot.text-hp-lcd-hero {
-    font-size: calc(var(--text-hp-lcd-hero) * 1.34);
-    line-height: 1.05;
+  /* RPL stack rows — same tall pixel look, one size down (many levels stack) */
+  .lcd-dot-line {
+    display: inline-block;
+    font-size: var(--text-hp-lcd-dot-line);
+    line-height: 1;
+    letter-spacing: 0.03em;
+    transform: scaleY(1.5);
+    transform-origin: right center;
   }
 
   /* ══ Page templates v2 (§14.2) — topbar / sidebar / MACHINE / aux ══════════
