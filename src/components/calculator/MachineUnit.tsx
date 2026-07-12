@@ -31,6 +31,9 @@ export interface MachineUnitProps {
   lcd: React.ReactNode;
   /** paper aux (tape + notes) for the side variant's below-LCD bay (§14.3) */
   paper?: React.ReactNode;
+  /** desktop PRINTER (HP-97): the paper-tape strip that shares the top deck
+   * with the compact display — present only for printer models */
+  printer?: React.ReactNode;
 }
 
 /** CSSProperties + the per-model shift-palette vars (§14 — RPL siblings).
@@ -54,7 +57,8 @@ type MachineStyle = React.CSSProperties &
  * var(--hp-shift-ls-sx-text). Keeps the per-model override to one source. */
 const textVar = (keyVar: string): string => keyVar.replace(/\)\s*$/, "-text)");
 
-export function MachineUnit({ model, rpn, rpl, lcd, paper }: MachineUnitProps) {
+export function MachineUnit({ model, rpn, rpl, lcd, paper, printer }: MachineUnitProps) {
+  const hasPrinter = Boolean(model.printer && printer);
   const badgeName = nameplateModel(model.name);
   // Re-theme every ls/rs surface inside the bezel (keys, legends, gradients)
   // by overriding the colour tokens at the machine root — the 48SX prints
@@ -74,6 +78,7 @@ export function MachineUnit({ model, rpn, rpl, lcd, paper }: MachineUnitProps) {
     <div
       data-slot="machine"
       data-family={model.family}
+      data-deck={hasPrinter ? "printer" : undefined}
       style={style}
       className={cn(
         // machine plane (§13.1): the elevated instrument under warm light
@@ -122,6 +127,13 @@ export function MachineUnit({ model, rpn, rpl, lcd, paper }: MachineUnitProps) {
       <div data-slot="machine-lcd" className="machine-lcd">
         {lcd}
       </div>
+
+      {/* desktop deck: the printer paper-tape shares the top row with the LCD */}
+      {hasPrinter && (
+        <div data-slot="machine-printer" className="machine-printer">
+          {printer}
+        </div>
+      )}
 
       {/* paper bay — visible only in the side variant (§14.3) */}
       <div data-slot="machine-aux" className="machine-aux">

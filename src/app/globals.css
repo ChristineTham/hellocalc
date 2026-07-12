@@ -464,6 +464,27 @@
     grid-template-areas: "lcd" "kbd" "np";
     grid-template-rows: minmax(var(--calc-lcd-line-h), 1fr) auto auto;
   }
+  /* ── Desktop DECK (HP-97 printer) — the top row is a short band shared by the
+     compact display (LEFT) and the printer paper-tape (RIGHT); the keyboard
+     spans below, nameplate last. The smaller LCD cap keeps the band short so
+     the @container/lcd query drops the glass to its single-line state, and the
+     keyboard dominates like the real desk unit. */
+  .machine[data-deck="printer"] {
+    --calc-machine-lcd-cap: 9rem;
+    grid-template-areas:
+      "lcd printer"
+      "kbd kbd"
+      "np  np";
+    grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+    grid-template-rows: minmax(var(--calc-lcd-line-h), auto) auto auto;
+    column-gap: var(--calc-machine-gap);
+  }
+  .machine-printer {
+    grid-area: printer;
+    display: flex;
+    min-inline-size: 0;
+    min-block-size: 0;
+  }
   .machine-lcd {
     grid-area: lcd;
     container: lcd / size;

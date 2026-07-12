@@ -90,6 +90,9 @@ export interface ModelBase {
   shift?: { ls: string; rs: string; lsFg?: string; rsFg?: string };
   /** Per-model glass proportions (e.g. the 50g's 131×80 vs the 48's 131×64). */
   lcdAspect?: string;
+  /** Desktop PRINTER models (HP-97): render the top as a deck — compact
+   * display LEFT, printer paper-tape RIGHT, keyboard below (§14 desktop deck). */
+  printer?: boolean;
 }
 export type Model =
   | (ModelBase & { family: "voyager"; keys: VoyagerKey[] })
@@ -366,7 +369,7 @@ export const MODELS: Record<string, Model> = {
   "HP-65":  { id: "HP-65",  name: "HP-65",  family: "classic", sub: "RPN · MAG CARD",   angle: true,  geometry: GEOM["HP-65"],  rows: HP65_ROWS },
   "HP-25":  { id: "HP-25",  name: "HP-25",  family: "classic", sub: "RPN · PROGRAM",    angle: true,  geometry: GEOM["HP-25"],  rows: HP25_ROWS },
   "HP-67":  { id: "HP-67",  name: "HP-67",  family: "classic", sub: "RPN · MAG CARD",   angle: true,  geometry: GEOM["HP-67"],  rows: HP67_ROWS },
-  "HP-97":  { id: "HP-97",  name: "HP-97",  family: "classic", sub: "RPN · PRINTER",  angle: true, geometry: GEOM["HP-97"],  rows: HP97_ROWS },
+  "HP-97":  { id: "HP-97",  name: "HP-97",  family: "classic", sub: "RPN · PRINTER",  angle: true, geometry: GEOM["HP-97"],  rows: HP97_ROWS, printer: true },
   "HP-41C-CV": { id: "HP-41C-CV", name: "HP-41C/CV", family: "hp41", sub: "RPN · ALPHA", angle: true, geometry: GEOM["HP-41"], rows: HP41_ROWS },
   "HP-41CX":   { id: "HP-41CX",   name: "HP-41CX",   family: "hp41", sub: "RPN · ALPHA · TIME", angle: true, geometry: GEOM["HP-41"], rows: HP41_ROWS },
   "HP-11C": { id: "HP-11C", name: "HP-11C", family: "voyager", sub: "RPN · SCIENTIFIC", angle: true,  geometry: GEOM["HP-11C"], keys: GENERATED_VOYAGER["HP-11C"] },

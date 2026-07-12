@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CalcShell } from "@/components/calculator/CalcShell";
 import { MachineUnit } from "@/components/calculator/MachineUnit";
+import { Printer } from "@/components/calculator/Printer";
 import { Display } from "@/components/calculator/Display";
 import { AuxPanel } from "@/components/calculator/AuxPanel";
 import { HistoryTape, StackNote, VarsNote } from "@/components/calculator/PaperAux";
@@ -213,6 +214,8 @@ export default function Home() {
                 variant="bay"
               />
             }
+            // the HP-97 desktop printer shares the top deck with the display
+            printer={model.printer ? <Printer hist={active.state.hist} /> : undefined}
           />
           )
         }
