@@ -54,6 +54,8 @@ export function PlotPanel({ plot }: { plot: PlotSpec }) {
     <div
       data-slot="plot-panel"
       ref={ref}
+      role="img"
+      aria-label={plot.src ? `Plot of ${plot.src}` : "Plot"}
       className="w-full overflow-hidden rounded-md bg-white/85 [&_svg]:max-w-full"
     />
   );

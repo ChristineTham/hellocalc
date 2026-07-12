@@ -127,7 +127,16 @@ export function RplKeyboard({
           return (
             <ButtonPrimitive
               key={`${ri}-${ki}`}
-              aria-label={k.p || (k.kind === "soft" ? "menu" : "key")}
+              aria-label={
+                k.p ||
+                (k.kind === "soft"
+                  ? `menu ${(softIndex.get(k) ?? 0) + 1}${
+                      menuLabels?.[softIndex.get(k) ?? 0]
+                        ? `: ${menuLabels[softIndex.get(k) ?? 0]}`
+                        : ""
+                    }`
+                  : "key")
+              }
               data-kind={k.kind}
               onClick={() => handle(k)}
               style={{ gridColumn: `span ${spanCols} / span ${spanCols}` }}

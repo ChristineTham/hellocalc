@@ -48,11 +48,20 @@ export function CalcShell({ model, topbar, machine, aux, sidebar }: CalcShellPro
       data-machine={placement?.machine}
       style={style}
     >
+      {/* keyboard users jump straight past the chrome to the machine (a11y) */}
+      <a
+        href="#machine"
+        className="sr-only z-50 rounded-lg border border-border bg-card px-3 py-2 text-sm font-semibold text-foreground focus:not-sr-only focus:absolute focus:top-2 focus:left-2"
+      >
+        Skip to calculator
+      </a>
       <div data-region="topbar">{topbar}</div>
       <aside data-region="sidebar" aria-label="Navigation">
         {sidebar}
       </aside>
-      <div data-region="machine">{machine}</div>
+      <div data-region="machine" id="machine" tabIndex={-1}>
+        {machine}
+      </div>
       <div data-region="aux">{aux}</div>
     </main>
   );

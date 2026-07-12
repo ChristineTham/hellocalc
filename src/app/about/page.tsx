@@ -111,7 +111,8 @@ export default function AboutPage() {
       <main className="mx-auto max-w-3xl px-5 py-10 sm:py-14">
         {/* hero */}
         <section className="mb-14">
-          <span className="inline-flex items-center gap-2 rounded-full border border-hc-pink/40 bg-hc-pink/10 px-3 py-1 font-mono text-[11px] font-semibold tracking-[0.08em] text-hc-pink">
+          {/* pink stays decorative (dot/border); the words use foreground for contrast */}
+          <span className="inline-flex items-center gap-2 rounded-full border border-hc-pink/40 bg-hc-pink/10 px-3 py-1 font-mono text-[11px] font-semibold tracking-[0.08em] text-foreground">
             <span className="size-1.5 rounded-full bg-hc-pink" />
             v1.0 · all 23 build phases complete
           </span>

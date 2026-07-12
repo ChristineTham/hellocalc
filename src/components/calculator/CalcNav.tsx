@@ -30,7 +30,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 function Soon() {
   return (
-    <span className="ml-auto font-mono text-[9.5px] tracking-[0.14em] text-muted-foreground/70 uppercase">
+    <span className="ml-auto font-mono text-[9.5px] tracking-[0.14em] text-muted-foreground uppercase">
       soon
     </span>
   );

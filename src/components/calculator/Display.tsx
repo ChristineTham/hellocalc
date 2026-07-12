@@ -133,7 +133,11 @@ function AnnunRow({
       {showAngle && s.ang && <Annunciator label={s.ang} hot />}
       <Annunciator label={isRpl ? "RPL" : "RPN"} hot />
       {family === "voyager" && <Annunciator label={s.beg ? "BEG" : "END"} hot />}
-      {s.err && <Annunciator label="Error" hot />}
+      {s.err && (
+        <span role="status">
+          <Annunciator label="Error" hot />
+        </span>
+      )}
       {toggle}
     </div>
   );
@@ -210,6 +214,8 @@ export function Display({
           }
         />
         <div
+          role="status"
+          aria-label="Display"
           className="flex items-center justify-end"
           style={{ minBlockSize: "var(--calc-lcd-line-h)" }}
         >
@@ -296,7 +302,7 @@ export function Display({
             <StackRow label="Z" value={fmt(s.Z, s.dec)} muted />
             <StackRow label="Y" value={fmt(s.Y, s.dec)} />
             <div className="my-[3px] h-px bg-hp-display-dim opacity-30" />
-            <div className="flex items-baseline justify-between">
+            <div role="status" aria-label="X register" className="flex items-baseline justify-between">
               <span className="font-mono text-hp-lcd-reg font-bold tracking-[0.1em] text-hp-display-fg opacity-70">
                 X
               </span>
@@ -387,6 +393,8 @@ function RplStack({
         lines.map((l) => (
           <div
             key={l.lvl}
+            role={l.lvl === 1 ? "status" : undefined}
+            aria-label={l.lvl === 1 ? "Stack level 1" : undefined}
             className="flex items-baseline gap-2.5 border-t border-black/10 py-[3px]"
           >
             <span className="min-w-[20px] font-mono text-hp-lcd-reg text-hp-display-dim">

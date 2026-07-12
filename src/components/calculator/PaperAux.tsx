@@ -57,7 +57,7 @@ export function HistoryTape({
       {/* caption row — a programmable model carries its mode + step controls
           here so PRGM can be entered/left without leaving the panel */}
       <div className="mb-2 flex items-baseline justify-between gap-2">
-        <h3 className={cn(CAPTION, "mb-0")}>{recording ? "Program" : "History"}</h3>
+        <h2 className={cn(CAPTION, "mb-0")}>{recording ? "Program" : "History"}</h2>
         {programmable && (
           <div className="flex gap-1.5">
             <button
@@ -105,7 +105,7 @@ export function HistoryTape({
         <div data-slot={recording ? "prgm-note" : undefined} className={STRIP_SCROLL}>
           {recording ? (
             prgm!.steps.length === 0 ? (
-              <p className="py-3 text-center font-mono text-[11px] text-muted-foreground/70">
+              <p className="py-3 text-center font-mono text-[11px] text-muted-foreground">
                 — recording: press keys —
               </p>
             ) : (
@@ -127,7 +127,7 @@ export function HistoryTape({
               ))
             )
           ) : rows.length === 0 ? (
-            <p className="py-3 text-center font-mono text-[11px] text-muted-foreground/70">
+            <p className="py-3 text-center font-mono text-[11px] text-muted-foreground">
               — no entries yet —
             </p>
           ) : (
@@ -203,7 +203,7 @@ export function StackNote({
 
   return (
     <section data-slot="stack-note" className={className}>
-      <h3 className={CAPTION}>{isRpl ? "RPL Stack" : "RPN Stack"}</h3>
+      <h2 className={CAPTION}>{isRpl ? "RPL Stack" : "RPN Stack"}</h2>
       <div className={NOTE}>
         {rows.map((row, i) => (
           <div
@@ -251,9 +251,9 @@ export function VarsNote({
   if (family === "rpl") {
     return (
       <section data-slot="vars-note" className={className}>
-        <h3 className={CAPTION}>Variables</h3>
+        <h2 className={CAPTION}>Variables</h2>
         <div className={NOTE}>
-          <p className="py-1 text-center font-mono text-[11px] text-muted-foreground/70">
+          <p className="py-1 text-center font-mono text-[11px] text-muted-foreground">
             — none yet —
           </p>
         </div>
@@ -264,10 +264,10 @@ export function VarsNote({
     const rows = s.registers ?? [];
     return (
       <section data-slot="vars-note" className={className}>
-        <h3 className={CAPTION}>Registers</h3>
+        <h2 className={CAPTION}>Registers</h2>
         <div data-slot="regs-note" className={NOTE}>
           {rows.length === 0 ? (
-            <p className="py-1 text-center font-mono text-[11px] text-muted-foreground/70">
+            <p className="py-1 text-center font-mono text-[11px] text-muted-foreground">
               — empty —
             </p>
           ) : (
@@ -291,7 +291,7 @@ export function VarsNote({
   }
   return (
     <section data-slot="vars-note" className={className}>
-      <h3 className={CAPTION}>TVM Registers</h3>
+      <h2 className={CAPTION}>TVM Registers</h2>
       <div data-slot="tvm-strip" className={NOTE}>
         {TVM_KEYS.map((k) => (
           <div

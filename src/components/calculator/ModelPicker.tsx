@@ -91,11 +91,17 @@ export function ModelPicker({ active, onSelect }: ModelPickerProps) {
             <p className="py-10 text-center text-sm text-muted-foreground">No models found</p>
           ) : (
             groups.map((g) => (
-              <section key={g.family} role="group" aria-label={g.family} className="mb-5 last:mb-0">
+              <section key={g.family} className="mb-5 last:mb-0">
                 <h3 className="mb-2 font-mono text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
                   {g.family}
                 </h3>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {/* option roles need a listbox ancestor — one PER family, so
+                    the heading stays outside the listbox subtree */}
+                <div
+                  role="listbox"
+                  aria-label={g.family}
+                  className="grid grid-cols-2 gap-2 sm:grid-cols-3"
+                >
                   {g.models.map((m) => {
                     const avail = isAvailable(m.id);
                     const selected = m.id === active;

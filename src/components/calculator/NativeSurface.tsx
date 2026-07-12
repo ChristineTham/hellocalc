@@ -125,9 +125,9 @@ export function NativeSurface({ rpl }: { rpl: RplCalculator }) {
       {/* expression library (FR-EXP-4): save/name/recall */}
       <section data-slot="native-library" className="rounded-md border border-border bg-card/60 p-2">
         <div className="mb-1.5 flex items-center gap-2">
-          <h3 className="font-mono text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+          <h2 className="font-mono text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
             Library
-          </h3>
+          </h2>
           <input
             value={saveName}
             onChange={(e) => setSaveName(e.target.value)}
@@ -175,9 +175,9 @@ export function NativeSurface({ rpl }: { rpl: RplCalculator }) {
       {/* notebook (FR-UI-4): ordered blocks, shared scope, run-all */}
       <section data-slot="native-notebook" className="rounded-md border border-border bg-card/60 p-2">
         <div className="mb-1.5 flex items-center gap-2">
-          <h3 className="font-mono text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+          <h2 className="font-mono text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
             Notebook
-          </h3>
+          </h2>
           <button
             type="button"
             className={BTN}

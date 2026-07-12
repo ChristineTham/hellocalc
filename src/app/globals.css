@@ -171,12 +171,12 @@
   --card-foreground: #2a2823;
   --popover: #f3f0e8;
   --popover-foreground: #2a2823;
-  --primary: #a9832f; /* gold f-accent */
+  --primary: #7d5e20; /* gold f-accent — deepened to 4.7:1 on bg (a11y) */
   --primary-foreground: #fdfcf9;
   --secondary: #35619e; /* blue g-accent */
   --secondary-foreground: #fdfcf9;
   --muted: #ddd9cd;
-  --muted-foreground: #7d7869;
+  --muted-foreground: #615c4b; /* 4.7–6.2:1 across bg/card/popover/paper (a11y) */
   --accent: #ddd9cd;
   --accent-foreground: #2a2823;
   --destructive: #b23b2f;
@@ -186,8 +186,8 @@
      for interaction (focus/active), salvia echoing the LCD sage for info.
      Gold stays reserved for the brand + f-shift semantics, so chrome focus is
      terracotta, not gold. */
-  --terracotta: #bd5d47;
-  --salvia: #6d7d52;
+  --terracotta: #9d4733; /* 4.8:1 on bg, 5.8:1 on paper (a11y) */
+  --salvia: #5a6a40; /* 4.6:1 on bg, 5.5:1 on paper (a11y) */
   --shadow-warm: rgb(58 48 35 / 0.35); /* warm brown-black — sunlight, not fluorescent */
   /* Paper plane (§14.3): the printing-calculator tape + notebook notes.
      Warmer and lighter than the desk so it reads as paper resting on it. */
@@ -520,8 +520,12 @@
     inset: -0.125rem;
   }
   @media (prefers-reduced-motion: reduce) {
-    .machine-kbd button {
-      transition: none;
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
     }
   }
 
