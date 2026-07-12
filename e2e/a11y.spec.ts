@@ -9,13 +9,19 @@ import AxeBuilder from "@axe-core/playwright";
 
 async function selectModel(page: Page, label: string) {
   const option = page.getByRole("option", { name: label, exact: true });
-  try {
-    await option.click({ timeout: 2000 });
-  } catch {
-    await page.getByRole("button", { name: "Open navigation" }).click();
+  if (await option.isVisible().catch(() => false)) {
     await option.click();
-    await expect(page.getByRole("dialog", { name: "Navigation" })).toHaveCount(0);
+  } else {
+    // groups collapse by default — reveal the target via the tree's search
+    let search = page.getByRole("textbox", { name: "Search models" });
+    if (!(await search.isVisible().catch(() => false))) {
+      await page.getByRole("button", { name: "Open navigation" }).click();
+      search = page.getByRole("textbox", { name: "Search models" });
+    }
+    await search.fill(label);
+    await option.click();
   }
+  await expect(page.getByRole("dialog", { name: "Navigation" })).toHaveCount(0);
 }
 
 const axe = (page: Page) =>

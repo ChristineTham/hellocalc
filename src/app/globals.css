@@ -658,6 +658,20 @@
     display: flex;
   }
 
+  /* ── Dot-matrix HERO (§5) — the Silkscreen pixel font renders visually
+     smaller than the DSEG7 segment font at the same px, so on matrix-display
+     machines (RPL + pioneer: 42S/35s/Prime) the PRIMARY number is scaled up so
+     it stays the display's hero. Only the main value/hero spans grow; the
+     stack echo, registers and annunciators keep their token sizes. */
+  .lcd-panel .font-lcd-dot.text-hp-lcd-value {
+    font-size: calc(var(--text-hp-lcd-value) * 1.34);
+    line-height: 1.05;
+  }
+  .lcd-panel .font-lcd-dot.text-hp-lcd-hero {
+    font-size: calc(var(--text-hp-lcd-hero) * 1.34);
+    line-height: 1.05;
+  }
+
   /* ══ Page templates v2 (§14.2) — topbar / sidebar / MACHINE / aux ══════════
      The machine is one integrated region; no template separates the LCD from
      the keyboard. Media values stay in lock-step with breakpoints.ts (§10). */

@@ -12,7 +12,7 @@ import { Check, ChevronDown, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { MODELS } from "./models";
-import { MODEL_CATALOG } from "./modelCatalog";
+import { MODEL_CATALOG, CATALOG_INDEX } from "./modelCatalog";
 
 const isAvailable = (id: string) => id in MODELS || id === "native"; // P23: native is live
 
@@ -24,8 +24,11 @@ export interface ModelTreeProps {
 
 export function ModelTree({ active, onSelect, className }: ModelTreeProps) {
   const [query, setQuery] = useState("");
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  // groups collapse by DEFAULT; only the active model's class starts open.
+  // `override` holds explicit user toggles (undefined ⇒ use the default).
+  const [override, setOverride] = useState<Record<string, boolean>>({});
   const q = query.trim().toLowerCase();
+  const activeFamily = CATALOG_INDEX[active]?.family;
 
   const groups = useMemo(
     () =>
@@ -64,15 +67,17 @@ export function ModelTree({ active, onSelect, className }: ModelTreeProps) {
           <p className="px-1 py-6 text-center text-[13px] text-muted-foreground">No models found</p>
         ) : (
           groups.map((g) => {
-            // searching force-expands; otherwise honour the per-group toggle
-            const open = q !== "" || !collapsed[g.family];
+            const openByDefault = g.family === activeFamily;
+            // searching force-expands; otherwise honour the user's toggle,
+            // falling back to the collapsed-unless-active default
+            const open = q !== "" || (override[g.family] ?? openByDefault);
             return (
               <div key={g.family} className="mb-0.5">
                 <button
                   type="button"
                   aria-expanded={open}
                   onClick={() =>
-                    setCollapsed((c) => ({ ...c, [g.family]: !c[g.family] }))
+                    setOverride((o) => ({ ...o, [g.family]: !(o[g.family] ?? openByDefault) }))
                   }
                   className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 font-mono text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase transition-colors hover:bg-muted"
                 >

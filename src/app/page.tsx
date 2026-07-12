@@ -21,7 +21,9 @@ import { createRpl } from "@/lib/engine/rpl";
 import { downloadStateFile, localStorageAdapter, readStateFile } from "@/lib/storage";
 
 export default function Home() {
-  const [modelId, setModelId] = useState<string>("HP-12C");
+  // default to the HP-35s — the most modern RPN scientific that keeps the
+  // classic keyboard-and-LCD look
+  const [modelId, setModelId] = useState<string>("HP-35s");
   const isNative = modelId === "native";
   // native mode (P23) borrows the 48G's layout class for the shell templates;
   // the machine region renders the NativeSurface instead of a faceplate

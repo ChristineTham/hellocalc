@@ -1,21 +1,24 @@
 import { test, expect, type Page } from "@playwright/test";
 
-/** Select a model from the nav's model tree (inline sidebar at lg+, hamburger
-    sheet below lg). The inline sidebar is JS-rendered on the lg media query, so
-    after a resize it may take a tick to appear — click it directly (auto-wait)
-    and only fall back to the hamburger sheet when it never shows. */
+/** Select a model from the nav's model tree. Groups collapse by default, so a
+    target outside the active class is revealed by typing its label into the
+    tree's search box (which force-expands the matches). Below lg the tree lives
+    in the hamburger sheet, so open that first when no search box is on screen. */
 async function selectModel(page: Page, label: string) {
   const option = page.getByRole("option", { name: label, exact: true });
-  try {
-    await option.click({ timeout: 2000 });
-  } catch {
-    await page.getByRole("button", { name: "Open navigation" }).click();
+  if (await option.isVisible().catch(() => false)) {
     await option.click();
-    // wait for the sheet to fully dismiss before returning — a caller that
-    // resizes immediately can otherwise interrupt the close and strand the
-    // sheet's tree, duplicating every option
-    await expect(page.getByRole("dialog", { name: "Navigation" })).toHaveCount(0);
+  } else {
+    let search = page.getByRole("textbox", { name: "Search models" });
+    if (!(await search.isVisible().catch(() => false))) {
+      await page.getByRole("button", { name: "Open navigation" }).click();
+      search = page.getByRole("textbox", { name: "Search models" });
+    }
+    await search.fill(label);
+    await option.click();
   }
+  // no nav sheet should be left open (it dismisses on pick below lg)
+  await expect(page.getByRole("dialog", { name: "Navigation" })).toHaveCount(0);
 }
 
 test.describe("hellocalc — smoke", () => {
@@ -23,9 +26,10 @@ test.describe("hellocalc — smoke", () => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Hello Calc" })).toBeVisible();
     // the topbar picker names the active machine; the sidebar tree marks it too
+    // (HP-35s is the default — its Modern class starts expanded)
     await expect(page.getByRole("button", { name: "Select calculator model" })).toBeVisible();
     await expect(
-      page.getByRole("option", { name: "HP-12C", exact: true }),
+      page.getByRole("option", { name: "HP-35s", exact: true }),
     ).toHaveAttribute("aria-selected", "true");
     await expect(page.getByRole("button", { name: "ENTER", exact: true })).toBeVisible();
   });
@@ -571,18 +575,23 @@ test.describe("hellocalc — smoke", () => {
     );
   });
 
-  test("sidebar model tree groups models, searches — the whole fleet is enabled", async ({
-    page,
-  }) => {
+  test("sidebar model tree: collapsed by default, expands, searches", async ({ page }) => {
     await page.goto("/"); // desktop default (lg+) → sidebar tree is inline
     const sidebar = page.locator('[data-region="sidebar"]');
-    await expect(sidebar.getByRole("listbox", { name: "Voyager" })).toBeVisible();
-    // P23: the last entry is LIVE — nothing is disabled any more
-    await expect(sidebar.getByRole("option", { name: "Native mode", exact: true })).toBeEnabled();
-    // search narrows the grouped tree
+    // groups collapse by default — only the active model's class (HP-35s →
+    // Modern) starts open; other classes hide their options
+    await expect(sidebar.getByRole("option", { name: "HP-35s", exact: true })).toBeVisible();
+    await expect(sidebar.getByRole("option", { name: "HP-12C", exact: true })).toHaveCount(0);
+    // clicking a class header expands it
+    await sidebar.getByRole("button", { name: /Voyager/ }).click();
+    await expect(sidebar.getByRole("option", { name: "HP-12C", exact: true })).toBeVisible();
+    // search force-expands the whole tree and narrows it
     await sidebar.getByRole("textbox", { name: "Search models" }).fill("48");
     await expect(sidebar.getByRole("option", { name: "HP-48G", exact: true })).toBeVisible();
-    await expect(sidebar.getByRole("option", { name: "HP-35", exact: true })).toHaveCount(0);
+    await expect(sidebar.getByRole("option", { name: "HP-35s", exact: true })).toHaveCount(0);
+    // P23: the whole fleet is enabled — native mode is live
+    await sidebar.getByRole("textbox", { name: "Search models" }).fill("native");
+    await expect(sidebar.getByRole("option", { name: "Native mode", exact: true })).toBeEnabled();
   });
 
   test("switches models, retaining engine state", async ({ page }) => {
@@ -717,7 +726,8 @@ test.describe("hellocalc — smoke", () => {
   test("width-tier boundaries: JS labels match the CSS-active template (§10 parity)", async ({
     page,
   }) => {
-    await page.goto("/"); // HP-12C (landscape) active
+    await page.goto("/");
+    await selectModel(page, "HP-12C"); // landscape aspect drives the tier templates
     const cases: ReadonlyArray<readonly [number, string]> = [
       [639, "stack"],
       [640, "stack"],
@@ -850,6 +860,7 @@ test.describe("hellocalc — smoke", () => {
   }) => {
     await page.setViewportSize({ width: 375, height: 700 });
     await page.goto("/");
+    await selectModel(page, "HP-12C"); // a landscape model → the LCD slot goes mini
     // no horizontal page overflow
     const noOverflow = await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth + 1,
@@ -893,8 +904,9 @@ test.describe("hellocalc — smoke", () => {
     const nav = page.getByRole("dialog", { name: "Navigation" });
     await expect(nav).toBeVisible();
     await expect(nav).toHaveAttribute("data-side", "left");
-    // the model tree + Settings + About all live in the nav
-    await expect(nav.getByRole("listbox", { name: "Voyager" })).toBeVisible();
+    // the model tree + Settings + About all live in the nav (the active
+    // model's class — Modern — is expanded by default)
+    await expect(nav.getByRole("listbox", { name: "Modern" })).toBeVisible();
     await expect(nav.getByRole("button", { name: "Settings" })).toBeVisible();
     await expect(nav.getByRole("link", { name: "About" })).toBeVisible();
     await page.keyboard.press("Escape");
@@ -941,11 +953,12 @@ test.describe("hellocalc — smoke", () => {
     await expect(page.getByText("HP-35", { exact: true })).toBeVisible();
 
     await page.getByRole("link", { name: "Back to calculator" }).click();
-    await expect(page.getByRole("option", { name: "HP-12C", exact: true })).toBeVisible();
+    await expect(page.getByRole("option", { name: "HP-35s", exact: true })).toBeVisible();
   });
 
   test("KaTeX hero renders a .katex node in the mini LCD (AGENTS §6)", async ({ page }) => {
-    await page.goto("/"); // desktop default: lcd slot tall → mini
+    await page.goto("/");
+    await selectModel(page, "HP-12C"); // landscape → desktop lcd slot tall → mini
     await expect(page.locator('[data-lcd-mode="mini"]')).toBeVisible();
     await page.getByRole("button", { name: "2", exact: true }).click();
     await page.getByRole("button", { name: "ENTER", exact: true }).click();
