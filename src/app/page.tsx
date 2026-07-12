@@ -5,7 +5,7 @@ import { CalcShell } from "@/components/calculator/CalcShell";
 import { MachineUnit } from "@/components/calculator/MachineUnit";
 import { Display } from "@/components/calculator/Display";
 import { AuxPanel } from "@/components/calculator/AuxPanel";
-import { HistoryTape, ProgramNote, StackNote, VarsNote } from "@/components/calculator/PaperAux";
+import { HistoryTape, StackNote, VarsNote } from "@/components/calculator/PaperAux";
 import { Topbar } from "@/components/calculator/Topbar";
 import { CalcNav } from "@/components/calculator/CalcNav";
 import { CheatSheet } from "@/components/calculator/CheatSheet";
@@ -142,13 +142,19 @@ export default function Home() {
                 model.family !== "rpl" ? (
                   <StackNote state={active.state} family={model.family} fmt={active.fmt} />
                 ) : undefined,
-              tape: <HistoryTape hist={active.state.hist} onRecall={active.recall} />,
+              // the tape doubles as the program editor in PRGM mode (P3): a
+              // programmable model passes its prgm state + press() dispatch
+              tape: (
+                <HistoryTape
+                  hist={active.state.hist}
+                  prgm={showProgram ? active.state.prgm : undefined}
+                  onKey={active.press}
+                  onRecall={active.recall}
+                />
+              ),
               vars: (
                 <VarsNote state={active.state} family={model.family} tvm={showRegisters} />
               ),
-              prgm: showProgram ? (
-                <ProgramNote state={active.state} onKey={active.press} />
-              ) : undefined,
             }}
           />
         }

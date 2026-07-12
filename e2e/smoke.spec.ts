@@ -104,15 +104,19 @@ test.describe("hellocalc — smoke", () => {
     const key = (name: string) =>
       page.getByRole("button", { name, exact: true }).click();
 
-    // the program note is on the desk for programmable models
-    const note = page.locator('[data-slot="prgm-note"]:visible').first();
+    // the history tape doubles as the program editor for programmable models;
+    // its caption row carries the mode + step controls in RUN mode too
+    const note = page.locator('[data-slot="history-tape"]:visible').first();
     await expect(note).toBeVisible();
 
-    // flip to W/PRGM (the 65's slide switch) and key: LBL A 2 × RTN
+    // flip to W/PRGM (the 65's slide switch) and key: LBL A 2 × RTN — the
+    // panel now prints the PROGRAM being edited
     await note.getByRole("button", { name: "Switch to W/PRGM mode" }).click();
+    await expect(note).toContainText("Program");
     for (const seq of ["LBL", "A", "2", "×", "RTN"]) await key(seq);
     await expect(note).toContainText("LBL");
     await note.getByRole("button", { name: "Switch to RUN mode" }).click();
+    await expect(note).toContainText("History");
 
     // 6, then the A user key runs the program → 12.00
     await key("6");
