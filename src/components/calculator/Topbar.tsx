@@ -1,12 +1,12 @@
 // src/components/calculator/Topbar.tsx
 // The always-present top bar (docs/responsive-layout.md §14.2, §12.4):
 // hamburger top-LEFT below lg (mirrors the persistent sidebar's position;
-// opens the nav as a LEFT sheet), brand, the current-model nameplate, then —
-// right — INDIVIDUAL toggles for each paper component (§14.3: tape / stack /
-// vars, below md where the aux region is sheet-hosted). Model SELECTION now
-// lives in the nav's model tree (sidebar at lg+, sheet below), so the topbar
-// only NAMES the active machine. Sheets are uncontrolled Base UI dialogs:
-// Escape + backdrop dismiss for free.
+// opens the nav as a LEFT sheet), brand, the model PICKER (its trigger names
+// the active machine and opens the gallery dialog — a second way to switch,
+// alongside the sidebar's model tree), then — right — INDIVIDUAL toggles for
+// each paper component (§14.3: tape / stack / vars, below md where the aux
+// region is sheet-hosted). Sheets are uncontrolled Base UI dialogs: Escape +
+// backdrop dismiss for free.
 "use client";
 
 import { useState } from "react";
@@ -18,10 +18,12 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { HCBadge } from "./HCBadge";
-import { CATALOG_INDEX } from "./modelCatalog";
+import { ModelPicker } from "./ModelPicker";
 
 export interface TopbarProps {
   activeModel: string;
+  /** switch the active model from the topbar gallery (mirrors the sidebar tree) */
+  onSelectModel: (id: string) => void;
   /** the model's mode tags (RPN, FINANCIAL…) — worn as topbar badges so the
       machine's nameplate stays authentic (§14 rev 7) */
   tags?: string[];
@@ -73,8 +75,7 @@ function PanelSheet({
   );
 }
 
-export function Topbar({ activeModel, tags, nav, panels, tools }: TopbarProps) {
-  const modelLabel = CATALOG_INDEX[activeModel]?.label ?? activeModel;
+export function Topbar({ activeModel, onSelectModel, tags, nav, panels, tools }: TopbarProps) {
   // controlled so picking a model in the mobile tree dismisses the sheet
   // (the persistent lg+ sidebar hosts the same nav and never uses this)
   const [navOpen, setNavOpen] = useState(false);
@@ -112,10 +113,11 @@ export function Topbar({ activeModel, tags, nav, panels, tools }: TopbarProps) {
         Hello Calc
       </h1>
 
-      {/* current-model nameplate — selection happens in the nav's model tree */}
-      <span className="ml-1 min-w-0 truncate rounded-lg border border-border bg-card px-2.5 py-1 text-sm font-semibold text-foreground">
-        {modelLabel}
-      </span>
+      {/* model picker — its trigger names the active machine and opens the
+          gallery dialog; the sidebar tree is the other way to switch (⌘K) */}
+      <div className="ml-1 min-w-0">
+        <ModelPicker active={activeModel} onSelect={onSelectModel} />
+      </div>
 
       {/* mode badges — the tags the nameplate used to wear (§14 rev 7) */}
       <div className="hidden min-w-0 items-center gap-1.5 pl-1 md:flex">

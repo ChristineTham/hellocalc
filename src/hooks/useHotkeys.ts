@@ -56,20 +56,14 @@ export function useHotkeys(opts: HotkeysOptions): void {
         return; // the model-picker search box etc. keep their keystrokes
       }
 
-      // ⌘K / Ctrl+K — jump to the model tree's search box (or open the nav
-      // sheet first, when the sidebar isn't inline)
+      // ⌘K / Ctrl+K — open the model picker gallery, from anywhere
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        const search = document.querySelector<HTMLInputElement>(
-          '[aria-label="Search models"]',
+        const picker = document.querySelector<HTMLElement>(
+          '[aria-label="Select calculator model"]',
         );
-        if (search && search.offsetParent !== null) {
-          search.focus();
-          search.select();
-        } else {
-          document
-            .querySelector<HTMLElement>('[aria-label="Open navigation"]')
-            ?.click();
+        if (picker) {
+          e.preventDefault();
+          picker.click();
         }
         return;
       }

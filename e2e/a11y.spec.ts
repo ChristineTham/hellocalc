@@ -80,6 +80,13 @@ for (const theme of ["light", "dark"] as const) {
     await page.keyboard.press("Escape");
     await closed(page);
 
+    // model picker gallery dialog
+    await page.getByRole("button", { name: "Select calculator model" }).click();
+    await settle(page);
+    expect(serious(await axe(page))).toEqual([]);
+    await page.keyboard.press("Escape");
+    await closed(page);
+
     // native surface (all engine chrome)
     await selectModel(page, "Native mode");
     await closed(page);

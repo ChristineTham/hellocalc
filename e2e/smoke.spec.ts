@@ -22,11 +22,25 @@ test.describe("hellocalc — smoke", () => {
   test("loads the faceplate shell", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Hello Calc" })).toBeVisible();
-    // the default machine is the selected option in the sidebar model tree
+    // the topbar picker names the active machine; the sidebar tree marks it too
+    await expect(page.getByRole("button", { name: "Select calculator model" })).toBeVisible();
     await expect(
       page.getByRole("option", { name: "HP-12C", exact: true }),
     ).toHaveAttribute("aria-selected", "true");
     await expect(page.getByRole("button", { name: "ENTER", exact: true })).toBeVisible();
+  });
+
+  test("topbar model picker opens a gallery and switches models", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Select calculator model" }).click();
+    const dialog = page.getByRole("dialog", { name: "Choose a calculator" });
+    await expect(dialog).toBeVisible();
+    // search narrows the gallery; scope option clicks to the dialog (the sidebar
+    // tree carries the same role="option" labels)
+    await dialog.getByRole("textbox", { name: "Search models" }).fill("15");
+    await dialog.getByRole("option", { name: "HP-15C", exact: true }).click();
+    await expect(dialog).toHaveCount(0); // picking closes the gallery
+    await expect(page.getByRole("button", { name: "SIN", exact: true })).toBeVisible();
   });
 
   test("performs RPN arithmetic: 2 ENTER 3 + = 5.00", async ({ page }) => {

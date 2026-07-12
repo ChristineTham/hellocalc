@@ -134,6 +134,7 @@ export default function Home() {
         topbar={
           <Topbar
             activeModel={modelId}
+            onSelectModel={setModelId}
             tags={(isNative ? "NATIVE · FULL ENGINE" : model.sub).split("·").map((t) => t.trim())}
             nav={
               <SidebarNav
