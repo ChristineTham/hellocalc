@@ -274,24 +274,28 @@ export function Display({
         />
 
         {/* KaTeX hero + LaTeX export (P14, FR-IO-3): the copy control lifts
-            the SOURCE the hero renders */}
-        <div
-          className="flex items-center gap-2 text-hp-lcd-hero text-hp-display-fg"
-          style={{ minBlockSize: "var(--calc-lcd-line-h)" }}
-        >
-          <div className="min-w-0 flex-1" dangerouslySetInnerHTML={renderLatex(s.latex)} />
-          {s.latex && (
-            <button
-              type="button"
-              aria-label="Copy LaTeX"
-              title="Copy LaTeX source"
-              onClick={() => void navigator.clipboard?.writeText(s.latex)}
-              className="shrink-0 text-hp-display-dim transition-colors hover:text-hp-display-fg"
-            >
-              <Copy className="size-3" />
-            </button>
-          )}
-        </div>
+            the SOURCE the hero renders. RPL machines show their result on the
+            stack (level 1), so this hero row would just be a tall empty gap —
+            skip it so the glass hugs the stack instead. */}
+        {!isRpl && (
+          <div
+            className="flex items-center gap-2 text-hp-lcd-hero text-hp-display-fg"
+            style={{ minBlockSize: "var(--calc-lcd-line-h)" }}
+          >
+            <div className="min-w-0 flex-1" dangerouslySetInnerHTML={renderLatex(s.latex)} />
+            {s.latex && (
+              <button
+                type="button"
+                aria-label="Copy LaTeX"
+                title="Copy LaTeX source"
+                onClick={() => void navigator.clipboard?.writeText(s.latex)}
+                className="shrink-0 text-hp-display-dim transition-colors hover:text-hp-display-fg"
+              >
+                <Copy className="size-3" />
+              </button>
+            )}
+          </div>
+        )}
 
         {/* compact stack — for RPN it is `lcd-stack` (one home: paper when
             in-plane, glass otherwise, §14.3 rev 3); the RPL glass ALWAYS
