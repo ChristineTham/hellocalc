@@ -8,8 +8,14 @@ import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
 async function selectModel(page: Page, label: string) {
-  await page.getByRole("button", { name: "Select calculator model" }).click();
-  await page.getByRole("option", { name: label, exact: true }).click();
+  const option = page.getByRole("option", { name: label, exact: true });
+  try {
+    await option.click({ timeout: 2000 });
+  } catch {
+    await page.getByRole("button", { name: "Open navigation" }).click();
+    await option.click();
+    await expect(page.getByRole("dialog", { name: "Navigation" })).toHaveCount(0);
+  }
 }
 
 const axe = (page: Page) =>
@@ -67,11 +73,12 @@ for (const theme of ["light", "dark"] as const) {
       expect(serious(await axe(page)), `faceplate ${m}`).toEqual([]);
     }
 
-    // model picker dialog
-    await page.getByRole("button", { name: "Select calculator model" }).click();
+    // settings dialog (theme control + workspace state actions)
+    await page.locator('[data-region="sidebar"]').getByRole("button", { name: "Settings" }).click();
     await settle(page);
     expect(serious(await axe(page))).toEqual([]);
     await page.keyboard.press("Escape");
+    await closed(page);
 
     // native surface (all engine chrome)
     await selectModel(page, "Native mode");
@@ -89,24 +96,32 @@ for (const theme of ["light", "dark"] as const) {
 }
 
 test("theme toggle switches, persists, and has no flash", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 900 });
   await page.goto("/");
   const isDark = () => page.evaluate(() => document.documentElement.classList.contains("dark"));
-
-  // open the sidebar nav (lg+ persistent) and pick Dark
   const sidebar = page.locator('[data-region="sidebar"]');
-  await sidebar.getByRole("radio", { name: "Dark" }).click();
+  const openSettings = async () => {
+    await sidebar.getByRole("button", { name: "Settings" }).click();
+    return page.getByRole("dialog", { name: "Settings" });
+  };
+
+  // the theme control lives in the Settings dialog now — open it and pick Dark
+  let dialog = await openSettings();
+  await dialog.getByRole("radio", { name: "Dark" }).click();
   expect(await isDark()).toBe(true);
+  await page.keyboard.press("Escape");
 
   // the choice survives a reload with the class applied before paint
   await page.reload();
   expect(await isDark()).toBe(true);
-  await expect(sidebar.getByRole("radio", { name: "Dark" })).toHaveAttribute(
+  dialog = await openSettings();
+  await expect(dialog.getByRole("radio", { name: "Dark" })).toHaveAttribute(
     "aria-checked",
     "true",
   );
 
   // back to Light
-  await sidebar.getByRole("radio", { name: "Light" }).click();
+  await dialog.getByRole("radio", { name: "Light" }).click();
   expect(await isDark()).toBe(false);
   await page.reload();
   expect(await isDark()).toBe(false);

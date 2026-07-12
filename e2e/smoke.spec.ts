@@ -1,16 +1,31 @@
 import { test, expect, type Page } from "@playwright/test";
 
-/** Select a model via the grouped model picker. */
+/** Select a model from the nav's model tree (inline sidebar at lg+, hamburger
+    sheet below lg). The inline sidebar is JS-rendered on the lg media query, so
+    after a resize it may take a tick to appear — click it directly (auto-wait)
+    and only fall back to the hamburger sheet when it never shows. */
 async function selectModel(page: Page, label: string) {
-  await page.getByRole("button", { name: "Select calculator model" }).click();
-  await page.getByRole("option", { name: label, exact: true }).click();
+  const option = page.getByRole("option", { name: label, exact: true });
+  try {
+    await option.click({ timeout: 2000 });
+  } catch {
+    await page.getByRole("button", { name: "Open navigation" }).click();
+    await option.click();
+    // wait for the sheet to fully dismiss before returning — a caller that
+    // resizes immediately can otherwise interrupt the close and strand the
+    // sheet's tree, duplicating every option
+    await expect(page.getByRole("dialog", { name: "Navigation" })).toHaveCount(0);
+  }
 }
 
 test.describe("hellocalc — smoke", () => {
   test("loads the faceplate shell", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Hello Calc" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Select calculator model" })).toBeVisible();
+    // the default machine is the selected option in the sidebar model tree
+    await expect(
+      page.getByRole("option", { name: "HP-12C", exact: true }),
+    ).toHaveAttribute("aria-selected", "true");
     await expect(page.getByRole("button", { name: "ENTER", exact: true })).toBeVisible();
   });
 
@@ -542,16 +557,18 @@ test.describe("hellocalc — smoke", () => {
     );
   });
 
-  test("model picker groups models, searches — the whole fleet is enabled", async ({ page }) => {
-    await page.goto("/");
-    await page.getByRole("button", { name: "Select calculator model" }).click();
-    await expect(page.getByText("Voyager", { exact: true })).toBeVisible();
-    // P23: the picker's last entry is LIVE — nothing is disabled any more
-    await expect(page.getByRole("option", { name: "Native mode", exact: true })).toBeEnabled();
-    // search narrows the grouped list
-    await page.getByRole("textbox", { name: "Search models" }).fill("48");
-    await expect(page.getByRole("option", { name: "HP-48G", exact: true })).toBeVisible();
-    await expect(page.getByRole("option", { name: "HP-35", exact: true })).toHaveCount(0);
+  test("sidebar model tree groups models, searches — the whole fleet is enabled", async ({
+    page,
+  }) => {
+    await page.goto("/"); // desktop default (lg+) → sidebar tree is inline
+    const sidebar = page.locator('[data-region="sidebar"]');
+    await expect(sidebar.getByRole("listbox", { name: "Voyager" })).toBeVisible();
+    // P23: the last entry is LIVE — nothing is disabled any more
+    await expect(sidebar.getByRole("option", { name: "Native mode", exact: true })).toBeEnabled();
+    // search narrows the grouped tree
+    await sidebar.getByRole("textbox", { name: "Search models" }).fill("48");
+    await expect(sidebar.getByRole("option", { name: "HP-48G", exact: true })).toBeVisible();
+    await expect(sidebar.getByRole("option", { name: "HP-35", exact: true })).toHaveCount(0);
   });
 
   test("switches models, retaining engine state", async ({ page }) => {
@@ -862,9 +879,10 @@ test.describe("hellocalc — smoke", () => {
     const nav = page.getByRole("dialog", { name: "Navigation" });
     await expect(nav).toBeVisible();
     await expect(nav).toHaveAttribute("data-side", "left");
-    // FR-STATE-4 entry points are surfaced
-    await expect(nav.getByRole("button", { name: /Import state/ })).toBeVisible();
-    await expect(nav.getByRole("button", { name: /Export state/ })).toBeVisible();
+    // the model tree + Settings + About all live in the nav
+    await expect(nav.getByRole("listbox", { name: "Voyager" })).toBeVisible();
+    await expect(nav.getByRole("button", { name: "Settings" })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "About" })).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(nav).toHaveCount(0);
 
@@ -873,8 +891,23 @@ test.describe("hellocalc — smoke", () => {
     await expect(page.getByRole("button", { name: "Open navigation" })).toBeHidden();
     const sidebar = page.locator('[data-region="sidebar"]');
     await expect(sidebar).toBeVisible();
-    await expect(sidebar.getByRole("button", { name: /Export state/ })).toBeVisible();
+    await expect(sidebar.getByRole("button", { name: "Settings" })).toBeVisible();
     await expect(sidebar.getByRole("link", { name: "About" })).toBeVisible();
+  });
+
+  test("Settings dialog carries the theme control and the FR-STATE-4 actions", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1366, height: 800 });
+    await page.goto("/");
+    const sidebar = page.locator('[data-region="sidebar"]');
+    await sidebar.getByRole("button", { name: "Settings" }).click();
+    const dialog = page.getByRole("dialog", { name: "Settings" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole("radiogroup", { name: "Theme" })).toBeVisible();
+    for (const name of ["Import state", "Export state", "Reset state"]) {
+      await expect(dialog.getByRole("button", { name: new RegExp(name) })).toBeVisible();
+    }
   });
 
   test("About: the sidebar links to a full project page describing the status", async ({
@@ -894,7 +927,7 @@ test.describe("hellocalc — smoke", () => {
     await expect(page.getByText("HP-35", { exact: true })).toBeVisible();
 
     await page.getByRole("link", { name: "Back to calculator" }).click();
-    await expect(page.getByRole("button", { name: "Select calculator model" })).toBeVisible();
+    await expect(page.getByRole("option", { name: "HP-12C", exact: true })).toBeVisible();
   });
 
   test("KaTeX hero renders a .katex node in the mini LCD (AGENTS §6)", async ({ page }) => {

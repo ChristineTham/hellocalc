@@ -7,7 +7,7 @@ import { Display } from "@/components/calculator/Display";
 import { AuxPanel } from "@/components/calculator/AuxPanel";
 import { HistoryTape, StackNote, VarsNote } from "@/components/calculator/PaperAux";
 import { Topbar } from "@/components/calculator/Topbar";
-import { CalcNav } from "@/components/calculator/CalcNav";
+import { SidebarNav } from "@/components/calculator/SidebarNav";
 import { CheatSheet } from "@/components/calculator/CheatSheet";
 import { MODELS } from "@/components/calculator/models";
 import { NativeSurface } from "@/components/calculator/NativeSurface";
@@ -134,9 +134,16 @@ export default function Home() {
         topbar={
           <Topbar
             activeModel={modelId}
-            onSelectModel={setModelId}
             tags={(isNative ? "NATIVE · FULL ENGINE" : model.sub).split("·").map((t) => t.trim())}
-            nav={<CalcNav onExport={onExport} onImportFile={onImportFile} onReset={onReset} />}
+            nav={
+              <SidebarNav
+                activeModel={modelId}
+                onSelectModel={setModelId}
+                onExport={onExport}
+                onImportFile={onImportFile}
+                onReset={onReset}
+              />
+            }
             panels={{
               // RPL glass owns its stack (§14.3 rev 3) — no paper stack panel
               stack:
@@ -164,8 +171,14 @@ export default function Home() {
         }
         sidebar={
           // persistent desk-panel nav at lg+ (§12.4; --calc-sidebar-w sizes the track)
-          <div className="flex size-full flex-col border-r border-border bg-card/50">
-            <CalcNav onExport={onExport} onImportFile={onImportFile} onReset={onReset} />
+          <div className="flex size-full flex-col border-r border-border bg-card">
+            <SidebarNav
+              activeModel={modelId}
+              onSelectModel={setModelId}
+              onExport={onExport}
+              onImportFile={onImportFile}
+              onReset={onReset}
+            />
           </div>
         }
         machine={
