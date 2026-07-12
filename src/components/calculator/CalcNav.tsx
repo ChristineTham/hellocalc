@@ -8,14 +8,9 @@
 
 import { useRef } from "react";
 import Link from "next/link";
-import {
-  Download,
-  Info,
-  RotateCcw,
-  Settings,
-  Upload,
-} from "lucide-react";
+import { Download, Info, RotateCcw, SunMoon, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const ITEM =
   "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] font-semibold text-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-45";
@@ -85,11 +80,13 @@ export function CalcNav({ className, onExport, onImportFile, onReset }: CalcNavP
       </button>
 
       <SectionLabel>App</SectionLabel>
-      <button type="button" className={ITEM} disabled>
-        <Settings className="size-4 shrink-0" />
-        Settings
-        <Soon />
-      </button>
+      <div className="flex items-center justify-between gap-2 px-2.5 py-1.5">
+        <span className="flex items-center gap-2.5 text-[13px] font-semibold text-foreground">
+          <SunMoon className="size-4 shrink-0" />
+          Theme
+        </span>
+        <ThemeToggle />
+      </div>
       <Link href="/about" className={ITEM}>
         <Info className="size-4 shrink-0" />
         About

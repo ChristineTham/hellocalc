@@ -24,10 +24,10 @@ export const calcKeyVariants = cva(
         arith: "bg-hp-op text-hp-op-fg",
         enter: "bg-hp-enter text-hp-enter-fg",
         f: "bg-hp-shift-f text-hp-shift-f-fg", // gold prefix key
-        g: "bg-hp-shift-g text-white", // blue prefix key
+        g: "bg-hp-shift-g text-hp-shift-g-fg", // blue prefix key
         h: "bg-hp-key text-hp-key-fg ring-1 ring-inset ring-hp-key-border", // black prefix key (HP-67)
-        ls: "bg-hp-shift-ls text-white", // RPL left-shift (purple)
-        rs: "bg-hp-shift-rs text-white", // RPL right-shift (green)
+        ls: "bg-hp-shift-ls text-hp-shift-ls-fg", // RPL left-shift (purple)
+        rs: "bg-hp-shift-rs text-hp-shift-rs-fg", // RPL right-shift (green)
         on: "bg-hp-key text-destructive",
         beige: "bg-hp-op text-hp-key-fg", // HP-35 digit keys
       },
@@ -74,6 +74,11 @@ export function CalcKey({
   const gHot = armed === "g" && !!g;
   const hHot = armed === "h" && !!h;
   const hot = fHot || gHot || hHot;
+  // the ENTER key face is dark in BOTH themes → its legends need light ink
+  const onDark = tone === "enter";
+  const fCls = onDark ? "text-hp-enter-fg" : "text-hp-shift-f-text";
+  const gCls = onDark ? "text-hp-enter-fg" : "text-hp-shift-g-text";
+  const hCls = onDark ? "text-hp-enter-fg" : "text-hp-key-fg";
   const gridStyle =
     col != null && row != null
       ? {
@@ -101,48 +106,30 @@ export function CalcKey({
           function for the armed prefix keep their dimmed primary — that is
           what they still execute. */}
       {/* row 1 — gold f plane */}
-      <span
-        className={cn(
-          "key-shift pointer-events-none row-start-1 text-center text-key-shift text-hp-shift-f transition-all",
-          armed !== "none" && armed !== "f" ? "opacity-25" : "opacity-90",
-        )}
-      >
+      <span className={cn("key-shift pointer-events-none row-start-1 text-center text-key-shift", fCls)}>
         {fHot ? null : f}
       </span>
       {/* row 2 — primary legend (or the promoted shifted function) */}
       <span
         className={cn(
-          "row-start-2 self-center text-center transition-opacity",
+          "row-start-2 self-center text-center",
           hot
             ? cn(
                 "text-key-promoted font-bold tracking-tight whitespace-nowrap",
-                fHot ? "text-hp-shift-f" : gHot ? "text-hp-shift-g" : "text-hp-key-fg",
+                fHot ? fCls : gHot ? gCls : hCls,
               )
-            : cn(
-                "text-key-primary",
-                armed !== "none" && tone !== "f" && tone !== "g" && tone !== "h" && "opacity-40",
-              ),
+            : "text-key-primary",
         )}
       >
         {fHot ? f : gHot ? g : hHot ? h : primary}
       </span>
       {/* row 3 — blue g plane (left) + black h plane (right, HP-67 key front) */}
       <span className="pointer-events-none row-start-3 flex items-baseline justify-center gap-1.5">
-        <span
-          className={cn(
-            "key-shift text-center text-key-shift text-hp-shift-g transition-all",
-            armed !== "none" && armed !== "g" ? "opacity-25" : "opacity-90",
-          )}
-        >
+        <span className={cn("key-shift text-center text-key-shift", gCls)}>
           {gHot ? null : g}
         </span>
         {h && (
-          <span
-            className={cn(
-              "key-shift text-center text-key-shift text-hp-key-fg transition-all",
-              armed !== "none" && armed !== "h" ? "opacity-25" : "opacity-70",
-            )}
-          >
+          <span className={cn("key-shift text-center text-key-shift", hCls)}>
             {hHot ? null : h}
           </span>
         )}

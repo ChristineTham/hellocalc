@@ -753,19 +753,22 @@ test.describe("hellocalc — smoke", () => {
       page.locator('[data-lcd-mode]:visible').getByText("5.00").first(),
     ).toBeVisible();
 
-    // typing `f` arms the gold prefix and DIMS the primary plane (§12.3)
-    const primary7 = page
-      .locator('[data-slot="machine-kbd"] button[aria-label="7"] span')
-      .nth(1);
+    // typing `f` arms the gold prefix — the LCD's `f` annunciator lights and
+    // keys with an f-function promote (the §12.3 affordance; the plane is no
+    // longer dimmed for legend contrast — a11y strict-AA pass)
+    const fAnnun = page
+      .locator('[data-lcd-mode]:visible')
+      .getByText("f", { exact: true })
+      .first();
     await page.keyboard.press("f");
     await expect
-      .poll(() => primary7.evaluate((el) => Number(getComputedStyle(el).opacity)))
-      .toBeLessThan(0.9);
-    // Escape disarms — the plane returns
+      .poll(() => fAnnun.evaluate((el) => Number(getComputedStyle(el).opacity)))
+      .toBe(1);
+    // Escape disarms — the annunciator dims again
     await page.keyboard.press("Escape");
     await expect
-      .poll(() => primary7.evaluate((el) => Number(getComputedStyle(el).opacity)))
-      .toBe(1);
+      .poll(() => fAnnun.evaluate((el) => Number(getComputedStyle(el).opacity)))
+      .toBeLessThan(1);
 
     // `?` opens the shortcut cheat-sheet
     await page.keyboard.press("?");

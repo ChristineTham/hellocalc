@@ -124,6 +124,9 @@ export function RplKeyboard({
             );
           }
           const promoted = promotedOf(k);
+          const onDark = k.kind === "enter"; // dark key face → light legends
+          const lsCls = onDark ? "text-hp-enter-fg" : "text-hp-shift-ls-text";
+          const rsCls = onDark ? "text-hp-enter-fg" : "text-hp-shift-rs-text";
           return (
             <ButtonPrimitive
               key={`${ri}-${ki}`}
@@ -153,10 +156,11 @@ export function RplKeyboard({
               {k.ls && k.ls === k.rs && !promoted ? (
                 <span className="key-shift-row-center pointer-events-none absolute inset-x-1 top-0.5 text-key-shift leading-none font-semibold">
                   <span
-                    className={cn(
-                      "bg-gradient-to-r from-hp-shift-ls to-hp-shift-rs bg-clip-text text-transparent transition-opacity",
-                      prefix === "alpha" && "opacity-30",
-                    )}
+                    className={
+                      onDark
+                        ? "text-hp-enter-fg"
+                        : "bg-gradient-to-r from-hp-shift-ls-text to-hp-shift-rs-text bg-clip-text text-transparent"
+                    }
                   >
                     {k.ls}
                   </span>
@@ -165,39 +169,18 @@ export function RplKeyboard({
                 <span className="key-shift-row pointer-events-none absolute inset-x-1 top-0.5 text-key-shift leading-none font-semibold">
                   {/* the armed side's word is PROMOTED to the primary slot —
                       its small copy empties; the other side dims */}
-                  <span
-                    className={cn(
-                      "text-hp-shift-ls transition-all",
-                      prefix !== "none" && "opacity-30",
-                    )}
-                  >
-                    {prefix === "ls" ? null : k.ls}
-                  </span>
-                  <span
-                    className={cn(
-                      "text-hp-shift-rs transition-all",
-                      prefix !== "none" && "opacity-30",
-                    )}
-                  >
-                    {prefix === "rs" ? null : k.rs}
-                  </span>
+                  <span className={lsCls}>{prefix === "ls" ? null : k.ls}</span>
+                  <span className={rsCls}>{prefix === "rs" ? null : k.rs}</span>
                 </span>
               )}
               <span
                 className={cn(
-                  "z-10 transition-opacity",
-                  promoted
-                    ? cn(
-                        "text-key-promoted font-bold tracking-tight whitespace-nowrap",
-                        prefix === "ls"
-                          ? "text-hp-shift-ls"
-                          : prefix === "rs"
-                            ? "text-hp-shift-rs"
-                            : "text-hp-key-fg",
-                      )
-                    : prefix !== "none" &&
-                        !["ls", "rs", "alpha", "on"].includes(k.kind) &&
-                        "opacity-40",
+                  "z-10",
+                  promoted &&
+                    cn(
+                      "text-key-promoted font-bold tracking-tight whitespace-nowrap",
+                      prefix === "ls" ? lsCls : prefix === "rs" ? rsCls : "text-hp-key-fg",
+                    ),
                   k.kind === "soft" && !promoted && "text-[0.85em] tracking-tight",
                 )}
               >
@@ -207,7 +190,7 @@ export function RplKeyboard({
                     : k.p)}
               </span>
               {k.al && (
-                <span className="key-shift pointer-events-none absolute right-1 bottom-0.5 text-key-shift leading-none text-hp-key-fg opacity-45 transition-all">
+                <span className="key-shift pointer-events-none absolute right-1 bottom-0.5 text-key-shift leading-none text-hp-key-fg opacity-70">
                   {prefix === "alpha" ? null : k.al}
                 </span>
               )}

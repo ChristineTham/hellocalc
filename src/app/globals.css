@@ -72,13 +72,18 @@
   --color-hp-display-dim: var(--hp-display-dim);
   --color-hp-panel: var(--hp-panel);
   /* Shift-accent tokens — SEMANTIC (which prefix reaches a legend), not decor */
-  --color-hp-shift-f: var(--hp-shift-f); /* Voyager gold f (above key)  */
-  --color-hp-shift-f-fg: var(--hp-shift-f-fg); /* dark ink on the gold f-prefix key */
-  --color-hp-shift-g: var(--hp-shift-g); /* Voyager blue g (lower face) */
+  --color-hp-shift-f: var(--hp-shift-f); /* Voyager gold f KEY bg */
+  --color-hp-shift-f-fg: var(--hp-shift-f-fg); /* ink on the gold f-prefix key */
+  --color-hp-shift-f-text: var(--hp-shift-f-text); /* gold f LEGEND text (AA) */
+  --color-hp-shift-g: var(--hp-shift-g); /* Voyager blue g KEY bg */
+  --color-hp-shift-g-fg: var(--hp-shift-g-fg); /* ink on the blue g-prefix key */
+  --color-hp-shift-g-text: var(--hp-shift-g-text); /* blue g LEGEND text (AA) */
   --color-hp-shift-ls: var(--hp-shift-ls); /* RPL left-shift  (48G purple) */
   --color-hp-shift-rs: var(--hp-shift-rs); /* RPL right-shift (48G green)  */
   --color-hp-shift-ls-fg: var(--hp-shift-ls-fg); /* ink on the ls/rs prefix keys */
   --color-hp-shift-rs-fg: var(--hp-shift-rs-fg);
+  --color-hp-shift-ls-text: var(--hp-shift-ls-text); /* ls LEGEND text (AA) */
+  --color-hp-shift-rs-text: var(--hp-shift-rs-text); /* rs LEGEND text (AA) */
   /* Sibling shift palettes (--hp-shift-*-sx/49/50) are raw vars only: models
      override the RAW --hp-shift-ls/rs per machine (MachineUnit) because
      @theme inline compiles utilities down to the raw var references. */
@@ -176,7 +181,7 @@
   --secondary: #35619e; /* blue g-accent */
   --secondary-foreground: #fdfcf9;
   --muted: #ddd9cd;
-  --muted-foreground: #615c4b; /* 4.7–6.2:1 across bg/card/popover/paper (a11y) */
+  --muted-foreground: #595445; /* AA incl. the machine bezel (a11y) */
   --accent: #ddd9cd;
   --accent-foreground: #2a2823;
   --destructive: #b23b2f;
@@ -222,25 +227,42 @@
   --hp-display: #c1cbaa;
   --hp-display-border: #a3ab8c;
   --hp-display-fg: #222a1a;
-  --hp-display-dim: #6b7256;
+  --hp-display-dim: #505540; /* AA 4.6:1 on the LCD (a11y) */
   --hp-panel: #efece3;
+  /* KEY backgrounds (bg-hp-shift-*): the vibrant coloured prefix keys, chosen
+     so their white/dark ink passes AA. LEGEND text uses the -text variants
+     (darker) below — decoupled so both meet 4.5:1 (a11y). */
   --hp-shift-f: #a9832f;
-  --hp-shift-f-fg: #231a05; /* dark ink — legible on gold in both themes */
+  --hp-shift-f-fg: #231a05; /* dark ink on the gold f-key */
+  --hp-shift-f-text: #745a20; /* gold f LEGEND on key faces (AA) */
   --hp-shift-g: #35619e;
+  --hp-shift-g-fg: #ffffff; /* white ink on the blue g-key */
+  --hp-shift-g-text: #345e9a; /* blue g LEGEND (AA) */
   --hp-shift-ls: #6d4f9e;
   --hp-shift-rs: #2f7d4f;
   --hp-shift-ls-fg: #ffffff; /* ink on the shift KEYS (50g overrides to dark) */
   --hp-shift-rs-fg: #ffffff;
+  --hp-shift-ls-text: #6c4e9d; /* RPL ls LEGEND (AA; per-model override) */
+  --hp-shift-rs-text: #286a43; /* RPL rs LEGEND (AA; per-model override) */
   /* RPL sibling shift palettes (§14 — per-model override via MachineUnit):
      48SX orange/blue · 49G green/red · 50g white/orange (49G colours are a
      [judgment] from product photos — its manual scan is monochrome). */
-  --hp-shift-ls-sx: #b9682a;
+  --hp-shift-ls-sx: #b06328; /* 48SX orange KEY (nudged: white ink AA) */
   --hp-shift-rs-sx: #46719f;
   --hp-shift-ls-49: #35815a;
   --hp-shift-rs-49: #a84440;
   --hp-shift-ls-50: #b5ac97;
-  --hp-shift-rs-50: #c07a2e;
+  --hp-shift-rs-50: #a56928; /* 50g orange KEY (nudged: white ink AA) */
   --hp-shift-ls-28: #a84440; /* HP-28 single RED shift */
+  /* per-model LEGEND text (AA on key faces) — MachineUnit maps these to
+     --hp-shift-ls-text / -rs-text alongside the KEY bg override */
+  --hp-shift-ls-sx-text: #8b4e20;
+  --hp-shift-rs-sx-text: #3c6087;
+  --hp-shift-ls-49-text: #2b6949;
+  --hp-shift-rs-49-text: #9d403c;
+  --hp-shift-ls-50-text: #625d52;
+  --hp-shift-rs-50-text: #83531f;
+  --hp-shift-ls-28-text: #9d403c;
 }
 
 /* ---------- DARK — graphite chassis + olive LCD ---------- */
@@ -256,7 +278,7 @@
   --secondary: #5b8fd6;
   --secondary-foreground: #04101f;
   --muted: #201e19;
-  --muted-foreground: #8f8977;
+  --muted-foreground: #a09b8c; /* AA incl. the machine bezel (a11y) */
   --accent: #38362f;
   --accent-foreground: #f0d9a4;
   --destructive: #e08a7a;
@@ -295,15 +317,22 @@
   --hp-display: #aeb79c;
   --hp-display-border: #8a927a;
   --hp-display-fg: #1b2016;
-  --hp-display-dim: #5c6350;
+  --hp-display-dim: #43483a; /* AA 4.5:1 on the LCD (a11y) */
   --hp-panel: #1b1a16;
+  /* dark theme: the coloured KEYS are light, so their ink is DARK (#1a140a)
+     and the LEGEND -text stays light — both AA (a11y). */
   --hp-shift-f: #d3a441;
-  --hp-shift-f-fg: #231a05; /* dark ink — legible on gold in both themes */
+  --hp-shift-f-fg: #231a05; /* dark ink on the gold f-key */
+  --hp-shift-f-text: #d3a441;
   --hp-shift-g: #5b8fd6;
+  --hp-shift-g-fg: #1a140a; /* dark ink on the light blue g-key */
+  --hp-shift-g-text: #77a2dd;
   --hp-shift-ls: #b492e6;
   --hp-shift-rs: #5fc487;
-  --hp-shift-ls-fg: #ffffff;
-  --hp-shift-rs-fg: #ffffff;
+  --hp-shift-ls-fg: #1a140a; /* dark ink on the light ls/rs keys */
+  --hp-shift-rs-fg: #1a140a;
+  --hp-shift-ls-text: #b492e6;
+  --hp-shift-rs-text: #5fc487;
   --hp-shift-ls-sx: #d3854a;
   --hp-shift-rs-sx: #6b93bd;
   --hp-shift-ls-49: #57a37b;
@@ -311,6 +340,13 @@
   --hp-shift-ls-50: #d8d2c5;
   --hp-shift-rs-50: #d3924a;
   --hp-shift-ls-28: #c4635f;
+  --hp-shift-ls-sx-text: #d7905a;
+  --hp-shift-rs-sx-text: #81a3c7;
+  --hp-shift-ls-49-text: #6aae8a;
+  --hp-shift-rs-49-text: #d48e8b;
+  --hp-shift-ls-50-text: #d8d2c5;
+  --hp-shift-rs-50-text: #d3934b;
+  --hp-shift-ls-28-text: #d48e8b;
 }
 
 @layer base {

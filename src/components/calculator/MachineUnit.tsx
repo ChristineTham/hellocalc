@@ -40,10 +40,19 @@ export interface MachineUnitProps {
 type MachineStyle = React.CSSProperties &
   Partial<
     Record<
-      "--hp-shift-ls" | "--hp-shift-rs" | "--hp-shift-ls-fg" | "--hp-shift-rs-fg",
+      | "--hp-shift-ls"
+      | "--hp-shift-rs"
+      | "--hp-shift-ls-fg"
+      | "--hp-shift-rs-fg"
+      | "--hp-shift-ls-text"
+      | "--hp-shift-rs-text",
       string
     >
   >;
+
+/** A sibling KEY var → its AA LEGEND-text var: var(--hp-shift-ls-sx) →
+ * var(--hp-shift-ls-sx-text). Keeps the per-model override to one source. */
+const textVar = (keyVar: string): string => keyVar.replace(/\)\s*$/, "-text)");
 
 export function MachineUnit({ model, rpn, rpl, lcd, paper }: MachineUnitProps) {
   const badgeName = nameplateModel(model.name);
@@ -54,6 +63,9 @@ export function MachineUnit({ model, rpn, rpl, lcd, paper }: MachineUnitProps) {
     ? {
         "--hp-shift-ls": model.shift.ls,
         "--hp-shift-rs": model.shift.rs,
+        // the AA legend-text colour tracks the same per-model palette (a11y)
+        "--hp-shift-ls-text": textVar(model.shift.ls),
+        "--hp-shift-rs-text": textVar(model.shift.rs),
         ...(model.shift.lsFg ? { "--hp-shift-ls-fg": model.shift.lsFg } : {}),
         ...(model.shift.rsFg ? { "--hp-shift-rs-fg": model.shift.rsFg } : {}),
       }

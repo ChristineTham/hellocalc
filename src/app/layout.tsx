@@ -57,7 +57,17 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${archivo.variable} ${barlow.variable} ${plexMono.variable} ${dseg7.variable} ${silkscreen.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        {/* No-FOUC theme: resolve the saved choice (or system) and stamp the
+            `.dark` class BEFORE first paint. Mirrors ThemeToggle's logic. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('hellocalc-theme')||'system';var d=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

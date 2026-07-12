@@ -8,11 +8,14 @@ import { CalcNav } from "@/components/calculator/CalcNav";
 describe("CalcNav", () => {
   it("surfaces the FR-STATE-4 entry points and app items", () => {
     render(<CalcNav />);
-    for (const name of ["Import state", "Export state", "Reset state", "Settings"]) {
+    for (const name of ["Import state", "Export state", "Reset state"]) {
       const btn = screen.getByRole("button", { name: new RegExp(name) });
       expect(btn).toBeTruthy();
       expect(btn).toHaveProperty("disabled", true); // wired in the persistence phase
     }
+    // the theme control + the About link
+    expect(screen.getByRole("radiogroup", { name: "Theme" })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: "Dark" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "About" })).toBeTruthy();
   });
 
