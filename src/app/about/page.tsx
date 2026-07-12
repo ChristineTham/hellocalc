@@ -248,6 +248,7 @@ export default function AboutPage() {
               "Tailwind CSS",
               "shadcn · Base UI",
               "KaTeX",
+              "CodeMirror",
               "Nerdamer",
               "Pyodide · SymPy",
               "function-plot",

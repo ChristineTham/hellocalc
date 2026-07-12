@@ -11,6 +11,7 @@ import { CalcNav } from "@/components/calculator/CalcNav";
 import { CheatSheet } from "@/components/calculator/CheatSheet";
 import { MODELS } from "@/components/calculator/models";
 import { NativeSurface } from "@/components/calculator/NativeSurface";
+import { CodeDrawer } from "@/components/calculator/CodeDrawer";
 import { useRpnCalculator } from "@/hooks/useRpnCalculator";
 import { useRplCalculator } from "@/hooks/useRplCalculator";
 import { useHotkeys } from "@/hooks/useHotkeys";
@@ -156,6 +157,9 @@ export default function Home() {
                 <VarsNote state={active.state} family={model.family} tvm={showRegisters} />
               ),
             }}
+            // RPL machines get a paste-and-run code editor (syntax highlight +
+            // command completion); the RPN faceplates don't take source text
+            tools={active === rpl ? <CodeDrawer rpl={rpl} /> : undefined}
           />
         }
         sidebar={

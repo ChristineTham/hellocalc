@@ -394,6 +394,30 @@ test.describe("hellocalc — smoke", () => {
     await expect(glass().locator('[data-slot="menu-row"]').first()).toContainText("TVMROOT");
   });
 
+  test("RPL code editor: paste-and-run, stack preview, command completion", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await selectModel(page, "HP-48G");
+
+    // the Code button is RPL-only; opening it lazy-loads CodeMirror
+    await page.getByRole("button", { name: "Open code editor" }).click();
+    const editor = page.locator('[data-slot="code-editor"] .cm-content');
+    await expect(editor).toBeVisible({ timeout: 15000 });
+
+    // type RPL and run it — the result lands on the stack (preview shows it)
+    await editor.click();
+    await page.keyboard.type("2 3 +");
+    await page.getByRole("button", { name: "Run", exact: true }).click();
+    await expect(page.locator('[data-slot="code-stack-preview"]')).toContainText("5");
+
+    // command completion: typing a prefix surfaces matching commands
+    await page.getByRole("button", { name: "Clear", exact: true }).click();
+    await editor.click();
+    await page.keyboard.type("DEP");
+    await expect(page.getByRole("option", { name: "DEPTH", exact: true })).toBeVisible();
+  });
+
   test("Phase 20 on the live HP-50g: stored variables survive a reload", async ({
     page,
   }) => {

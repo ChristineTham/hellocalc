@@ -33,6 +33,8 @@ export interface TopbarProps {
     tape: React.ReactNode;
     vars?: React.ReactNode;
   };
+  /** model-scoped tools rendered before the picker (e.g. the RPL code editor) */
+  tools?: React.ReactNode;
 }
 
 const CHIP =
@@ -69,7 +71,7 @@ function PanelSheet({
   );
 }
 
-export function Topbar({ activeModel, onSelectModel, tags, nav, panels }: TopbarProps) {
+export function Topbar({ activeModel, onSelectModel, tags, nav, panels, tools }: TopbarProps) {
   return (
     <header className="flex h-full items-center gap-2 border-b border-border px-3">
       {/* nav: hamburger → LEFT sheet (below lg; the sidebar replaces it at lg+) */}
@@ -133,6 +135,8 @@ export function Topbar({ activeModel, onSelectModel, tags, nav, panels }: Topbar
       >
         {panels.tape}
       </PanelSheet>
+
+      {tools}
 
       <ModelPicker active={activeModel} onSelect={onSelectModel} />
     </header>
