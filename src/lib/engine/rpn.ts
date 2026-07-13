@@ -13,7 +13,7 @@ import { bestFit, fit as cfit, forecastX, forecastY } from "./stats-fit";
 import { ALPHA_PAGES, CONST_VALUES, DYNAMIC_MENUS, MENUS42 } from "./menu42";
 import { MENUS_FIN } from "./menuFin";
 import { markupOnCost, markupOnPrice, solveEquation, solverVariables } from "./business";
-import { FIN_APPS, FIN_VAR_APP } from "./finapps";
+import { FIN_APPS, FIN_APP_MENUS } from "./finapps";
 import { LIST_APPS, LIST_MENUS, LIST_RESULT_APP } from "./listapps";
 import { determinant as det, inverse, Matrix } from "ml-matrix";
 import {
@@ -2748,9 +2748,11 @@ export function pressSoft42(s: RpnEngine, i: number): void {
     dispatch(s, "EQN");
     return;
   }
-  // a financial-app variable (ICNV/BOND/DEPRC/BS): store / recall / compute
-  if (FIN_VAR_APP[label]) {
-    finVarKey(s, label);
+  // a financial-app variable (ICNV/BOND/DEPRC/BS/TIME/CURRX): store / recall /
+  // compute — routed by the ACTIVE MENU so a shared label (RATE) is unambiguous.
+  const finApp = s.menu ? FIN_APP_MENUS[s.menu.name] : undefined;
+  if (finApp && FIN_APPS[finApp].vars.includes(label)) {
+    finVarKey(s, label, finApp);
     return;
   }
   // a list app's CALC softkey opens its results submenu (CFLO→CFLOCALC …)
@@ -2875,8 +2877,7 @@ function solverLabels(s: RpnEngine): string[] {
 /** A financial-app variable softkey (ICNV/BOND/DEPRC/BS): STORE the freshly-
  * keyed number, RECALL the stored value, or — for a result variable — COMPUTE
  * it from the stored inputs (bond price/yield, depreciation, Black–Scholes). */
-function finVarKey(s: RpnEngine, label: string): void {
-  const appKey = FIN_VAR_APP[label];
+function finVarKey(s: RpnEngine, label: string, appKey: string): void {
   const spec = FIN_APPS[appKey];
   if (!spec) return;
   if (!s.app || s.app.name !== appKey) s.app = { name: appKey, vars: {} };
@@ -2975,7 +2976,7 @@ const FIN_MENU_ACCEPTED = new Set([
   "Date", "%calc", "Memory", "Mode", "PRGM", "Reset", "INS", "DEL", "Math", "Amort",
   "CshFl", "Bond", "Black S", "BlackS", "MU", "CST", "PRC", "MAR", "IRR/YR", "→M",
   "RM", "M+", "C ALL", "DISP", "./,", "NOM%", "EFF%", "CLΣ", "SWAP", "Nj", "BEG/END",
-  "K", "CFj", "ACRS", "MORE", "CALC", "NUS", "NFV",
+  "K", "CFj", "ACRS", "MORE", "CALC", "NUS", "NFV", "ADJST", "SET", "STORE",
   // 10bII statistics estimates + Σ registers (mauve plane)
   "x̄,ȳ", "Sx,Sy", "σx,σy", "x̂,r", "ŷ,m", "x̄w", "Σx²", "Σy²", "Σxy", "Σx", "Σy",
   // 27S menu-openers / keys without a wired handler (fallback-inert, so a real

@@ -68,6 +68,47 @@ describe("Black–Scholes options (variable menu)", () => {
   });
 });
 
+describe("TIME — date arithmetic (variable menu)", () => {
+  it("days between 15 Jun 2020 and 15 Jun 2021 = 365", () => {
+    const s = createRpn();
+    dispatch(s, "MAIN");
+    pressSoft42(s, 3); // TIME (MAIN: FIN,BUS,SUM,TIME,SOLVE) — labels DATE1,DATE2,DDAYS,…
+    key(s, "6.152020");
+    pressSoft42(s, 0); // DATE1
+    key(s, "6.152021");
+    pressSoft42(s, 1); // DATE2
+    pressSoft42(s, 2); // DDAYS ← compute
+    expect(num(xval(s))).toBe(365);
+  });
+
+  it("a date 90 days after 1 Jan 2020 is 31 Mar 2020 (4.012020)", () => {
+    const s = createRpn();
+    dispatch(s, "MAIN");
+    pressSoft42(s, 3); // TIME
+    key(s, "1.012020");
+    pressSoft42(s, 0); // DATE1
+    key(s, "90");
+    pressSoft42(s, 2); // DDAYS
+    pressSoft42(s, 1); // DATE2 ← compute (M.DYYYYY)
+    expect(num(xval(s))).toBeCloseTo(3.312020, 6);
+  });
+});
+
+describe("CURRX — currency conversion (variable menu)", () => {
+  it("RATE 1.5, #1 = 100 → #2 = 150 (and back)", () => {
+    const s = createRpn();
+    dispatch(s, "MAIN");
+    pressSoft42(s, 1); // BUS (labels: %CHG,%TOTL,MU%C,MU%P,CURRX,UNITS)
+    pressSoft42(s, 4); // CURRX — labels: #1, #2, RATE, STORE
+    key(s, "1.5");
+    pressSoft42(s, 2); // RATE
+    key(s, "100");
+    pressSoft42(s, 0); // #1
+    pressSoft42(s, 1); // #2 ← compute
+    expect(num(xval(s))).toBe(150);
+  });
+});
+
 describe("BOND — price ⇄ yield round-trip", () => {
   it("price from yield, then yield from that price, agree", () => {
     const s = createRpn();

@@ -41,9 +41,8 @@ export const MENUS_FIN: Record<string, string[]> = {
   SUM: ["CALC"],
   SUMCALC: ["TOTAL", "MEAN", "MEDN", "STDEV", "RANG", "MORE"],
 
-  // ---- TIME: clock / calendar -----------------------------------------------
-  TIME: ["@CALC", "ADJST", "SET"],
-  TIMECALC: ["DATE", "DDAYS"],
+  // ---- TIME: date arithmetic (store any two of DATE1/DATE2/DDAYS) -----------
+  TIME: ["DATE1", "DATE2", "DDAYS", "ADJST", "SET"],
 
   // ---- CURRX: currency conversion -------------------------------------------
   CURRX: ["#1", "#2", "RATE", "STORE"],

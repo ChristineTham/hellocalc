@@ -8,7 +8,18 @@
 
 import { bn, type Value } from "./config";
 import { effToNom, nomToEff } from "./business";
-import { bondPrice, bondYTM, decodeDate, depDB, depSL, depSOYD, blackScholes } from "./finance";
+import {
+  addDays,
+  blackScholes,
+  bondPrice,
+  bondYTM,
+  daysBetween,
+  decodeDate,
+  depDB,
+  depSL,
+  depSOYD,
+  encodeDate,
+} from "./finance";
 
 export interface FinApp {
   /** heading for the variable panel */
@@ -88,6 +99,42 @@ export const FIN_APPS: Record<string, FinApp> = {
     },
   },
 
+  // ---- TIME: date arithmetic -------------------------------------------------
+  // DATE1 / DATE2 are keyed as M.DYYYYY numbers; DDAYS is the count of days
+  // between them. Store any two and compute the third.
+  TIME: {
+    title: "Date Calc",
+    vars: ["DATE1", "DATE2", "DDAYS"],
+    results: new Set(["DATE1", "DATE2", "DDAYS"]),
+    compute(s, t) {
+      const d1 = s["DATE1"] !== undefined ? decodeDate(s["DATE1"], false) : null;
+      const d2 = s["DATE2"] !== undefined ? decodeDate(s["DATE2"], false) : null;
+      const days = s["DDAYS"];
+      if (t === "DDAYS" && d1 && d2) return bn(daysBetween(d1, d2));
+      if (t === "DATE2" && d1 && days !== undefined)
+        return encodeDate(addDays(d1, days.toNumber()), false);
+      if (t === "DATE1" && d2 && days !== undefined)
+        return encodeDate(addDays(d2, -days.toNumber()), false);
+      return null;
+    },
+  },
+
+  // ---- CURRX: currency conversion --------------------------------------------
+  // RATE = units of currency 2 per unit of currency 1. Store RATE + an amount
+  // in one currency, compute the other.
+  CURRX: {
+    title: "Currency",
+    vars: ["RATE", "#1", "#2"],
+    results: new Set(["#1", "#2"]),
+    compute(s, t) {
+      const rate = s["RATE"];
+      if (rate === undefined || rate.isZero()) return null;
+      if (t === "#2" && s["#1"] !== undefined) return s["#1"].times(rate);
+      if (t === "#1" && s["#2"] !== undefined) return s["#2"].div(rate);
+      return null;
+    },
+  },
+
   // ---- Black–Scholes European options ----------------------------------------
   // RATE and VOL are entered as percentages; TIME in years.
   BS: {
@@ -109,8 +156,17 @@ export const FIN_APPS: Record<string, FinApp> = {
   },
 };
 
-/** Reverse index: a variable label → its app id (labels are distinct across
- * apps, so a softkey press unambiguously routes to one app). */
-export const FIN_VAR_APP: Record<string, string> = Object.fromEntries(
-  Object.entries(FIN_APPS).flatMap(([app, spec]) => spec.vars.map((v) => [v, app])),
-);
+/** Which app each financial menu drives — routing is by the ACTIVE MENU (not by
+ * label) so a shared label like RATE resolves to Black–Scholes on the BS menu
+ * and to Currency on the CURRX menu. */
+export const FIN_APP_MENUS: Record<string, string> = {
+  PER: "ICNV",
+  CONT: "ICNV",
+  BOND: "BOND",
+  DEPRC: "DEPRC",
+  DMETH: "DEPRC",
+  BS: "BS",
+  BSCALC: "BS",
+  TIME: "TIME",
+  CURRX: "CURRX",
+};
