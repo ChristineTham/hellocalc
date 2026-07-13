@@ -34,6 +34,22 @@ and worked examples, see the source manual cited at the top of each file.
 | HP-50g | RPL graphing (2006) | 131×80 dot-matrix LCD | white left / orange right / ALPHA | RPL + CAS (RPN/ALG); softkeys | [HP-50g](HP-50g.md) | [pdf](../manuals/HP-50g.pdf) |
 | HP-35s | Modern scientific (2007) | 2-line dot-matrix LCD | yellow left / blue right; ALPHA | RPN 4-level (ALG selectable) | [HP-35s](HP-35s.md) | [pdf](../manuals/HP-35s.pdf) |
 | HP Prime | Modern graphing (2013) | 320×240 color touchscreen | blue Shift / orange ALPHA | RPN / algebraic / textbook | [HP-Prime](HP-Prime.md) | [pdf](../manuals/HP-Prime.pdf) |
+| HP-18C | Clamshell business (1986) | dot-matrix LCD + 6 softkeys | single gold shift | Algebraic menu (RPL internally) | [HP-18C](HP-18C.md) | [pdf](../manuals/HP-18C.pdf) |
+| HP-17B | Pioneer business (1988) | 2-line dot-matrix LCD + 6 softkeys | single gold shift | Algebraic; menu-driven + SOLVER | [HP-17B](HP-17B.md) | [pdf](../manuals/HP-17B.pdf) |
+| HP-19B | Clamshell business (1988) | multi-line dot-matrix LCD + softkeys | single orange shift | Algebraic; menu-driven | [HP-19B](HP-19B.md) | [pdf](../manuals/HP-19B.pdf) |
+| HP-19BII | Clamshell business (1990) | multi-line dot-matrix LCD + softkeys | single shift | ALG + RPN 4-level; menu-driven | [HP-19BII](HP-19BII.md) | [pdf](../manuals/HP-19BII.pdf) |
+| HP-20S | Pioneer scientific (1988) | single-line LCD | blue left / yellow right | Algebraic; keystroke-programmable | [HP-20S](HP-20S.md) | [pdf](../manuals/HP-20S.pdf) |
+| HP-27S | Pioneer scientific (1988) | 2-line dot-matrix LCD + softkeys | single blue shift | Algebraic; menu-driven + SOLVER | [HP-27S](HP-27S.md) | [pdf](../manuals/HP-27S.pdf) |
+| HP-32S | Pioneer scientific (1988) | single-line dot-matrix LCD | single gold shift | RPN 4-level | [HP-32S](HP-32S.md) | [pdf](../manuals/HP-32S.pdf) |
+| HP-32SII | Pioneer scientific (1991) | single-line dot-matrix LCD | orange left / blue right | RPN 4-level (+ eqn entry) | [HP-32SII](HP-32SII.md) | [pdf](../manuals/HP-32SII.pdf) |
+| HP-10BII | Modern financial (2001) | single-line 7-seg LCD | orange SHIFT / mauve STATS | Algebraic; financial | [HP-10BII](HP-10BII.md) | [pdf](../manuals/HP-10BII.pdf) |
+| HP-20b | Modern financial (2008) | 2-line dot-matrix LCD | single teal secondary | Chain / algebraic / RPN selectable | [HP-20b](HP-20b.md) | [pdf](../manuals/HP-20b.pdf) |
+| HP-30b | Modern financial (2010) | 2-line dot-matrix LCD | single blue shift (2 planes) | Chain / algebraic / RPN; programmable | [HP-30b](HP-30b.md) | [pdf](../manuals/HP-30b.pdf) |
+
+**Models that reuse a sibling's layout** (no dedicated file — the emulator maps them onto the
+cited keyboard): **HP-17BII** → `HP-17B.md` (adds selectable RPN, otherwise the same face);
+**HP-12C Platinum** → [`HP-12C.md`](HP-12C.md) (the 12C Voyager chassis + RPN/ALG mode);
+**HP-48GX** → [`HP-48G.md`](HP-48G.md) (the GX adds expansion ports, not keys).
 
 ## Cross-model notes for the emulator
 
@@ -48,7 +64,10 @@ and worked examples, see the source manual cited at the top of each file.
   at high zoom (two HP-Prime shift legends; some undocumented HP-48G top-row cells that the
   User's Guide never fully illustrates). HP-49G's monochrome scan does not convey shift-key
   colors. Everything else was transcribed cleanly and cross-checked against each manual's
-  function summary.
+  function summary. **HP-32SII** is a special case: its manual ships **no labelled keyboard
+  diagram**, so its primary legends borrow the identical HP-32S Pioneer chassis and each
+  shift colour is verified from the Operation Index / Menus tables — but the physical
+  *positions* of functions new on the 32SII are **inferred and marked `[?]`**.
 - **Where the keyboard diagrams live** (for future re-extraction): most are in the first
   ~25 pages, BUT the Voyager reference grids are on dedicated back-of-manual pages
   (HP-15C at PDF p.299, HP-16C at p.139), and the HP-12C diagram is on the inside back

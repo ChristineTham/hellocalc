@@ -60,7 +60,7 @@ See the [PRD](docs/prd.md) for the full, prioritized requirement set.
 
 ## Status
 
-**ALL 23 PLAN PHASES ARE COMPLETE: every one of the 21 models is fully wired — zero inert
+**ALL 23 PLAN PHASES ARE COMPLETE: every one of the 35 models is fully wired — zero inert
 keys, each guarded by a per-model coverage oracle — plus the keyboard-first NATIVE MODE**
 at <https://christinetham.github.io/hellocalc/>. Every keyboard is authored or generated
 from the verified [`hp/`](hp/) reference data and computes on the **math.js/BigNumber value
@@ -109,28 +109,38 @@ boundaries, typing, sheet behavior).
 
 ## Emulated models
 
-21 landmark models across the HP eras, plus native mode — each backed by a verified keyboard
+35 landmark models across the HP eras, plus native mode — each backed by a verified keyboard
 layout and function set (see [`hp/`](hp/)):
 
 | Family | Models | Logic |
 |---|---|---|
-| Voyager | HP-12C, HP-15C, HP-11C, HP-16C | 4-level RPN |
+| Voyager | HP-12C, HP-12C Platinum, HP-15C, HP-11C, HP-16C | 4-level RPN (Platinum adds RPN/ALG) |
 | Classic / Woodstock | HP-35, HP-45, HP-65, HP-25 | 4-level RPN |
 | Programmable / desktop | HP-67, HP-97 | 4-level RPN |
 | HP-41 | HP-41C/CV, HP-41CX | 4-level RPN (alphanumeric) |
-| Pioneer | HP-42S | 4-level RPN |
+| Pioneer scientific | HP-42S, HP-27S, HP-32S, HP-32SII, HP-20S | RPN / algebraic |
+| Pioneer financial | HP-17B, HP-17BII, HP-18C, HP-19B, HP-19BII | algebraic + RPN, menu-driven |
+| Modern financial | HP-10BII, HP-20b, HP-30b | algebraic + RPN |
 | RPL clamshell | HP-28C, HP-28S | RPL (dynamic stack) |
-| RPL graphing | HP-48SX, HP-48G, HP-49G, HP-50g | RPL (dynamic stack) |
+| RPL graphing | HP-48SX, HP-48G, HP-48GX, HP-49G, HP-50g | RPL (dynamic stack) |
 | Modern | HP-35s, HP Prime | RPN / configurable |
 | **Native mode** | — | RPN or algebraic |
 
 Full feature parity with the legendary HP-48 series (matrices, statistics, programmability)
 is an explicit goal.
 
-All 21 faceplates **and native mode are live and fully wired** — no inert keys — each backed
+All 35 faceplates **and native mode are live and fully wired** — no inert keys — each backed
 by its verified [`hp/`](hp/) reference data and computing on the shared engine. The app opens
 on the HP-35s by default; models are chosen from a collapsible sidebar tree or the topbar
 gallery picker.
+
+A few of the newest additions carry **partial fidelity**, noted honestly: the HP-32SII's
+new-function key positions are *inferred* (its manual ships no keyboard diagram); the
+menu-driven financials' variable-entry UX and the HP-27S/HP-32S application menus are
+navigable but some leaf functions are inert pending deeper wiring; the **HP-12C Platinum**
+reuses the HP-12C keyboard (its differences — RPN/ALG mode, backspace, faster CPU — are
+mostly non-keyboard) and the **HP-48GX** reuses the HP-48G keyboard (the GX adds expansion
+ports, not keys).
 
 ## Architecture
 

@@ -439,7 +439,7 @@ pitch — so nothing is stretched. `--calc-kbd-max-w` is Priority 2's "not comic
 > regression guard; the old `Faceplate`/`AutoScale` provide no size container, so the
 > contain formula would have no determinate `cqb` there.
 
-### 4.4 Per-model geometry set — AS BUILT (all 21 live in `MODELS`; `g = 0.12`)
+### 4.4 Per-model geometry set — AS BUILT (all 35 live in `MODELS`; `g = 0.12`)
 
 Values are the derived output of `computeKeyboardGeometry` over the authored/generated
 key data (unit-pinned in `keyboardGeometry.test.ts`, ±2% e2e-guarded in the browser).
@@ -457,8 +457,22 @@ table were superseded by the hp/layouts-verified grids.
 | HP-42S (pioneer) | 6 × 7 | 0.970 | portrait |
 | HP-35s (pioneer) | 6 × 8 | 0.847 | portrait |
 | HP Prime (pioneer; 2 view rows + 7 keypad) | 6 × 9 | 0.751 | portrait |
-| HP-48SX / 48G (rpl) | 6 × 9 | 0.722 | tall **(override)** |
+| HP-48SX / 48G / 48GX (rpl) | 6 × 9 | 0.722 | tall **(override)** |
 | HP-49G / 50g (rpl; cursor diamond, br ENTER) | 6 × 10 | 0.649 | tall |
+| HP-17B / 17BII (pioneer financial) | 6 × 7 | 0.970 | portrait |
+| HP-18C / 19B / 19BII (pioneer, merged clamshell halves) | 13 × 7 | 2.121 | landscape |
+| HP-20b / 30b (pioneer, modern financial) | 6 × 7 | 0.970 | portrait |
+| HP-27S / 32S / 32SII (pioneer scientific) | 6 × 7 | 0.970 | portrait |
+| HP-20S (classic; algebraic scientific) | 6 × 7 | 0.970 | portrait |
+| HP-10BII (classic; algebraic financial) | 5 × 8 | 0.703 | portrait |
+| HP-12C Platinum (voyager; reuses HP-12C) | 10 × 4 | 2.887 | landscape |
+
+The last three batches reuse a sibling's geometry entry rather than a distinct grid: the
+**17BII** shares the 17B chassis; **19B/19BII** share the 18C merged clamshell; **20b** shares
+the 30b modern-financial chassis; **12C Platinum** shares the HP-12C Voyager grid and
+**48GX** shares the HP-48G grid (both add non-keyboard features only). The HP-32SII's
+new-function key *positions* are inferred (its manual has no keyboard diagram), but that does
+not affect the block geometry, which is the 6 × 7 Pioneer chassis it shares with the 32S.
 
 **Worked checks** (`k`, `g` as above):
 `HP-12C 10×4 → A_exact = (10 + 9·0.12)/(4/1.15 + 3·0.12) = 11.08/3.838 = 2.887`.

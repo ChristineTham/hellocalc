@@ -1,7 +1,7 @@
 # Hellocalc — Product Requirements Document
 
 **Status:** Draft v1 · **Owner:** Chris Tham · **Date:** 2026-07-10
-**Sources:** [`README.md`](../README.md) (product overview & intent) · [`architecture.md`](architecture.md) (approved technical architecture) · [`../hp/`](../hp/) (HP-calculator reference: 21 models, layouts, function sets, key→function mapping)
+**Sources:** [`README.md`](../README.md) (product overview & intent) · [`architecture.md`](architecture.md) (approved technical architecture) · [`../hp/`](../hp/) (HP-calculator reference: 35 models, layouts, function sets, key→function mapping)
 
 Requirements use stable IDs (`FR-*`, `NFR-*`) and MoSCoW priority (**M**ust / **S**hould /
 **C**ould / **W**on't-this-release). "Full scope" here means the complete product vision;
@@ -61,24 +61,32 @@ scientific/financial/graphing calculator and computer-algebra environment.
 
 ## 5. Scope: emulated models
 
-In scope are the 21 landmark models for which we hold verified layouts and function sets in
+In scope are the 35 landmark models for which we hold verified layouts and function sets in
 [`hp/`](../hp/), plus native mode:
 
 | Family | Models | Stack | Priority |
 |---|---|---|---|
-| Voyager | HP-12C, HP-15C, HP-11C, HP-16C | 4-level RPN | **M** (12C, 15C first) |
+| Voyager | HP-12C, HP-12C Platinum, HP-15C, HP-11C, HP-16C | 4-level RPN (Platinum: RPN/ALG) | **M** (12C, 15C first) |
 | Classic/Woodstock | HP-35, HP-45, HP-65, HP-25 | 4-level RPN | S |
 | Programmable/desktop | HP-67, HP-97 | 4-level RPN | C |
 | HP-41 | HP-41C/CV, HP-41CX | 4-level RPN (alpha) | S |
-| Pioneer | HP-42S | 4-level RPN | S |
+| Pioneer scientific | HP-42S, HP-27S, HP-32S, HP-32SII, HP-20S | RPN / algebraic | S / C |
+| Pioneer financial | HP-17B, HP-17BII, HP-18C, HP-19B, HP-19BII | algebraic + RPN, menu-driven | C |
+| Modern financial | HP-10BII, HP-20b, HP-30b | algebraic + RPN | C |
 | RPL clamshell | HP-28C, HP-28S | RPL dynamic | C |
-| RPL graphing | HP-48SX, HP-48G, HP-49G, HP-50g | RPL dynamic | S (48G) / C (others) |
+| RPL graphing | HP-48SX, HP-48G, HP-48GX, HP-49G, HP-50g | RPL dynamic | S (48G) / C (others) |
 | Modern | HP-35s, HP Prime | RPN / configurable | C |
 | **Native mode** | — | either, user-selectable | **M** |
 
 Each model's exact keys, colors, prefixes, and functions are defined by
 [`hp/layouts/<MODEL>.md`](../hp/layouts/), [`hp/functions/<MODEL>.md`](../hp/functions/), and
-the unified [`hp/mapping/mapping.json`](../hp/mapping/mapping.json).
+the unified [`hp/mapping/mapping.json`](../hp/mapping/mapping.json). Two models reuse a
+sibling's keyboard: the **HP-12C Platinum** runs on the HP-12C chassis (its changes — RPN/ALG
+entry, backspace, faster CPU — are mostly non-keyboard) and the **HP-48GX** runs on the HP-48G
+chassis (the GX adds expansion ports, not keys). A few additions carry partial fidelity: the
+HP-32SII's new-function key positions are inferred (its manual has no keyboard diagram), and
+the menu-driven financials' variable UX and the HP-27S/HP-32S application menus are navigable
+but some leaf functions are inert pending deeper wiring.
 
 ---
 
