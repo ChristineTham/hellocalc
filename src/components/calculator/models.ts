@@ -39,7 +39,8 @@ export interface ClassicKey {
   legend: string; // as printed
   fn: string; // engine function id (primary)
   cat: "black" | "beige" | "blue" | "gold";
-  flex?: number; // ENTER = 2
+  flex?: number; // column span — ENTER = 2
+  hspan?: number; // row span — the HP-97's double-height `+` = 2
   f?: string; // gold f-shift legend, as printed
   g?: string; // blue g-shift legend, as printed
   h?: string; // black h-shift legend, as printed (HP-67)
@@ -114,7 +115,10 @@ const ck = (
   fn: string,
   cat: ClassicKey["cat"],
   opts: Partial<
-    Pick<ClassicKey, "f" | "g" | "h" | "al" | "fFn" | "gFn" | "hFn" | "kind" | "flex">
+    Pick<
+      ClassicKey,
+      "f" | "g" | "h" | "al" | "fFn" | "gFn" | "hFn" | "kind" | "flex" | "hspan"
+    >
   > = {},
 ): ClassicKey => ({ legend, fn, cat, flex: 1, ...opts });
 const HP35_ROWS: ClassicKey[][] = [
@@ -268,8 +272,10 @@ const HP97_ROWS: ClassicKey[][] = [
   [ck("LBL","LBL","black",{f:"STF"}),ck("GTO","GTO","black",{f:"CLF"}),ck("GSB","GSB","black",{f:"F?"}),ck("RTN","RTN","black",{f:"RND"}),ck("BST","BST","black",{f:"DSZ"}),ck("SST","SST","black",{f:"ISZ"}),ck("","","black",{kind:"gap"}),ck("ENTER↑","ENTER","blue",{flex:2,f:"DEG"}),ck("CHS","CHS","blue",{f:"RAD"}),ck("EEX","EEX","blue",{f:"GRD"}),ck("÷","÷","blue",{f:"π"})],
   [ck("yˣ","yˣ","black",{f:"ABS"}),ck("LN","LN","black",{f:"LOG"}),ck("eˣ","eˣ","black",{f:"10ˣ"}),ck("→P","→P","black",{f:"INT"}),ck("STO","STO n","black",{f:"→H.MS"}),ck("RCL","RCL n","black",{f:"H.MS→"}),ck("","","black",{kind:"gap"}),ck("R↓","R↓","black",{f:"R↑"}),ck("7","7","beige",{f:"x≠y?"}),ck("8","8","beige",{f:"x=y?"}),ck("9","9","beige",{f:"x>y?"}),ck("×","×","blue",{f:"x≤y?"})],
   [ck("SIN","SIN","black",{f:"SIN⁻¹"}),ck("COS","COS","black",{f:"COS⁻¹"}),ck("TAN","TAN","black",{f:"TAN⁻¹"}),ck("→R","→R","black",{f:"FRAC"}),ck("(i)","(i)","black",{f:"D→R"}),ck("I","RC I","black",{f:"R→D"}),ck("","","black",{kind:"gap"}),ck("x⇄y","x⇄y","black",{f:"x⇄I"}),ck("4","4","beige",{f:"x≠0?"}),ck("5","5","beige",{f:"x=0?"}),ck("6","6","beige",{f:"x>0?"}),ck("−","−","blue",{f:"x<0?"})],
-  [ck("R/S","R/S","black",{f:"PAUSE"}),ck("1/x","1/x","black",{f:"N!"}),ck("x²","x²","black",{f:"x̄"}),ck("√x","√x","black",{f:"s"}),ck("%","%","black",{f:"%CH"}),ck("Σ+","Σ+","black",{f:"Σ−"}),ck("","","black",{kind:"gap"}),ck("CL X","CLx","black",{f:"P⇄S"}),ck("1","1","beige",{f:"DEL"}),ck("2","2","beige",{f:"CL REG"}),ck("3","3","beige",{f:"CL PRGM"}),ck("+","+","blue",{f:"H.MS+"})],
-  [ck("","","black",{kind:"gap",flex:8}),ck("0","0","beige",{flex:2,f:"WRITE DATA"}),ck(".",".","beige",{f:"MERGE"}),ck("DSP","DSP","beige",{f:"LAST X"})],
+  [ck("R/S","R/S","black",{f:"PAUSE"}),ck("1/x","1/x","black",{f:"N!"}),ck("x²","x²","black",{f:"x̄"}),ck("√x","√x","black",{f:"s"}),ck("%","%","black",{f:"%CH"}),ck("Σ+","Σ+","black",{f:"Σ−"}),ck("","","black",{kind:"gap"}),ck("CL X","CLx","black",{f:"P⇄S"}),ck("1","1","beige",{f:"DEL"}),ck("2","2","beige",{f:"CL REG"}),ck("3","3","beige",{f:"CL PRGM"}),ck("+","+","blue",{f:"H.MS+",hspan:2})],
+  // R6: the `+` above spans down into this row's last column (hspan:2), so the
+  // gap is one unit shorter (7) and 0/./DSP fill the columns to its left
+  [ck("","","black",{kind:"gap",flex:7}),ck("0","0","beige",{flex:2,f:"WRITE DATA"}),ck(".",".","beige",{f:"MERGE"}),ck("DSP","DSP","beige",{f:"LAST X"})],
 ];
 
 // ---- HP-48G (RPL, graphing) --------------------------------------------------

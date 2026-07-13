@@ -11,12 +11,7 @@ import { useState } from "react";
 import { CalcKey } from "./CalcKey";
 import type { ClassicKey } from "./models";
 import { INVERSE_OF, normalizeFn } from "@/lib/models/normalize";
-import {
-  rowUnitsOf,
-  subgridColumns,
-  subgridSpan,
-  type KeyboardGeometry,
-} from "@/lib/layout/keyboardGeometry";
+import { placeRowKeys, type KeyboardGeometry } from "@/lib/layout/keyboardGeometry";
 import type { Prefix } from "@/hooks/useRpnCalculator";
 
 const toneFor = (k: ClassicKey) => {
@@ -114,12 +109,11 @@ export function ClassicKeyboard({
   };
 
   // Aspect-locked dual-pitch grid (§4.3–4.4): classic 4-key digit rows span
-  // the same width as the 5-key function rows — digit keys are genuinely
-  // wider on the real devices. lcm(5,4)=20 subcolumns make every row fill
-  // exactly (auto-flow stays row-major; a plain 5-col grid would let keys
-  // from the next row float up into the shortfall).
-  const rowUnits = rowUnitsOf(rows);
-  const subcols = subgridColumns(rowUnits);
+  // the same width as the 5-key function rows — digit keys are genuinely wider
+  // on the real devices. lcm-of-row-units subcolumns make every row fill
+  // exactly. Placement is EXPLICIT (start line + span) so a key can also span
+  // ROWS (the HP-97's double-height `+`) without the next row colliding.
+  const { subcols, placements } = placeRowKeys(rows);
 
   return (
     <div
@@ -133,17 +127,15 @@ export function ClassicKeyboard({
     >
       {rows.map((row, ri) =>
         row.map((k, ki) => {
-          const spanCols = subgridSpan(k, rowUnits[ri], subcols);
+          const p = placements[ri][ki];
+          const place = {
+            gridColumn: `${p.col} / span ${p.colSpan}`,
+            gridRow: `${p.row} / span ${p.rowSpan}`,
+          };
           // bare-plate spacer (HP-97 hinge/cluster gaps): consumes its grid
           // slots but renders no key
           if (k.kind === "gap") {
-            return (
-              <div
-                key={`${ri}-${ki}`}
-                aria-hidden
-                style={{ gridColumn: `span ${spanCols} / span ${spanCols}` }}
-              />
-            );
+            return <div key={`${ri}-${ki}`} aria-hidden style={place} />;
           }
           // §12.3 rev 6 promotion. HP-35 arc: while `arc` is armed the trig
           // keys show their inverse via the f slot (the 35 prints no shift
@@ -169,7 +161,7 @@ export function ClassicKeyboard({
               aria-label={k.legend || k.fn}
               primary={k.legend}
               tone={toneFor(k)}
-              style={{ gridColumn: `span ${spanCols} / span ${spanCols}` }}
+              style={place}
               f={fLegend}
               g={k.g}
               h={k.h ?? k.al}

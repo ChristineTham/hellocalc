@@ -110,6 +110,65 @@ export function subgridSpan(
   return span(key) * (subcols / rowUnits);
 }
 
+/** Row-authored key that may also span rows (the HP-97's double-height `+`). */
+export interface SpanKeyLike extends RowKeyLike {
+  hspan?: number;
+}
+
+/** Explicit grid placement of one key: 1-indexed start line + spans (subcols). */
+export interface RowKeyPlacement {
+  col: number;
+  colSpan: number;
+  row: number;
+  rowSpan: number;
+}
+
+/**
+ * Explicit 2-D placement for row-authored keyboards (§4.4), supporting keys
+ * that span ROWS as well as columns. Auto-flow can't express a row-spanning key
+ * (the next row's trailing key collides with it), so we place every key
+ * explicitly instead: walk each row left→right, skipping columns still occupied
+ * by a taller key from above, and reserve a taller key's cells so the rows below
+ * flow around it. `subcols` is the lcm of PHYSICAL row widths (real keys + the
+ * cells taller keys push down into), keeping every row an integer column grid.
+ */
+export function placeRowKeys(rows: readonly (readonly SpanKeyLike[])[]): {
+  subcols: number;
+  placements: RowKeyPlacement[][];
+} {
+  const nRows = rows.length;
+  const realUnits = rows.map((row) => row.reduce((s, k) => s + span(k), 0));
+  // physical width per row = its own keys + spans that taller keys push down
+  const pushedDown = new Array<number>(nRows).fill(0);
+  rows.forEach((row, ri) => {
+    row.forEach((k) => {
+      for (let d = 1; d < (k.hspan ?? 1); d++) {
+        if (ri + d < nRows) pushedDown[ri + d] += span(k);
+      }
+    });
+  });
+  const physicalUnits = realUnits.map((u, i) => u + pushedDown[i]);
+  const subcols = physicalUnits.reduce(lcm, 1);
+
+  const blockedThrough = new Array<number>(subcols + 2).fill(-1); // col → last row idx
+  const placements: RowKeyPlacement[][] = rows.map((row, ri) => {
+    const perUnit = subcols / physicalUnits[ri];
+    let col = 1;
+    return row.map((k) => {
+      const colSpan = span(k) * perUnit;
+      while (blockedThrough[col] >= ri) col += 1; // skip cells a taller key owns
+      const rowSpan = k.hspan ?? 1;
+      const placed: RowKeyPlacement = { col, colSpan, row: ri + 1, rowSpan };
+      if (rowSpan > 1) {
+        for (let c = col; c < col + colSpan; c++) blockedThrough[c] = ri + rowSpan - 1;
+      }
+      col += colSpan;
+      return placed;
+    });
+  });
+  return { subcols, placements };
+}
+
 export interface ComputeGeometryOptions {
   /** Override k (defaults to the family value from KEY_ASPECT). */
   keyAspect?: number;

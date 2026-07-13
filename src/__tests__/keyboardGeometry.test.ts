@@ -10,8 +10,40 @@ import {
   keyboardAspect,
   KEY_ASPECT,
   KEY_GAP_FRACTION,
+  placeRowKeys,
 } from "@/lib/layout/keyboardGeometry";
 import { MODELS } from "@/components/calculator/models";
+
+describe("placeRowKeys — explicit placement with row spans (§4.4)", () => {
+  it("keeps single-height rows on a uniform subgrid, each row filling exactly", () => {
+    // two 5-key rows and one 4-key row → lcm(5,4)=20 subcolumns
+    const { subcols, placements } = placeRowKeys([
+      [{}, {}, {}, {}, {}],
+      [{}, {}, {}, {}],
+    ]);
+    expect(subcols).toBe(20);
+    for (const row of placements) {
+      const last = row[row.length - 1];
+      expect(last.col + last.colSpan - 1).toBe(20); // row fills to the last column
+      expect(row.every((p) => p.rowSpan === 1)).toBe(true);
+    }
+  });
+
+  it("a row-spanning key reserves its cell so the next row flows around it", () => {
+    // row A: three 1-unit keys, the last spanning 2 rows
+    // row B: two 1-unit keys (the 3rd column is owned by A's tall key)
+    const { subcols, placements } = placeRowKeys([
+      [{}, {}, { hspan: 2 }],
+      [{}, {}],
+    ]);
+    expect(subcols).toBe(3); // physical width is 3 for BOTH rows (B = 2 keys + 1 pushed-down)
+    const tall = placements[0][2];
+    expect(tall).toEqual({ col: 3, colSpan: 1, row: 1, rowSpan: 2 });
+    // row B's keys sit in the first two columns, never colliding with col 3
+    expect(placements[1].map((p) => p.col)).toEqual([1, 2]);
+    expect(placements[1].every((p) => p.rowSpan === 1)).toBe(true);
+  });
+});
 
 describe("keyboardAspect — the §4.2 formula", () => {
   it("computes A_exact = (cols + (cols−1)g) / (rows/k + (rows−1)g)", () => {

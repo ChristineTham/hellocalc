@@ -284,15 +284,17 @@ describe("merged two-block machines (28C clamshell / 97 desk)", () => {
     const root = keyboardRoot(container);
     const children = Array.from(root.children) as HTMLElement[];
     let i = 0;
-    for (const row of model.rows) {
+    model.rows.forEach((row, ri) => {
       let units = 0;
       for (let k = 0; k < row.length; k++, i++) {
         const m = /span (\d+)/.exec(children[i].style.gridColumn);
         if (!m) throw new Error(`cell ${i} has no span`);
         units += Number(m[1]);
       }
-      expect(units).toBe(12);
-    }
+      // every row fills 12 columns EXCEPT the last: its 12th column is owned by
+      // the double-height `+` spanning down from the row above
+      expect(units).toBe(ri === model.rows.length - 1 ? 11 : 12);
+    });
   });
 });
 
@@ -338,9 +340,30 @@ describe("ClassicKeyboard (HP-35) — dual-pitch subcolumn grid", () => {
       if (!b) throw new Error(`no ${label} key rendered`);
       return b;
     };
-    expect(byLabel("ENTER↑").style.gridColumn).toBe("span 8 / span 8"); // flex-2 in a 5-unit row
-    expect(byLabel("log").style.gridColumn).toBe("span 4 / span 4"); // 5-unit function row
-    expect(byLabel("7").style.gridColumn).toBe("span 5 / span 5"); // 4-unit digit row (wider!)
+    // placement is now explicit (START / span N); assert the column SPAN
+    expect(byLabel("ENTER↑").style.gridColumn).toMatch(/ span 8$/); // flex-2 in a 5-unit row
+    expect(byLabel("log").style.gridColumn).toMatch(/ span 4$/); // 5-unit function row
+    expect(byLabel("7").style.gridColumn).toMatch(/ span 5$/); // 4-unit digit row (wider!)
+    // a normal (non-tall) key spans exactly one row
+    expect(byLabel("7").style.gridRow).toMatch(/ span 1$/);
+  });
+
+  it("HP-97: the + key is double-height (spans two rows) and PRINT x is double-width", () => {
+    const hp97 = MODELS["HP-97"];
+    if (hp97.family !== "classic") throw new Error("HP-97 must be classic");
+    const { container } = render(
+      <ClassicKeyboard rows={hp97.rows} geometry={hp97.geometry} onPress={noop} />,
+    );
+    const buttons = Array.from(container.querySelectorAll<HTMLElement>("button"));
+    const byLabel = (label: string) => {
+      const b = buttons.find((x) => x.getAttribute("aria-label") === label);
+      if (!b) throw new Error(`no ${label} key rendered`);
+      return b;
+    };
+    expect(byLabel("+").style.gridRow).toMatch(/ span 2$/); // tall + (R5–R6)
+    expect(byLabel("PRINT x").style.gridColumn).toMatch(/ span 2$/); // wide PRINT x
+    // DSP still renders (it flows into the column left of the tall +)
+    expect(byLabel("DSP")).toBeTruthy();
   });
 
   it("every row fills its subgrid exactly — no auto-flow scrambling", () => {
