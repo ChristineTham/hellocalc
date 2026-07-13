@@ -260,6 +260,36 @@ export function VarsNote({
       </section>
     );
   }
+  // a list app (CFLO cash flows / SUM statistics): the accumulated items, with
+  // running count — INPUT appends, the CALC submenu computes from them.
+  if (s.list) {
+    return (
+      <section data-slot="vars-note" className={className}>
+        <h2 className={CAPTION}>
+          {s.list.title} · {s.list.items.length}
+        </h2>
+        <div data-slot="list-note" className={NOTE}>
+          {s.list.items.length === 0 ? (
+            <p className="py-1 text-center font-mono text-[11px] text-muted-foreground">
+              — empty —
+            </p>
+          ) : (
+            s.list.items.map((v, i) => (
+              <div
+                key={i}
+                className="flex justify-between border-b border-paper-line py-1 last:border-0"
+              >
+                <span className="font-mono text-[12px] tracking-[0.1em] text-muted-foreground">
+                  {i}
+                </span>
+                <span className="font-mono text-[13.5px] tabular-nums text-foreground">{v}</span>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
+    );
+  }
   // a menu-driven financial app (ICNV/BOND/DEPRC/Black–Scholes): its variables
   // and current values — the app's variable menu, shown while it's active.
   if (s.app) {

@@ -14,6 +14,7 @@ import { ALPHA_PAGES, CONST_VALUES, DYNAMIC_MENUS, MENUS42 } from "./menu42";
 import { MENUS_FIN } from "./menuFin";
 import { markupOnCost, markupOnPrice, solveEquation, solverVariables } from "./business";
 import { FIN_APPS, FIN_VAR_APP } from "./finapps";
+import { LIST_APPS, LIST_MENUS, LIST_RESULT_APP } from "./listapps";
 import { determinant as det, inverse, Matrix } from "ml-matrix";
 import {
   digitOk,
@@ -206,6 +207,9 @@ export interface RpnEngine {
   /** The active menu-driven financial APP (ICNV/BOND/DEPRC/BS) and its stored
    * variable values — drives that app's variable menu + panel (like TVM). */
   app?: { name: string; vars: Record<string, string> } | null;
+  /** The active LIST app (CFLO cash flows / SUM statistics) and its items —
+   * INPUT appends, the CALC submenu computes from it, the panel shows it. */
+  list?: { name: string; items: string[] } | null;
 }
 
 const zeroSum = (): SumRegs => ({ n: bn(0), x: bn(0), x2: bn(0), y: bn(0), y2: bn(0), xy: bn(0) });
@@ -233,6 +237,7 @@ export function createRpn(): RpnEngine {
     solver: null,
     eqEntry: false,
     app: null,
+    list: null,
     prgm: freshPrgm(),
     fin: freshFin(),
     rng: 12345,
@@ -2748,6 +2753,17 @@ export function pressSoft42(s: RpnEngine, i: number): void {
     finVarKey(s, label);
     return;
   }
+  // a list app's CALC softkey opens its results submenu (CFLO→CFLOCALC …)
+  if (label === "CALC" && s.menu && LIST_MENUS.has(s.menu.name)) {
+    openMenu42(s, `${s.menu.name}CALC`);
+    return;
+  }
+  // a CFLO/SUM result softkey (scoped to its own CALC submenu, so it never
+  // shadows the 42S's own MEAN/etc): compute from the accumulated list
+  if (LIST_RESULT_APP[label] && s.menu?.name === `${LIST_RESULT_APP[label]}CALC`) {
+    listCalc(s, label);
+    return;
+  }
   dispatch(s, label);
 }
 
@@ -2899,6 +2915,25 @@ function finVarKey(s: RpnEngine, label: string): void {
   else s.error = "NEED INPUTS";
 }
 
+/** A CFLO/SUM result softkey: compute the result from the accumulated list. For
+ * CFLO the discount rate is the freshly-keyed X, else the stored I%YR. */
+function listCalc(s: RpnEngine, label: string): void {
+  const appKey = LIST_RESULT_APP[label];
+  const app = LIST_APPS[appKey];
+  if (!app || !s.list || s.list.name !== app.menu || s.list.items.length === 0) {
+    s.error = "NO DATA";
+    return;
+  }
+  const items = s.list.items.map((v) => bn(v));
+  const rate = s.fresh || s.entry !== null ? xval(s) : s.fin.i;
+  const r = app.results[label](items, rate);
+  if (r === null) {
+    s.error = "NO SOLUTION";
+    return;
+  }
+  pushX(s, r);
+}
+
 /** Pioneer/35s mapping prints → canonical engine ids (P21). */
 const RPN_PRINTS: Record<string, string> = {
   "∫ (integral)": "∫ˣy", "E (exponent)": "E", ", (comma)": ",", ". (decimal)": ".",
@@ -2988,6 +3023,23 @@ export function dispatch(s: RpnEngine, fn: string): boolean {
     if (ch !== null) s.alpha += ch;
     return true;
   }
+  // list apps (CFLO cash flows / SUM statistics): while their menu is open,
+  // INPUT appends the X register to the list and CLEAR DATA empties it.
+  if (s.menu && LIST_MENUS.has(s.menu.name)) {
+    const nm = s.menu.name;
+    if (fn === "INPUT") {
+      const items = s.list && s.list.name === nm ? s.list.items : [];
+      s.list = { name: nm, items: [...items, xval(s).toString()] };
+      s.entry = null;
+      s.lift = true;
+      s.fresh = false;
+      return true;
+    }
+    if (fn === "CLEARM") {
+      s.list = { name: nm, items: [] };
+      return true;
+    }
+  }
   // the SOLVER app key: with no equation yet, start typing one; otherwise
   // re-open the current equation's variable menu.
   if (fn === "EQN") {
@@ -3055,6 +3107,7 @@ export function dispatch(s: RpnEngine, fn: string): boolean {
   if (fn === "MAIN") {
     openMenu42(s, "MAIN");
     s.app = null; // "start over" — drop the active app so its panel yields
+    s.list = null;
     return true;
   }
   // the 27S opens the TVM variable menu directly (shift-9); no collision — TVM

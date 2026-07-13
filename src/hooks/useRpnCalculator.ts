@@ -23,6 +23,7 @@ import { intFormat } from "@/lib/engine/integer";
 import { bn, type Value } from "@/lib/engine/config";
 import { solverVariables } from "@/lib/engine/business";
 import { FIN_APPS } from "@/lib/engine/finapps";
+import { LIST_APPS } from "@/lib/engine/listapps";
 import type { RpnState } from "@/components/calculator/Display";
 
 // f/g are the Voyager planes; h (HP-67 black) and fi (HP-65 f⁻¹ gold inverse)
@@ -284,6 +285,13 @@ export function useRpnCalculator(): RpnCalculator {
           }
         : undefined,
       eqEntry: engine.eqEntry ? engine.alpha : undefined,
+      // the active list app (CFLO cash flows / SUM statistics) + its items
+      list: engine.list
+        ? {
+            title: LIST_APPS[engine.list.name]?.title ?? engine.list.name,
+            items: engine.list.items.map((v) => fmt(bn(v))),
+          }
+        : undefined,
       // the active menu-driven financial app (ICNV/BOND/DEPRC/BS) + its stored
       // variables — the app's variable panel (like TVM, but per app)
       app: engine.app

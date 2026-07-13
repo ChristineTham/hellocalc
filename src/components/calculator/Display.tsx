@@ -40,6 +40,8 @@ export interface RpnState {
   solver?: { eq: string; vars: { name: string; value: string }[] };
   /** the active financial app (ICNV/BOND/DEPRC/BS) + its variable values */
   app?: { title: string; vars: { name: string; value: string }[] };
+  /** the active list app (CFLO cash flows / SUM statistics) + its items */
+  list?: { title: string; items: string[] };
   /** the equation text being typed (SOLVER entry mode) — echoed on the glass */
   eqEntry?: string;
   /** keystroke program view (P3): mode + steps + pointer for the program note */
