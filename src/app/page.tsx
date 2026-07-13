@@ -51,7 +51,7 @@ export default function Home() {
   // the real hardware — their six top-row keys are softkeys over FIN/BUS/SUM/
   // TIME/SOLVE. Clear first so a menu left by another Pioneer model doesn't stack.
   useEffect(() => {
-    if (modelId === "HP-17B" || modelId === "HP-17BII") {
+    if (["HP-17B", "HP-17BII", "HP-18C", "HP-19B", "HP-19BII"].includes(modelId)) {
       rpn.press("Esc");
       rpn.press("MAIN");
     }

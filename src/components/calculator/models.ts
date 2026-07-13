@@ -318,6 +318,27 @@ const HP17B_ROWS: ClassicKey[][] = [
   [ck("","","black",{kind:"gap"}),ck("0","0","black",{f:"MEM"}),ck(".","•","black",{f:"SHOW"}),ck("=","=","black",{f:"LAST",fFn:"LSTx"}),ck("+","+","black",{f:"x²"})],
 ];
 
+// ---- HP-18C / HP-19B / HP-19BII (clamshell financial; hp/layouts/HP-18C.md …)
+// Two hinged panels merged into ONE Pioneer grid (the HP-97/28C pattern): a LEFT
+// alphabetic keyboard (types Solver-equation text into the α register via the
+// engine's α-append) + a hinge gap + the RIGHT calc panel (6 menu softkeys,
+// STO/RCL, INPUT, numeric pad, arithmetic). Every merged row is exactly 13 units
+// — the hinge gap absorbs the panels' differing widths — so both halves keep
+// internally uniform columns. Landscape (open-book posture); RPN/menu engine.
+/** A left-panel alpha key — types its character into the α register. */
+const al = (c: string): ClassicKey => ({ legend: c, fn: "α" + c, cat: "black" });
+/** A bare-plate spacer of `w` grid units (the hinge / left-panel pad). */
+const gp = (w: number): ClassicKey => ({ legend: "", fn: "", cat: "black", kind: "gap", flex: w });
+const HP18C_ROWS: ClassicKey[][] = [
+  [al("A"),al("B"),al("C"),al("D"),al("E"),al("F"),gp(1),sk(1),sk(2),sk(3),sk(4),sk(5),sk(6)],
+  [al("G"),al("H"),al("I"),al("J"),al("K"),al("L"),gp(1),ck("","f","gold",{kind:"pf"}),ck("STO","STO","black"),ck("RCL","RCL","black"),ck("DSP","DSP","black"),ck("PRT","PRT","black",{f:"PRINTER"}),ck("EXIT","EXIT","black",{f:"MAIN"})],
+  [al("M"),al("N"),al("O"),al("P"),al("Q"),al("R"),gp(1),ck("INPUT","INPUT","black",{flex:2,f:"CLEAR ALL",fFn:"CLEARM"}),ck("+/−","CHS","black",{f:"E",fFn:"EEX"}),ck("(","(","black"),ck(")",")","black"),ck("◆","←","black",{f:"CLEAR"})],
+  [al("S"),al("T"),al("U"),al("V"),al("W"),al("X"),gp(2),ck("▲","▲","black"),ck("7","7","black"),ck("8","8","black"),ck("9","9","black"),ck("÷","÷","black",{f:"1/x"})],
+  [al("Y"),al("Z"),al("?"),al("$"),al("#"),al(":"),gp(2),ck("▼","▼","black"),ck("4","4","black"),ck("5","5","black"),ck("6","6","black"),ck("×","×","black",{f:"yˣ"})],
+  [ck("SPACE","α ","black",{flex:2}),ck("INS","INS","black"),ck("DEL","DEL","black"),ck("◄","◄","black"),ck("►","►","black"),gp(2),ck("%","%","black"),ck("1","1","black"),ck("2","2","black"),ck("3","3","black"),ck("−","−","black",{f:"√x"})],
+  [gp(8),ck("ON","ON","black"),ck("0","0","black"),ck(".","•","black"),ck("=","=","black",{f:"LAST",fFn:"LSTx"}),ck("+","+","black",{f:"x²"})],
+];
+
 /** RPL key helper (shared by every RPL-family board). */
 const r = (
   p: string,
@@ -440,6 +461,8 @@ const GEOM = {
   "HP-Prime": computeKeyboardGeometry({ rows: HPPRIME_ROWS }, "pioneer"),
   // 17B/17BII share the Pioneer chassis (same rows) → one geometry entry.
   "HP-17B": computeKeyboardGeometry({ rows: HP17B_ROWS }, "pioneer"),
+  // 18C/19B/19BII share the merged clamshell chassis → one geometry entry.
+  "HP-18C": computeKeyboardGeometry({ rows: HP18C_ROWS }, "pioneer"),
   "HP-11C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-11C"] }, "voyager"),
   "HP-12C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-12C"] }, "voyager"),
   "HP-15C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-15C"] }, "voyager"),
@@ -481,6 +504,9 @@ export const MODELS: Record<string, Model> = {
   "HP-Prime":{ id: "HP-Prime",name: "HP Prime",family: "pioneer", sub: "CAS · TOUCH",      angle: true, geometry: GEOM["HP-Prime"],rows: HPPRIME_ROWS },
   "HP-17B":  { id: "HP-17B",  name: "HP-17B",  family: "pioneer", sub: "ALG · FINANCIAL",  angle: false, geometry: GEOM["HP-17B"],  rows: HP17B_ROWS },
   "HP-17BII":{ id: "HP-17BII",name: "HP-17BII",family: "pioneer", sub: "RPN · ALG · FINANCIAL", angle: false, geometry: GEOM["HP-17B"], rows: HP17B_ROWS },
+  "HP-18C":  { id: "HP-18C",  name: "HP-18C",  family: "pioneer", sub: "ALG · CLAMSHELL",  angle: false, geometry: GEOM["HP-18C"],  rows: HP18C_ROWS },
+  "HP-19B":  { id: "HP-19B",  name: "HP-19B",  family: "pioneer", sub: "ALG · CLAMSHELL",  angle: false, geometry: GEOM["HP-18C"],  rows: HP18C_ROWS },
+  "HP-19BII":{ id: "HP-19BII",name: "HP-19BII",family: "pioneer", sub: "RPN · ALG · CLAMSHELL", angle: false, geometry: GEOM["HP-18C"], rows: HP18C_ROWS },
   "HP-48SX": { id: "HP-48SX", name: "HP-48SX", family: "rpl", sub: "RPL · GRAPHING", angle: true, geometry: GEOM["HP-48SX"], rows: HP48SX_ROWS,
     shift: { ls: "var(--hp-shift-ls-sx)", rs: "var(--hp-shift-rs-sx)" } },
   "HP-48G": { id: "HP-48G", name: "HP-48G", family: "rpl",     sub: "RPL · GRAPHING",   angle: true,  geometry: GEOM["HP-48G"], rows: HP48G_ROWS },
@@ -497,5 +523,5 @@ export const MODEL_ORDER = [
   "HP-28C", "HP-28S", "HP-42S",
   "HP-48SX", "HP-48G", "HP-49G", "HP-50g",
   "HP-35s", "HP-Prime",
-  "HP-17B", "HP-17BII",
+  "HP-17B", "HP-17BII", "HP-18C", "HP-19B", "HP-19BII",
 ] as const;

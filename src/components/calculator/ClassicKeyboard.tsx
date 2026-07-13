@@ -56,11 +56,21 @@ export function ClassicKeyboard({
   // softkeys — unshifted presses resolve the labels, shifted presses keep
   // their printed functions (so menus stay reachable)
   const topRow = rows[0] ?? [];
+  // Financial machines mark their six menu keys fn="SK1".."SK6" so they resolve
+  // as softkeys wherever they sit in the grid (the clamshells merge a left alpha
+  // panel ahead of them). When such keys exist the top-row-position protocol is
+  // OFF (else the merged row-0 alpha keys would be mistaken for softkeys); the
+  // 42S — whose top row keys carry real functions — keeps the position protocol.
+  const hasSk = rows.some((row) => row.some((k) => /^SK[1-6]$/.test(k.fn)));
 
   const handle = (k: ClassicKey) => {
-    if (menuLabels && prefix === "none" && topRow.includes(k)) {
-      const i = topRow.indexOf(k);
-      if (i >= 0 && i < 6) return onSoft?.(i);
+    if (menuLabels && prefix === "none") {
+      const sk = /^SK([1-6])$/.exec(k.fn);
+      if (sk) return onSoft?.(Number(sk[1]) - 1);
+      if (!hasSk && topRow.includes(k)) {
+        const i = topRow.indexOf(k);
+        if (i >= 0 && i < 6) return onSoft?.(i);
+      }
     }
     if (k.kind === "pf") return onArm?.("f");
     if (k.kind === "pfi") return onArm?.("fi");
