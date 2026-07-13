@@ -169,14 +169,16 @@ export function Display({
   // vice versa) — user intent, later persisted (§12.6).
   const [userForce, setUserForce] = useState<LcdMode | null>(null);
   const force = userForce ?? defaultMode ?? null;
-  // dot-matrix glass: the RPL machines AND the menu-driven/modern RPN line
-  // (42S/35s/Prime) — segment digits belong to the LED/LCD-digit eras
-  const isDot = isRpl || family === "pioneer";
-  const num = isDot ? dotNum : segNum;
-  // the primary number: dot displays get the big, vertically-stretched HERO
-  // treatment (.lcd-dot-hero); segment displays keep their size tokens
-  const heroValue = isDot ? "lcd-dot-hero" : "text-hp-lcd-value";
-  const heroX = isDot ? "lcd-dot-hero" : "text-hp-lcd-hero";
+  // dot-matrix FONT: the RPL machines, the menu-driven/modern RPN line
+  // (42S/35s/Prime) AND the HP-41's 14-segment alphanumeric display (so ALPHA
+  // reads as letters, not 7-segment). Segment digits belong to the LED/LCD eras.
+  const num = isRpl || family === "pioneer" || family === "hp41" ? dotNum : segNum;
+  // the big vertically-stretched HERO number is for the MULTI-LINE dot displays
+  // (RPL/pioneer); the single-line HP-41 uses the normal size token in the dot
+  // font so its ≤12-char alphanumeric line fits.
+  const isDotHero = isRpl || family === "pioneer";
+  const heroValue = isDotHero ? "lcd-dot-hero" : "text-hp-lcd-value";
+  const heroX = isDotHero ? "lcd-dot-hero" : "text-hp-lcd-hero";
 
   const lineValue =
     s.prefix === "alpha" && !isRpl
