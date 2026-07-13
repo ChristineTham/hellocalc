@@ -38,6 +38,8 @@ export interface RpnState {
   registers?: { name: string; value: string }[];
   /** the equation SOLVER: current equation + its variables/values (var menu) */
   solver?: { eq: string; vars: { name: string; value: string }[] };
+  /** the active financial app (ICNV/BOND/DEPRC/BS) + its variable values */
+  app?: { title: string; vars: { name: string; value: string }[] };
   /** the equation text being typed (SOLVER entry mode) — echoed on the glass */
   eqEntry?: string;
   /** keystroke program view (P3): mode + steps + pointer for the program note */

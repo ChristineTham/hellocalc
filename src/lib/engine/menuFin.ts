@@ -13,7 +13,11 @@ export const MENUS_FIN: Record<string, string[]> = {
   MAIN: ["@FIN", "@BUS", "@SUM", "@TIME", "SOLVE", ""],
 
   // ---- FIN: the financial applications --------------------------------------
-  FIN: ["@TVM", "@ICNV", "@CFLO", "@BOND", "@DEPRC"],
+  FIN: ["@TVM", "@ICNV", "@CFLO", "@BOND", "@DEPRC", "@BS"],
+  // Black–Scholes European options (17BII/30b): store the five inputs, then
+  // CALC → CALL / PUT.
+  BS: ["SPOT", "STRIKE", "RATE", "VOL", "TIME", "@BSCALC"],
+  BSCALC: ["CALL", "PUT"],
   // Time value of money: five registers + an OTHER page (payments/yr, mode)
   TVM: ["N", "I%YR", "PV", "PMT", "FV", "@OTHER"],
   OTHER: ["P/YR", "BEG", "END", "AMORT"],
@@ -24,9 +28,8 @@ export const MENUS_FIN: Record<string, string[]> = {
   // Cash flows: the list is dynamic; CALC yields the four results
   CFLO: ["CALC"],
   CFLOCALC: ["IRR%", "NPV", "NUS", "NFV"],
-  // Bonds
-  BOND: ["SETT", "MAT", "CPN%", "@BTYPE", "MORE"],
-  BTYPE: ["YLD%", "PRICE", "ACCRU"],
+  // Bonds — inputs + the interchangeable YLD%/PRICE + accrued
+  BOND: ["SETT", "MAT", "CPN%", "YLD%", "PRICE", "ACCRU"],
   // Depreciation
   DEPRC: ["BASIS", "SALV", "LIFE", "@DMETH"],
   DMETH: ["SL", "DB", "SOYD", "ACRS"],

@@ -34,7 +34,7 @@ describe("business machines — menu navigation", () => {
     const s = createRpn();
     dispatch(s, "MAIN");
     pressSoft42(s, 0); // FIN
-    expect(labels(s)).toEqual(["TVM", "ICNV", "CFLO", "BOND", "DEPRC", ""]);
+    expect(labels(s)).toEqual(["TVM", "ICNV", "CFLO", "BOND", "DEPRC", "BS"]);
   });
 
   it("FIN → TVM shows the five registers + OTHER, EXIT pops back", () => {
@@ -44,7 +44,7 @@ describe("business machines — menu navigation", () => {
     pressSoft42(s, 0); // TVM
     expect(labels(s)).toEqual(["N", "I%YR", "PV", "PMT", "FV", "OTHER"]);
     dispatch(s, "EXIT");
-    expect(labels(s)).toEqual(["TVM", "ICNV", "CFLO", "BOND", "DEPRC", ""]);
+    expect(labels(s)).toEqual(["TVM", "ICNV", "CFLO", "BOND", "DEPRC", "BS"]);
   });
 
   it("MAIN → BUS shows the percentages plus CURRX/UNITS", () => {

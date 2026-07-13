@@ -22,6 +22,7 @@ import { formatValue } from "@/lib/engine/format";
 import { intFormat } from "@/lib/engine/integer";
 import { bn, type Value } from "@/lib/engine/config";
 import { solverVariables } from "@/lib/engine/business";
+import { FIN_APPS } from "@/lib/engine/finapps";
 import type { RpnState } from "@/components/calculator/Display";
 
 // f/g are the Voyager planes; h (HP-67 black) and fi (HP-65 f⁻¹ gold inverse)
@@ -283,6 +284,18 @@ export function useRpnCalculator(): RpnCalculator {
           }
         : undefined,
       eqEntry: engine.eqEntry ? engine.alpha : undefined,
+      // the active menu-driven financial app (ICNV/BOND/DEPRC/BS) + its stored
+      // variables — the app's variable panel (like TVM, but per app)
+      app: engine.app
+        ? {
+            title: FIN_APPS[engine.app.name]?.title ?? engine.app.name,
+            vars: (FIN_APPS[engine.app.name]?.vars ?? []).map((name) => ({
+              name,
+              value:
+                engine.app!.vars[name] !== undefined ? fmt(bn(engine.app!.vars[name])) : "—",
+            })),
+          }
+        : undefined,
       prgm: {
         mode: engine.prgm.mode,
         pc: engine.prgm.pc,

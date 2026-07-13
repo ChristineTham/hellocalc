@@ -13,6 +13,7 @@ import { bestFit, fit as cfit, forecastX, forecastY } from "./stats-fit";
 import { ALPHA_PAGES, CONST_VALUES, DYNAMIC_MENUS, MENUS42 } from "./menu42";
 import { MENUS_FIN } from "./menuFin";
 import { markupOnCost, markupOnPrice, solveEquation, solverVariables } from "./business";
+import { FIN_APPS, FIN_VAR_APP } from "./finapps";
 import { determinant as det, inverse, Matrix } from "ml-matrix";
 import {
   digitOk,
@@ -202,6 +203,9 @@ export interface RpnEngine {
   solver?: { eq: string; vars: Record<string, string> } | null;
   /** true while typing an equation into `alpha` (keys append instead of run). */
   eqEntry?: boolean;
+  /** The active menu-driven financial APP (ICNV/BOND/DEPRC/BS) and its stored
+   * variable values — drives that app's variable menu + panel (like TVM). */
+  app?: { name: string; vars: Record<string, string> } | null;
 }
 
 const zeroSum = (): SumRegs => ({ n: bn(0), x: bn(0), x2: bn(0), y: bn(0), y2: bn(0), xy: bn(0) });
@@ -228,6 +232,7 @@ export function createRpn(): RpnEngine {
     pts: [],
     solver: null,
     eqEntry: false,
+    app: null,
     prgm: freshPrgm(),
     fin: freshFin(),
     rng: 12345,
@@ -2738,6 +2743,11 @@ export function pressSoft42(s: RpnEngine, i: number): void {
     dispatch(s, "EQN");
     return;
   }
+  // a financial-app variable (ICNV/BOND/DEPRC/BS): store / recall / compute
+  if (FIN_VAR_APP[label]) {
+    finVarKey(s, label);
+    return;
+  }
   dispatch(s, label);
 }
 
@@ -2846,6 +2856,49 @@ function solverLabels(s: RpnEngine): string[] {
   return s.solver ? (solverVariables(s.solver.eq) ?? []) : [];
 }
 
+/** A financial-app variable softkey (ICNV/BOND/DEPRC/BS): STORE the freshly-
+ * keyed number, RECALL the stored value, or — for a result variable — COMPUTE
+ * it from the stored inputs (bond price/yield, depreciation, Black–Scholes). */
+function finVarKey(s: RpnEngine, label: string): void {
+  const appKey = FIN_VAR_APP[label];
+  const spec = FIN_APPS[appKey];
+  if (!spec) return;
+  if (!s.app || s.app.name !== appKey) s.app = { name: appKey, vars: {} };
+  const compute = (): boolean => {
+    const store: Record<string, Value> = {};
+    for (const [k, v] of Object.entries(s.app!.vars)) store[k] = bn(v);
+    const r = spec.compute(store, label, xval(s));
+    if (r === null) return false;
+    pushX(s, r);
+    s.app = { name: s.app!.name, vars: { ...s.app!.vars, [label]: r.toString() } };
+    s.fresh = false;
+    return true;
+  };
+  // compute-only results (DEPRC methods, Black–Scholes prices) ALWAYS compute —
+  // a keyed number is their argument (the year), never a value to store.
+  if (spec.computeOnly?.has(label)) {
+    if (!compute()) s.error = "NEED INPUTS";
+    return;
+  }
+  // A freshly-keyed number STORES into the variable — this holds for inputs AND
+  // for the "given" side of an interchangeable pair (store YLD% to compute
+  // PRICE, or NOM% to compute EFF%).
+  if (s.fresh || s.entry !== null) {
+    const v = xval(s);
+    s.x = v;
+    s.entry = null;
+    s.lift = true;
+    s.fresh = false;
+    s.app = { ...s.app, vars: { ...s.app.vars, [label]: v.toString() } };
+    return;
+  }
+  // No fresh number: COMPUTE a result from the stored inputs, else RECALL the
+  // stored value (or flag missing inputs).
+  if (spec.results.has(label) && compute()) return;
+  if (s.app.vars[label] !== undefined) pushX(s, bn(s.app.vars[label]));
+  else s.error = "NEED INPUTS";
+}
+
 /** Pioneer/35s mapping prints → canonical engine ids (P21). */
 const RPN_PRINTS: Record<string, string> = {
   "∫ (integral)": "∫ˣy", "E (exponent)": "E", ", (comma)": ",", ". (decimal)": ".",
@@ -2887,7 +2940,7 @@ const FIN_MENU_ACCEPTED = new Set([
   "Date", "%calc", "Memory", "Mode", "PRGM", "Reset", "INS", "DEL", "Math", "Amort",
   "CshFl", "Bond", "Black S", "BlackS", "MU", "CST", "PRC", "MAR", "IRR/YR", "→M",
   "RM", "M+", "C ALL", "DISP", "./,", "NOM%", "EFF%", "CLΣ", "SWAP", "Nj", "BEG/END",
-  "K", "CFj",
+  "K", "CFj", "ACRS", "MORE", "CALC", "NUS", "NFV",
   // 10bII statistics estimates + Σ registers (mauve plane)
   "x̄,ȳ", "Sx,Sy", "σx,σy", "x̂,r", "ŷ,m", "x̄w", "Σx²", "Σy²", "Σxy", "Σx", "Σy",
   // 27S menu-openers / keys without a wired handler (fallback-inert, so a real
@@ -3001,6 +3054,7 @@ export function dispatch(s: RpnEngine, fn: string): boolean {
   // the shared engine's own commands (the 12C's CLEAR-FIN, the 42S's SUM stat).
   if (fn === "MAIN") {
     openMenu42(s, "MAIN");
+    s.app = null; // "start over" — drop the active app so its panel yields
     return true;
   }
   // the 27S opens the TVM variable menu directly (shift-9); no collision — TVM
