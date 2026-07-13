@@ -18,6 +18,8 @@ export interface SidebarNavProps {
   onExport?: () => void;
   onImportFile?: (file: File) => void;
   onReset?: () => void;
+  onSaveWorkspace?: (name: string) => void;
+  onLoadWorkspace?: (name: string) => void;
   /** the brand header renders in the sidebar; the sheet host draws its own */
   showBrand?: boolean;
 }
@@ -28,6 +30,8 @@ export function SidebarNav({
   onExport,
   onImportFile,
   onReset,
+  onSaveWorkspace,
+  onLoadWorkspace,
   showBrand = true,
 }: SidebarNavProps) {
   return (
@@ -48,6 +52,8 @@ export function SidebarNav({
           onExport={onExport}
           onImportFile={onImportFile}
           onReset={onReset}
+          onSaveWorkspace={onSaveWorkspace}
+          onLoadWorkspace={onLoadWorkspace}
         />
         <Link
           href="/about"

@@ -595,6 +595,32 @@ test.describe("hellocalc — smoke", () => {
     );
   });
 
+  test("named workspaces: save, change, load round-trips the session (FR-STATE-3)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const glass = () => page.locator('[data-lcd-mode]:visible');
+    const settings = () => page.getByRole("button", { name: "Settings" }).first();
+    await page.getByRole("button", { name: "7", exact: true }).click();
+    await page.getByRole("button", { name: "ENTER", exact: true }).click();
+
+    // save the current session under a name
+    await settings().click();
+    await page.getByLabel("Workspace name").fill("w1");
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await page.keyboard.press("Escape");
+
+    // change X so the load is observable
+    await page.getByRole("button", { name: "3", exact: true }).click();
+    await expect(glass().getByText("7.00").first()).toHaveCount(0);
+
+    // load the saved workspace → X returns to 7
+    await settings().click();
+    await page.getByRole("button", { name: "Load workspace w1" }).click();
+    await page.keyboard.press("Escape");
+    await expect(glass().getByText("7.00").first()).toBeVisible();
+  });
+
   test("sidebar model tree: collapsed by default, expands, searches", async ({ page }) => {
     await page.goto("/"); // desktop default (lg+) → sidebar tree is inline
     const sidebar = page.locator('[data-region="sidebar"]');

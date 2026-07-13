@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { PrecisionControl } from "@/components/calculator/PrecisionControl";
+import { WorkspacesPanel } from "@/components/calculator/WorkspacesPanel";
 import { cn } from "@/lib/utils";
 
 const ITEM =
@@ -28,6 +29,10 @@ export interface SettingsDialogProps {
   onImportFile?: (file: File) => void;
   /** FR-STATE-1: reset engines + clear the autosaved session. */
   onReset?: () => void;
+  /** FR-STATE-3: save the current session under a name. */
+  onSaveWorkspace?: (name: string) => void;
+  /** FR-STATE-3: restore a saved session by name. */
+  onLoadWorkspace?: (name: string) => void;
   /** trigger styling — the gear button in the sidebar footer / sheet */
   triggerClassName?: string;
 }
@@ -36,6 +41,8 @@ export function SettingsDialog({
   onExport,
   onImportFile,
   onReset,
+  onSaveWorkspace,
+  onLoadWorkspace,
   triggerClassName,
 }: SettingsDialogProps) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -116,6 +123,15 @@ export function SettingsDialog({
             Reset state
           </button>
         </section>
+
+        {onSaveWorkspace && onLoadWorkspace && (
+          <section className="space-y-2">
+            <h3 className="font-mono text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+              Named workspaces
+            </h3>
+            <WorkspacesPanel onSave={onSaveWorkspace} onLoad={onLoadWorkspace} />
+          </section>
+        )}
       </DialogContent>
     </Dialog>
   );

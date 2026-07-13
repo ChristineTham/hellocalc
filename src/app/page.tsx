@@ -20,7 +20,13 @@ import { useHotkeys } from "@/hooks/useHotkeys";
 import { parseState, restore, snapshot } from "@/lib/engine/persistence";
 import { createRpn } from "@/lib/engine/rpn";
 import { createRpl } from "@/lib/engine/rpl";
-import { downloadStateFile, localStorageAdapter, readStateFile } from "@/lib/storage";
+import {
+  downloadStateFile,
+  loadWorkspace,
+  localStorageAdapter,
+  readStateFile,
+  saveWorkspace,
+} from "@/lib/storage";
 
 export default function Home() {
   // default to the HP-35s — the most modern RPN scientific that keeps the
@@ -108,6 +114,28 @@ export default function Home() {
     rpl.restore(createRpl());
   }, [rpn, rpl]);
 
+  // Named workspaces (FR-STATE-3): the whole session saved under a name, then
+  // loaded back — same snapshot/restore codec as file export/import.
+  const onSaveWorkspace = useCallback(
+    (name: string) => {
+      saveWorkspace(name, JSON.stringify(snapshot(rpn.engine, rpl.engine, modelId)));
+    },
+    [rpn.engine, rpl.engine, modelId],
+  );
+  const onLoadWorkspace = useCallback(
+    (name: string) => {
+      const json = loadWorkspace(name);
+      const state = json ? parseState(json) : null;
+      if (!state) return;
+      const engines = restore(state);
+      rpn.restore(engines.rpn);
+      rpl.restore(engines.rpl);
+      if (engines.activeModel in MODELS || engines.activeModel === "native")
+        setModelId(engines.activeModel);
+    },
+    [rpn, rpl],
+  );
+
   // Physical keyboard is a first-class input (§12.2, FR-UI-2): keystrokes
   // click the matching faceplate key; Escape disarms an armed prefix.
   useHotkeys({
@@ -157,6 +185,8 @@ export default function Home() {
                 onExport={onExport}
                 onImportFile={onImportFile}
                 onReset={onReset}
+                onSaveWorkspace={onSaveWorkspace}
+                onLoadWorkspace={onLoadWorkspace}
               />
             }
             panels={{
@@ -193,6 +223,8 @@ export default function Home() {
               onExport={onExport}
               onImportFile={onImportFile}
               onReset={onReset}
+              onSaveWorkspace={onSaveWorkspace}
+              onLoadWorkspace={onLoadWorkspace}
             />
           </div>
         }

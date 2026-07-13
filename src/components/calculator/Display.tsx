@@ -9,7 +9,7 @@
 // KaTeX is injected via `renderLatex` so this file has no hard katex dependency.
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronsDownUp, ChevronsUpDown, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AnnunSet, Family } from "./models";
@@ -61,6 +61,9 @@ export interface RpnState {
 }
 
 export type LcdMode = "line" | "mini";
+
+/** localStorage key for the persisted LCD line/mini force (§12.6). */
+const LCD_FORCE_KEY = "hellocalc-lcd-force";
 
 export interface DisplayProps {
   state: RpnState;
@@ -169,8 +172,22 @@ export function Display({
   const isRpl = family === "rpl";
   // §5.3: null ⇒ no data-lcd-force attribute ⇒ the @container/lcd default
   // applies. The chevron sets an explicit mode (line's chevron forces mini and
-  // vice versa) — user intent, later persisted (§12.6).
+  // vice versa) — user intent, PERSISTED to localStorage (§12.6). Read on mount
+  // (browser-only, so the static prerender never mismatches).
   const [userForce, setUserForce] = useState<LcdMode | null>(null);
+  useEffect(() => {
+    const saved = localStorage.getItem(LCD_FORCE_KEY);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- client-data sync on mount
+    if (saved === "line" || saved === "mini") setUserForce(saved);
+  }, []);
+  const setForce = (m: LcdMode) => {
+    setUserForce(m);
+    try {
+      localStorage.setItem(LCD_FORCE_KEY, m);
+    } catch {
+      /* private-mode / quota — the preference just won't stick */
+    }
+  };
   const force = userForce ?? defaultMode ?? null;
   // dot-matrix FONT: the RPL machines, the menu-driven/modern RPN line
   // (42S/35s/Prime) AND the HP-41's 14-segment alphanumeric display (so ALPHA
@@ -242,7 +259,7 @@ export function Display({
           toggle={
             <button
               type="button"
-              onClick={() => setUserForce("mini")}
+              onClick={() => setForce("mini")}
               aria-label="Expand display"
               className="ml-1 text-hp-display-dim transition-colors hover:text-hp-display-fg"
             >
@@ -301,7 +318,7 @@ export function Display({
           toggle={
             <button
               type="button"
-              onClick={() => setUserForce("line")}
+              onClick={() => setForce("line")}
               aria-label="Collapse display"
               className="ml-1 text-hp-display-dim transition-colors hover:text-hp-display-fg"
             >

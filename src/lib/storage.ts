@@ -78,3 +78,8 @@ export function listWorkspaces(): string[] {
   }
   return out.sort();
 }
+
+export function deleteWorkspace(name: string): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(WS_PREFIX + name);
+}
