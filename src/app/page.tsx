@@ -178,6 +178,12 @@ export default function Home() {
             activeModel={modelId}
             onSelectModel={setModelId}
             tags={(isNative ? "NATIVE · FULL ENGINE" : model.sub).split("·").map((t) => t.trim())}
+            // the modern RPN models offer an RPN⇄ALG entry-mode toggle (FR-STK-4)
+            entryMode={
+              !isNative && (model.id === "HP-35s" || model.id === "HP-Prime" || model.id === "HP-12C")
+                ? { alg: Boolean(rpn.state.alg), onToggle: () => rpn.press("ALG") }
+                : undefined
+            }
             nav={
               <SidebarNav
                 activeModel={modelId}

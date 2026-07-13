@@ -595,6 +595,25 @@ test.describe("hellocalc — smoke", () => {
     );
   });
 
+  test("RPN⇄ALG: the 35s toggles to algebraic entry and evaluates infix (FR-STK-4)", async ({
+    page,
+  }) => {
+    await page.goto("/"); // default HP-35s
+    const glass = () => page.locator('[data-lcd-mode]:visible');
+    // flip to ALG in the topbar
+    await page.getByRole("button", { name: /Entry mode: RPN/ }).click();
+    await expect(glass().getByText("ALG").first()).toBeVisible();
+    // type an infix expression with mixed precedence: 2 + 3 × 4 = 14
+    for (const k of ["2", "+", "3", "×", "4"]) {
+      await page.getByRole("button", { name: k, exact: true }).click();
+    }
+    await page.getByRole("button", { name: "ENTER", exact: true }).click();
+    await expect(glass().getByText("14.00").first()).toBeVisible();
+    // toggle back to RPN
+    await page.getByRole("button", { name: /Entry mode: algebraic/ }).click();
+    await expect(glass().getByText("RPN").first()).toBeVisible();
+  });
+
   test("named workspaces: save, change, load round-trips the session (FR-STATE-3)", async ({
     page,
   }) => {

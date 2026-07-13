@@ -284,6 +284,7 @@ export function useRpnCalculator(): RpnCalculator {
         : undefined,
       hist: engine.hist.map((h) => ({ op: h.op, v: fmt(bn(h.raw)), raw: h.raw })),
       running,
+      alg: engine.alg,
     };
   }, [engine, prefix, fmt, running]);
 

@@ -58,6 +58,8 @@ export interface RpnState {
   /** a keystroke program is running under the cooperative scheduler (P3) —
    * the glass shows a RUN annunciator; any key halts it */
   running?: boolean;
+  /** algebraic-entry mode (FR-STK-4) — shows an ALG annunciator */
+  alg?: boolean;
 }
 
 export type LcdMode = "line" | "mini";
@@ -144,7 +146,7 @@ function AnnunRow({
       {s.intBase && <Annunciator label={s.intBase} hot />}
       {showAngle && s.ang && <Annunciator label={s.ang} hot />}
       {s.running && <Annunciator label="RUN" hot />}
-      <Annunciator label={isRpl ? "RPL" : "RPN"} hot />
+      <Annunciator label={isRpl ? "RPL" : s.alg ? "ALG" : "RPN"} hot />
       {annun.begEnd && s.beg && <Annunciator label="BEGIN" hot />}
       {s.err && (
         <span role="status">

@@ -336,6 +336,22 @@ describe("Phase-3: keystroke programmability (HP-65)", () => {
     expect(n(s.x)).toBe(17);
   });
 
+  it("FR-STK-4: ALG mode builds and evaluates an infix expression, then toggles back", () => {
+    const s = createRpn();
+    applyFunction(s, "ALG");
+    expect(s.alg).toBe(true);
+    for (const k of ["2", "×", "3", "+", "4"]) applyFunction(s, k);
+    expect(s.entry).toBe("2*3+4"); // precedence handled by the algebraic parser
+    applyFunction(s, "ENTER");
+    expect(n(s.x)).toBe(10); // 2*3 + 4
+    // exact arithmetic still holds in ALG mode
+    for (const k of ["0", ".", "1", "+", "0", ".", "2"]) applyFunction(s, k);
+    applyFunction(s, "ENTER");
+    expect(s.x.toString()).toBe("0.3"); // exact, not 0.30000000000000004
+    applyFunction(s, "ALG");
+    expect(s.alg).toBe(false);
+  });
+
   it("stepProgram chunks a long loop: yields at the budget, resumes to the same result", () => {
     // a counting loop: LBL 1  1 +  GTO 1 — runs until the op budget, then the
     // scheduler (here: a manual drain) resumes it to the same total

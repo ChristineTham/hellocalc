@@ -6,6 +6,7 @@
 // isolation and Web-Worker safe.
 
 import { asReal, bn, math, num, PI, type Value } from "./config";
+import { evalExpr, parseExpr } from "./rpl/parse";
 import { DEFAULT_FORMAT, type DisplayFormat } from "./format";
 import { appendDigit, backspace, parseEntry, startExponent, toggleSign } from "./entry";
 import { bestFit, fit as cfit, forecastX, forecastY } from "./stats-fit";
@@ -188,6 +189,10 @@ export interface RpnEngine {
   disp: DisplayFormat;
   error: string | null;
   hist: HistEntry[]; // engine-side history (FR-EXP-5), capped at 50
+  /** algebraic-entry mode (FR-STK-4): the 12C Platinum / 35s / Prime build an
+   * infix expression in `entry` instead of keying RPN. Optional — undefined =
+   * RPN (the default); a session mode, not persisted. */
+  alg?: boolean;
 }
 
 const zeroSum = (): SumRegs => ({ n: bn(0), x: bn(0), x2: bn(0), y: bn(0), y2: bn(0), xy: bn(0) });
@@ -425,6 +430,63 @@ const fromRad = (s: RpnEngine, v: Value): Value =>
     : s.angle === "GRD"
       ? v.times(200).div(PI)
       : v;
+
+// ── Algebraic-entry mode (FR-STK-4) ──────────────────────────────────────────
+// key id → the infix symbol it appends while ALG mode is on. Function keys open
+// a paren the user closes; the parser then evaluates it EXACTLY on the tower.
+const ALG_SYM: Record<string, string> = {
+  "0": "0", "1": "1", "2": "2", "3": "3", "4": "4",
+  "5": "5", "6": "6", "7": "7", "8": "8", "9": "9",
+  ".": ".", "+": "+", "-": "-", "−": "-", "×": "*", "÷": "/",
+  yˣ: "^", "^": "^", "( )": "(", "(": "(", ")": ")", π: "π",
+  SIN: "sin(", COS: "cos(", TAN: "tan(", LN: "ln(", LOG: "log(",
+  "√x": "sqrt(", "√": "sqrt(", "x²": "sq(", "1/x": "inv(", eˣ: "exp(", "10ˣ": "alog(",
+};
+
+/** Evaluate the algebraic expression in `entry` exactly, result → X (lifts). */
+function algEval(s: RpnEngine): void {
+  const src = s.entry?.trim();
+  if (!src) {
+    s.entry = null;
+    return;
+  }
+  try {
+    const v = evalExpr(parseExpr(src), {
+      get: (nm) => (nm === "pi" || nm === "π" ? PI : null),
+      toRad: (x) => toRad(s, x),
+      fromRad: (x) => fromRad(s, x),
+    });
+    s.entry = null;
+    s.lastX = s.x;
+    pushX(s, v);
+  } catch {
+    s.error = "Error";
+  }
+}
+
+/** Route a keystroke while ALG mode is active (a single interception point;
+ * the RPN dispatch below is untouched). */
+function algKey(s: RpnEngine, fn: string): boolean {
+  s.error = null;
+  if (fn === "ENTER" || fn === "=" || fn === "R/S") {
+    algEval(s);
+    return true;
+  }
+  if (fn === "←" || fn === "⌫") {
+    s.entry = s.entry && s.entry.length > 1 ? s.entry.slice(0, -1) : null;
+    return true;
+  }
+  if (fn === "CL X" || fn === "CLx" || fn === "CLEAR" || fn === "C" || fn === "Esc") {
+    s.entry = null;
+    return true;
+  }
+  const sym = ALG_SYM[fn];
+  if (sym !== undefined) {
+    s.entry = (s.entry ?? "") + sym;
+    return true;
+  }
+  return true; // ignore non-building keys in ALG mode
+}
 
 /** decimal degrees → D.MMSS encoding (30.5 → 30.30). */
 function dec2dms(x: Value): Value {
@@ -1131,6 +1193,15 @@ export function runLabel(s: RpnEngine, label: string): void {
  * etc.) return false so the UI can no-op them until later milestones.
  */
 export function applyFunction(s: RpnEngine, fn: string): boolean {
+  // RPN⇄ALG toggle + algebraic entry (FR-STK-4) — a single interception ahead
+  // of the RPN keystroke logic, so the 1200-line switch below is untouched.
+  if (fn === "ALG") {
+    s.alg = !s.alg;
+    s.entry = null;
+    s.error = null;
+    return true;
+  }
+  if (s.alg) return algKey(s, fn);
   if (s.pending) return resolvePending(s, fn);
   if (s.int.on && /^[A-F]$/.test(fn) && s.int.base === 16) {
     inputDigit(s, fn);

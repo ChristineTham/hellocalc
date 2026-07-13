@@ -39,6 +39,9 @@ export interface TopbarProps {
   };
   /** model-scoped tools rendered at the right end (e.g. the RPL code editor) */
   tools?: React.ReactNode;
+  /** RPN⇄ALG entry-mode toggle (FR-STK-4) — shown for the modern models that
+   * support algebraic entry (35s / Prime / 12C Platinum-style) */
+  entryMode?: { alg: boolean; onToggle: () => void };
 }
 
 const CHIP =
@@ -75,7 +78,15 @@ function PanelSheet({
   );
 }
 
-export function Topbar({ activeModel, onSelectModel, tags, nav, panels, tools }: TopbarProps) {
+export function Topbar({
+  activeModel,
+  onSelectModel,
+  tags,
+  nav,
+  panels,
+  tools,
+  entryMode,
+}: TopbarProps) {
   // controlled so picking a model in the mobile tree dismisses the sheet
   // (the persistent lg+ sidebar hosts the same nav and never uses this)
   const [navOpen, setNavOpen] = useState(false);
@@ -129,6 +140,19 @@ export function Topbar({ activeModel, onSelectModel, tags, nav, panels, tools }:
             {tag}
           </span>
         ))}
+        {entryMode && (
+          <button
+            type="button"
+            onClick={entryMode.onToggle}
+            aria-label={`Entry mode: ${entryMode.alg ? "algebraic" : "RPN"} — switch`}
+            aria-pressed={entryMode.alg}
+            className="rounded-full border border-border bg-card px-2 py-0.5 font-mono text-[10px] font-semibold tracking-[0.14em] uppercase transition-colors hover:bg-muted"
+          >
+            <span className={entryMode.alg ? "text-muted-foreground" : "text-foreground"}>RPN</span>
+            <span className="mx-1 text-muted-foreground">·</span>
+            <span className={entryMode.alg ? "text-foreground" : "text-muted-foreground"}>ALG</span>
+          </button>
+        )}
       </div>
       <div aria-hidden className="flex-1" />
 
