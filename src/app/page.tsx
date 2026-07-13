@@ -199,6 +199,9 @@ export default function Home() {
                 family={model.family}
                 showAngle={model.angle}
                 showRegisters={model.id === "HP-12C"}
+                // the HP-97's LED is a single line — no stack echo on the glass
+                // (its 4-level stack lives in the aux panel)
+                showStack={model.printer ? false : undefined}
                 lcdAspect={model.lcdAspect}
                 renderLatex={active.renderLatex}
                 fmt={active.fmt}

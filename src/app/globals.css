@@ -470,14 +470,23 @@
      the @container/lcd query drops the glass to its single-line state, and the
      keyboard dominates like the real desk unit. */
   .machine[data-deck="printer"] {
-    --calc-machine-lcd-cap: 9rem;
+    --calc-machine-lcd-cap: 12rem;
     grid-template-areas:
-      "lcd printer"
-      "kbd kbd"
-      "np  np";
+      "lcd      printer"
+      "switches printer"
+      "kbd      kbd"
+      "np       np";
     grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
-    grid-template-rows: minmax(var(--calc-lcd-line-h), auto) auto auto;
+    /* the LCD cell is size-contained (won't auto-grow to its glass), so give
+       the row an explicit height that fits the single-line glass */
+    grid-template-rows: 6.5rem auto auto auto;
     column-gap: var(--calc-machine-gap);
+  }
+  .machine-switches {
+    grid-area: switches;
+    display: flex;
+    align-items: center;
+    min-inline-size: 0;
   }
   .machine-printer {
     grid-area: printer;
@@ -485,7 +494,8 @@
     min-inline-size: 0;
     min-block-size: 0;
   }
-  /* the paper tape fills its whole column — no bezel gap to its right */
+  /* the paper tape fills its whole column — no bezel gap to its right — and
+     runs the full deck height (display + switch band) */
   .machine[data-deck="printer"] [data-slot="printer"] {
     flex: 1;
   }

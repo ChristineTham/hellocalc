@@ -11,6 +11,7 @@
 import { Keyboard } from "./Keyboard";
 import { ClassicKeyboard } from "./ClassicKeyboard";
 import { RplKeyboard } from "./RplKeyboard";
+import { DeckSwitches } from "./DeckSwitches";
 import { HCBadge } from "./HCBadge";
 import type { Model } from "./models";
 import type { RpnCalculator } from "@/hooks/useRpnCalculator";
@@ -128,11 +129,17 @@ export function MachineUnit({ model, rpn, rpl, lcd, paper, printer }: MachineUni
         {lcd}
       </div>
 
-      {/* desktop deck: the printer paper-tape shares the top row with the LCD */}
+      {/* desktop deck: below the display, the mode slide switches; the printer
+          paper-tape runs alongside on the right (§14 desktop deck) */}
       {hasPrinter && (
-        <div data-slot="machine-printer" className="machine-printer">
-          {printer}
-        </div>
+        <>
+          <div data-slot="machine-switches" className="machine-switches">
+            <DeckSwitches />
+          </div>
+          <div data-slot="machine-printer" className="machine-printer">
+            {printer}
+          </div>
+        </>
       )}
 
       {/* paper bay — visible only in the side variant (§14.3) */}
