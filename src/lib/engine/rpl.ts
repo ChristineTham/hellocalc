@@ -51,6 +51,7 @@ import {
   type RplItem,
   UndefinedName,
 } from "./rpl/parse";
+import { evalFloat } from "./rpl/floateval";
 import { CATALOG_COMMANDS, RPL_MENUS } from "./rpl/menu";
 import { fromWolfram, toWolfram } from "./rpl/wolfram";
 import {
@@ -3039,6 +3040,24 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
     case "WL→": {
       const wl = wantStr(pop1(s));
       s.stack.push({ k: "alg", src: fromWolfram(wl) });
+      return true;
+    }
+    // IEEE-754 float evaluation (FR-NUM-2): the exact-BigNumber tower's
+    // "standard floating-point" alternative — 'X+0.1' EVALF evaluates in JS
+    // doubles, so e.g. 0.1+0.2 shows the 0.30000000000000004 artifact.
+    case "EVALF": {
+      const o = pop1(s);
+      const src = o.k === "alg" ? o.src : o.k === "name" ? o.v : String(fRe(o));
+      let r: number;
+      try {
+        r = evalFloat(parseExpr(src), (nm) => {
+          const c = lookupVar(s, nm);
+          return c && c.k === "real" ? num(c.v) : null;
+        });
+      } catch {
+        throw err("Undefined Name");
+      }
+      s.stack.push(real(bn(String(r)))); // exact decimal of the IEEE double
       return true;
     }
     case "MSLV": {

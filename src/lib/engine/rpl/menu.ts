@@ -42,7 +42,7 @@ export const RPL_MENUS: Record<string, string[]> = {
   TVMM: ["TVMROOT", "TVMBEG", "TVMEND", "AMORT", "BS"],
   // 49G application rosters (P19)
   CALC: ["DERVX", "INTVX", "lim", "SERIES", "TAYLR", "RISCH"],
-  ALG: ["FACTOR", "EXPAND", "SIMPLIFY", "PARTFRAC", "SUBST", "TEXPAND", "→WL", "WL→"],
+  ALG: ["FACTOR", "EXPAND", "SIMPLIFY", "PARTFRAC", "SUBST", "TEXPAND", "→WL", "WL→", "EVALF"],
   ARITH: ["GCD", "LCM", "ISPRIME?", "NEXTPRIME", "FACTORS", "EULER"],
   SSLV: ["SOLVEVX", "ZEROS", "ISOL", "QUAD", "DESOLVE", "LAP"],
   EXPLN: ["EXP", "LN", "LOG", "ALOG", "EXPM", "LNP1"],
