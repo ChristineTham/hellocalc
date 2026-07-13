@@ -924,6 +924,22 @@
     aspect-ratio: var(--hp-lcd-aspect-rpl);
   }
 
+  /* ── HP Prime colour touchscreen: a large screen over the keyboard, like the
+     real portrait device. The whole machine holds a fixed portrait aspect and
+     scales to fit the available width OR height, so the full-width keyboard and
+     a big screen always fit together (no overflow). The screen (lcd, 1fr) takes
+     the space left above the natural-height keyboard. Higher specificity than
+     the responsive machine grids so it wins in every template. ─────────────── */
+  .calc-shell[data-aspect] .machine[data-screen="prime"] {
+    grid-template-areas: "np" "lcd" "kbd";
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    aspect-ratio: 1 / 2.4; /* portrait handheld — tuned so the screen fills ~4:3 */
+    block-size: min(100cqb, calc(100cqi * 2.4));
+    inline-size: auto; /* derived from the aspect + block-size */
+    min-inline-size: 0;
+  }
+
   /* ── One home for the stack (§14.3 rev 3): when an in-plane paper stack
         exists (md+ aux, or the short machine's bay), the RPN LCD shows only
         hero + annunciators — never the stack twice. RPL glass is exempt: a
