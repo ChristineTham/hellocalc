@@ -87,6 +87,7 @@ export function NativeSurface({ rpl }: { rpl: RplCalculator }) {
       <Display
         state={rpl.state}
         family="rpl"
+        annun={{ f: true, g: true, h: false, alpha: true, begEnd: false }}
         showAngle
         renderLatex={rpl.renderLatex}
         fmt={rpl.fmt}

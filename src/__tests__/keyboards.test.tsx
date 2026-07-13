@@ -6,7 +6,7 @@ import { fireEvent, render } from "@testing-library/react";
 import { Keyboard } from "@/components/calculator/Keyboard";
 import { ClassicKeyboard } from "@/components/calculator/ClassicKeyboard";
 import { RplKeyboard } from "@/components/calculator/RplKeyboard";
-import { MODELS } from "@/components/calculator/models";
+import { MODELS, annunSet } from "@/components/calculator/models";
 import { bn, type Value } from "@/lib/engine/config";
 import { createRpn } from "@/lib/engine/rpn";
 import { createRpl } from "@/lib/engine/rpl";
@@ -23,6 +23,35 @@ function keyboardRoot(container: HTMLElement): HTMLElement {
 function styleAspectOf(el: HTMLElement): number {
   return Number.parseFloat(el.style.aspectRatio);
 }
+
+describe("annunSet — per-model annunciator lamps (audit fix)", () => {
+  it("lights only the shift lamps each machine actually has", () => {
+    // HP-35: no shift keys at all
+    expect(annunSet(MODELS["HP-35"])).toMatchObject({ f: false, g: false, h: false });
+    // HP-45 / HP-97: single gold f — NO phantom g
+    expect(annunSet(MODELS["HP-45"])).toMatchObject({ f: true, g: false });
+    expect(annunSet(MODELS["HP-97"])).toMatchObject({ f: true, g: false });
+    // HP-67: three planes f/g/h
+    expect(annunSet(MODELS["HP-67"])).toMatchObject({ f: true, g: true, h: true });
+    // HP-41: single shift + ALPHA, no g
+    expect(annunSet(MODELS["HP-41C-CV"])).toMatchObject({ g: false, alpha: true });
+    // pioneers: 42S single shift (no g); 35s has f+g
+    expect(annunSet(MODELS["HP-42S"]).g).toBe(false);
+    expect(annunSet(MODELS["HP-35s"]).g).toBe(true);
+  });
+
+  it("BEGIN annunciator only on the financial HP-12C", () => {
+    expect(annunSet(MODELS["HP-12C"]).begEnd).toBe(true);
+    for (const id of ["HP-11C", "HP-15C", "HP-16C"]) {
+      expect(annunSet(MODELS[id]).begEnd).toBe(false);
+    }
+  });
+
+  it("RPL machines expose two shift lamps + ALPHA", () => {
+    expect(annunSet(MODELS["HP-48G"])).toMatchObject({ f: true, g: true, alpha: true });
+    expect(annunSet(MODELS["HP-28C"])).toMatchObject({ f: true, g: true, alpha: true });
+  });
+});
 
 describe("Keyboard (voyager)", () => {
   const model = MODELS["HP-12C"];

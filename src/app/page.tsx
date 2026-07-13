@@ -10,7 +10,7 @@ import { HistoryTape, StackNote, VarsNote } from "@/components/calculator/PaperA
 import { Topbar } from "@/components/calculator/Topbar";
 import { SidebarNav } from "@/components/calculator/SidebarNav";
 import { CheatSheet } from "@/components/calculator/CheatSheet";
-import { MODELS } from "@/components/calculator/models";
+import { MODELS, annunSet } from "@/components/calculator/models";
 import { NativeSurface } from "@/components/calculator/NativeSurface";
 import { CodeDrawer } from "@/components/calculator/CodeDrawer";
 import { useRpnCalculator } from "@/hooks/useRpnCalculator";
@@ -197,6 +197,7 @@ export default function Home() {
               <Display
                 state={active.state}
                 family={model.family}
+                annun={annunSet(model)}
                 showAngle={model.angle}
                 showRegisters={model.id === "HP-12C"}
                 // the HP-97's LED is a single line — no stack echo on the glass

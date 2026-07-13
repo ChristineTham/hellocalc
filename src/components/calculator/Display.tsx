@@ -12,7 +12,7 @@
 import { useState } from "react";
 import { ChevronsDownUp, ChevronsUpDown, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Family } from "./models";
+import type { AnnunSet, Family } from "./models";
 import type { Value } from "@/lib/engine/config";
 import { PlotPanel } from "./PlotPanel";
 
@@ -67,6 +67,8 @@ export type LcdMode = "line" | "mini";
 export interface DisplayProps {
   state: RpnState;
   family: Family;
+  /** which annunciator lamps this model's hardware actually has */
+  annun: AnnunSet;
   showAngle?: boolean;
   showRegisters?: boolean; // HP-12C financial readout
   /** Per-model glass proportions (e.g. the 50g's "131 / 80"); defaults to the
@@ -110,29 +112,35 @@ function Annunciator({ label, hot }: { label: string; hot?: boolean }) {
   );
 }
 
-/** Status row shared by both LCD states; `toggle` is the state's own chevron. */
+/** Status row shared by both LCD states; `toggle` is the state's own chevron.
+ * Each lamp is gated on the model's real annunciator set (`annun`) so a machine
+ * lights only the lamps it actually has — no phantom `g` on a single-shift unit,
+ * no BEG/END on a non-financial one. RPL shifts arm as `ls`/`rs`. */
 function AnnunRow({
   s,
-  family,
+  annun,
+  isRpl,
   showAngle,
   toggle,
 }: {
   s: RpnState;
-  family: Family;
+  annun: AnnunSet;
+  isRpl: boolean;
   showAngle?: boolean;
   toggle: React.ReactNode;
 }) {
-  const isRpl = family === "rpl";
   return (
     <div className="mb-1.5 flex items-center justify-end gap-3">
-      <Annunciator label="f" hot={s.prefix === "f" || s.prefix === "fi"} />
-      <Annunciator label="g" hot={s.prefix === "g"} />
-      {s.prefix === "h" && <Annunciator label="h" hot />}
-      {s.prefix === "alpha" && family !== "rpl" && <Annunciator label="ALPHA" hot />}
+      {annun.f && (
+        <Annunciator label="f" hot={s.prefix === "f" || s.prefix === "fi" || s.prefix === "ls"} />
+      )}
+      {annun.g && <Annunciator label="g" hot={s.prefix === "g" || s.prefix === "rs"} />}
+      {annun.h && <Annunciator label="h" hot={s.prefix === "h"} />}
+      {annun.alpha && s.prefix === "alpha" && <Annunciator label="ALPHA" hot />}
       {s.intBase && <Annunciator label={s.intBase} hot />}
       {showAngle && s.ang && <Annunciator label={s.ang} hot />}
       <Annunciator label={isRpl ? "RPL" : "RPN"} hot />
-      {family === "voyager" && <Annunciator label={s.beg ? "BEG" : "END"} hot />}
+      {annun.begEnd && s.beg && <Annunciator label="BEGIN" hot />}
       {s.err && (
         <span role="status">
           <Annunciator label="Error" hot />
@@ -146,6 +154,7 @@ function AnnunRow({
 export function Display({
   state: s,
   family,
+  annun,
   showAngle,
   showRegisters,
   showStack,
@@ -205,7 +214,8 @@ export function Display({
       <div data-lcd-mode="line" className={cn(glass, "lcd-line")}>
         <AnnunRow
           s={s}
-          family={family}
+          annun={annun}
+          isRpl={isRpl}
           showAngle={showAngle}
           toggle={
             <button
@@ -259,7 +269,8 @@ export function Display({
       <div data-lcd-mode="mini" className={cn(glass, "lcd-mini")}>
         <AnnunRow
           s={s}
-          family={family}
+          annun={annun}
+          isRpl={isRpl}
           showAngle={showAngle}
           toggle={
             <button

@@ -29,6 +29,7 @@ function renderDisplay(props: Partial<React.ComponentProps<typeof Display>> = {}
     <Display
       state={state}
       family="voyager"
+      annun={{ f: true, g: true, h: false, alpha: false, begEnd: false }}
       renderLatex={renderLatex}
       fmt={fmt}
       {...props}

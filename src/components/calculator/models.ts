@@ -102,6 +102,36 @@ export type Model =
   | (ModelBase & { family: "pioneer"; rows: ClassicKey[][] })
   | (ModelBase & { family: "rpl"; rows: RplKey[][] });
 
+/** Which annunciator lamps a model's real hardware actually has (audit fix):
+ * drives the LCD annunciator row so each model lights ONLY its own lamps — no
+ * phantom `g` on a single-shift machine, no BEG/END on a non-financial unit. */
+export interface AnnunSet {
+  f: boolean; // gold / left shift
+  g: boolean; // blue / right shift
+  h: boolean; // black shift (HP-67)
+  alpha: boolean; // ALPHA mode (HP-41, RPL, Prime)
+  begEnd: boolean; // payment-timing BEGIN (HP-12C only)
+}
+
+/** Derive the annunciator set from a model's real key data. */
+export function annunSet(model: Model): AnnunSet {
+  // RPL: purple/green shifts + α (no begin/end)
+  if (model.family === "rpl") return { f: true, g: true, h: false, alpha: true, begEnd: false };
+  // Voyagers: gold f + blue g; only the 12C is a financial (begin/end) machine
+  if (model.family === "voyager")
+    return { f: true, g: true, h: false, alpha: false, begEnd: model.id === "HP-12C" };
+  // classic / hp41 / pioneer: read the shift planes present in the actual keys
+  const keys = model.rows.flat();
+  const some = (p: (k: ClassicKey) => boolean) => keys.some(p);
+  return {
+    f: some((k) => k.kind === "pf" || k.kind === "pfi" || Boolean(k.f)),
+    g: some((k) => k.kind === "pg" || Boolean(k.g)),
+    h: some((k) => k.kind === "ph" || Boolean(k.h)),
+    alpha: some((k) => k.kind === "alpha" || Boolean(k.al)),
+    begEnd: false,
+  };
+}
+
 // ---- HP-35 (classic, red LED originally; rendered on the standard LCD) -------
 const c = (
   legend: string,
@@ -264,9 +294,10 @@ const HP28C_ROWS = hp28Rows("C");
 const HP28S_ROWS = hp28Rows("S");
 
 // ---- HP-97 (desktop printer; hp/layouts/HP-97.md) ----------------------------
-// Two side-by-side clusters merged the same way (every row 12 units); the
-// right block's double-height + is modelled single-height and 0 is wide
-// [judgment]. Single gold f prefix; printing keys stay inert.
+// Two side-by-side clusters merged the same way (every row 12 units): ENTER↑
+// and 0 are double-WIDTH, PRINT x is double-width (right cluster squares to 5
+// units), and + is double-HEIGHT (hspan:2, spans R5–R6). Single gold f prefix;
+// printing keys stay inert.
 const HP97_ROWS: ClassicKey[][] = [
   [ck("A","A","black",{f:"a"}),ck("B","B","black",{f:"b"}),ck("C","C","black",{f:"c"}),ck("D","D","black",{f:"d"}),ck("E","E","black",{f:"e"}),ck("","f","gold",{kind:"pf"}),ck("","","black",{kind:"gap",flex:1}),ck("FIX","FIX","black",{f:"PRINT SPACE"}),ck("SCI","SCI","black",{f:"PRINT PRGM"}),ck("ENG","ENG","black",{f:"PRINT REG"}),ck("PRINT x","PRINT x","black",{flex:2,f:"PRINT STACK"})],
   [ck("LBL","LBL","black",{f:"STF"}),ck("GTO","GTO","black",{f:"CLF"}),ck("GSB","GSB","black",{f:"F?"}),ck("RTN","RTN","black",{f:"RND"}),ck("BST","BST","black",{f:"DSZ"}),ck("SST","SST","black",{f:"ISZ"}),ck("","","black",{kind:"gap"}),ck("ENTER↑","ENTER","blue",{flex:2,f:"DEG"}),ck("CHS","CHS","blue",{f:"RAD"}),ck("EEX","EEX","blue",{f:"GRD"}),ck("÷","÷","blue",{f:"π"})],
