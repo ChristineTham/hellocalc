@@ -292,16 +292,18 @@ architecture:
 7. **Heavy CAS tier (optional).** Lazy Pyodide+SymPy behind an "advanced CAS" gate for the
    Mathematica-compatible goal.
 
-> **Status (2026-07).** The UI shell that hosts all of these phases is already built, tested
-> and deployed ahead of step 1 — the integrated machine (nameplate + LCD + keyboard as one
+> **Status (2026-07).** The UI shell that hosts all of these phases is built, tested
+> and deployed — the integrated machine (nameplate + LCD + keyboard as one
 > reflowing bezel), aspect-faithful keyboard geometry (`src/lib/layout/`), per-family LCD
-> glass (seven-segment vs dot-matrix), paper history/stack/variables components,
-> physical-keyboard input and trademark-safe HELLO·CALC branding — see
-> [`responsive-layout.md`](responsive-layout.md). ALL 21 faceplates are live, running real
-> RPN/RPL stack semantics on a prototype scope (plain JS numbers) with unimplemented keys
-> inert-but-safe; the [`plan/`](../plan/) phases are accordingly scoped as ENGINE
-> capability + wiring (no key left inert per model), starting with step 1's math.js value
-> tower and step 2's adapter formalization.
+> glass (short single-line seven-segment for Classic/Voyager · fine dot-matrix DotGothic16
+> hero for RPL + pioneer · a **native colour touchscreen for the HP Prime**, rendered at
+> browser resolution), live faceplate slide switches (power/mode/trace), paper
+> history/stack/variables components, physical-keyboard input and trademark-safe HELLO·CALC
+> branding — see [`responsive-layout.md`](responsive-layout.md). **ALL 23 plan phases are
+> complete:** all 21 faceplates and native mode are live and fully wired — no inert keys —
+> running real RPN/RPL stack semantics on the math.js/BigNumber value tower (per-model
+> coverage oracles guard each). The [`plan/`](../plan/) phases record the ENGINE
+> capability + wiring delivered for each model, in HP release order.
 
 ---
 

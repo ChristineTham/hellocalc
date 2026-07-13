@@ -74,9 +74,16 @@ rationale live in [docs/responsive-layout.md](docs/responsive-layout.md); the hi
   clamshell at 2.04:1) and scale uniformly — no distortion, no clipping; dual-pitch rows
   (the genuinely wider digit keys) are modeled exactly via lcm sub-column grids, and the
   two-block machines (28C/28S, 97) merge their halves across a bare-plate hinge gap.
-- **Per-family glass** — seven-segment (DSEG7) readouts for Classic/Voyager models; a
-  dot-matrix, 131:64-proportioned multi-line stack display for RPL, after the real HP-48
-  screen.
+- **Per-family glass** — short single-line seven-segment (DSEG7) readouts for Classic/Voyager
+  models, like the real hardware; a **fine dot-matrix** (DotGothic16) display for RPL and the
+  pioneer 42S/35s, with the primary number as a vertically-stretched **hero** that auto-fits
+  the glass (never clipped, even on the keyboard-cramped 35s); a 131:64-proportioned multi-line
+  stack display for RPL after the real HP-48 screen; and the **HP Prime as a native colour
+  touchscreen** — its Home view rendered at browser resolution (real fonts + KaTeX math), not a
+  pixel LCD, laying screen-beside-keyboard on wide slots.
+- **Live faceplate switches** — the Power / Mode / Trace slide switches on the classic
+  programmables and the HP-97 actually work: Power lights or darkens the LCD (state preserved),
+  Mode toggles PRGM/RUN program entry, and Trace gates the HP-97 printer echo.
 - **Paper, not pixels** — history prints as a calculator tape; stack and variables are
   notebook notes; each individually toggleable and placed by the active template (sheets on
   phones).
@@ -113,9 +120,10 @@ layout and function set (see [`hp/`](hp/)):
 Full feature parity with the legendary HP-48 series (matrices, statistics, programmability)
 is an explicit goal.
 
-All 21 faceplates are playable today (native mode arrives in Phase 23); each model's
-remaining work is the **engine capability** its [plan](plan/) phase adds — the keys are
-already on the desk, waiting to be wired.
+All 21 faceplates **and native mode are live and fully wired** — no inert keys — each backed
+by its verified [`hp/`](hp/) reference data and computing on the shared engine. The app opens
+on the HP-35s by default; models are chosen from a collapsible sidebar tree or the topbar
+gallery picker.
 
 ## Architecture
 
@@ -212,13 +220,13 @@ be deployed to [Vercel](https://vercel.com/new).
 Because it's a static export, there is no server runtime: no API routes, Server Actions, or
 middleware — everything runs in the browser.
 
-## Roadmap
+## Roadmap — the completed build order
 
-Built in **iterative, chronological phases**. With every faceplate already live, each phase
-takes the next HP model (in release order), implements the engine capability it first
-required, and **wires it through the existing keys** — finish line: no key on that model
-remains inert. Large subsystems (programmability, RPL, units, CAS, plotting, heavy CAS) get
-their own phase; **native mode is last**. Full detail — one file per phase with tasks and
+Built in **iterative, chronological phases**, all now delivered. With every faceplate live from
+the start, each phase took the next HP model (in release order), implemented the engine
+capability it first required, and **wired it through the existing keys** — finish line per
+model: no inert key. Large subsystems (programmability, RPL, units, CAS, plotting, heavy CAS)
+got their own phase; **native mode was last**. Full detail — one file per phase with tasks and
 acceptance tests — is in [`plan/`](plan/) ([index](plan/README.md)).
 
 **Phase 1 — Engine foundation & HP-35 (1972).** The shared pure-TS engine (math.js/BigNumber

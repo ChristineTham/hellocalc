@@ -1385,11 +1385,15 @@ any (model × viewport) cell. Cozy, not tight; professional with Italian whitesp
 ### 14.4c Revision 4 — RPL glass is a dot matrix
 
 The HP-48's display is a **131×64 pixel matrix**, never a segment readout. RPL
-machines therefore render their glass numerals in a 5×7-style pixel font
-(Silkscreen, `--font-lcd-dot`) while the segment families keep DSEG7; the RPL
+machines — and the pioneer dot-matrix line (42S/35s) — therefore render their
+glass numerals in a **fine dot-matrix face (DotGothic16, `--font-lcd-dot`** —
+denser and crisper than the earlier chunky Silkscreen, so it reads like a
+high-quality HP panel), while the seven-segment families (Classic/Voyager)
+keep DSEG7 and the HP-41 uses the dot face for its alphanumeric line. The RPL
 mini glass takes the real `131 / 64` aspect (`--hp-lcd-aspect-rpl`). That
 raster is also the recorded target for the future dot-grid simulation — plots
-and PICT rendering draw into exactly this grid.
+and PICT rendering draw into exactly this grid. (The HP Prime is the exception
+— see §14.4g: it is a colour touchscreen rendered natively, not a pixel LCD.)
 
 ### 14.4d Revision 5 — classics stack, talls go side with a vars bay
 
@@ -1429,6 +1433,43 @@ classic machines centre a text-only "HELLO·CALC 35" BELOW the keys, as the
 originals did. The mode tags (RPN · FINANCIAL…) moved off the machine into
 the topbar as pill badges. The model picker keeps the factual HP-* names —
 nominative reference to what is being emulated.
+
+### 14.4g Revision 8 — display fidelity & live faceplate switches
+
+Post-deploy polish, all shipped:
+
+- **Short single-line displays for the segment families.** Classic (LED),
+  Voyager (LCD) and HP-41 machines pin the **line** state and drop the in-glass
+  stack echo — a single register line like the real hardware — with a shorter
+  glass cap (`--calc-machine-lcd-cap: 8rem`). The 4-level stack lives in the
+  aux panel; the chevron still expands to the multi-line view.
+- **Dot-matrix hero, auto-fitted.** On the dot-matrix machines (RPL + pioneer
+  42S/35s) the primary number is the **hero**: a large glyph vertically
+  stretched `scaleY(1.55)` to the ~2:1 proportion of a real matrix LCD. The
+  hero font is **capped to the glass height** (`min(44px, 32cqh)` against the
+  `lcd` size container) so a keyboard-cramped glass (the dense 35s) scales the
+  number *down* to fit rather than clipping, while a roomy glass (42S) keeps
+  the full 44 px. The line glass fills its slot (`block-size:100%; overflow:
+  hidden`) so rows never spill into the keys, and pioneer line mode drops the
+  redundant in-glass echo so the hero owns the whole glass.
+- **Native HP Prime colour screen.** The Prime is **not** a pixel/dot LCD: it
+  renders the Home view natively at browser resolution (`PrimeScreen.tsx`) —
+  real fonts, KaTeX math, a title bar with annunciators, right-aligned history,
+  entry line and softkey menu — emulating the look/feel of the real colour
+  touchscreen. The Prime machine is a portrait device that scales to fit and,
+  on wide machine slots (`@container machine (min-aspect-ratio: 1/1)`), lays
+  **screen and keyboard side by side**.
+- **Live faceplate slide switches.** The Power/Mode/Trace slide switches on the
+  classic programmables and the HP-97 are interactive (keyboard-accessible
+  buttons, `DeckSwitches.tsx`), each nub reflecting live state and its click
+  driving real behaviour: **Power** lights/darkens the LCD (state preserved —
+  continuous memory), **Mode** toggles PRGM/RUN program entry on the shared RPN
+  engine (`press("W/PRGM")`, in sync with the aux panel's W/PRGM button), and
+  **Trace** (HP-97) gates the printer-deck echo (Man = no auto-print). Each
+  `SwitchSpec` carries a `kind` (`power`/`mode`/`trace`) that wires it.
+- **Default model + navigation.** The app opens on the **HP-35s** (the most
+  modern RPN scientific that keeps the classic keyboard-and-LCD look); models
+  are chosen from a collapsible sidebar tree **and** a topbar gallery picker.
 
 ### 14.5 Clamshell note (HP-28 — SHIPPED as a merged grid; stacked halves deferred)
 
