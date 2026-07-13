@@ -5,6 +5,7 @@ import { CalcShell } from "@/components/calculator/CalcShell";
 import { MachineUnit } from "@/components/calculator/MachineUnit";
 import { Printer } from "@/components/calculator/Printer";
 import { Display } from "@/components/calculator/Display";
+import { PrimeScreen } from "@/components/calculator/PrimeScreen";
 import { AuxPanel } from "@/components/calculator/AuxPanel";
 import { HistoryTape, StackNote, VarsNote } from "@/components/calculator/PaperAux";
 import { Topbar } from "@/components/calculator/Topbar";
@@ -198,22 +199,32 @@ export default function Home() {
             rpn={rpn}
             rpl={rpl}
             lcd={
-              <Display
-                state={active.state}
-                family={model.family}
-                annun={annunSet(model)}
-                showAngle={model.angle}
-                showRegisters={model.id === "HP-12C"}
-                // segment-display machines (classic LED / Voyager LCD / HP-41)
-                // are single-LINE like the real hardware: pin the line state and
-                // drop the stack echo (the 4-level stack lives in the aux panel).
-                // The chevron still lets the user expand to the multi-line view.
-                showStack={isSegment ? false : undefined}
-                defaultMode={isSegment ? "line" : undefined}
-                lcdAspect={model.lcdAspect}
-                renderLatex={active.renderLatex}
-                fmt={active.fmt}
-              />
+              // the HP Prime is a COLOUR touchscreen — rendered natively (real
+              // fonts + KaTeX math), not the pixel/dot-matrix LCD
+              model.id === "HP-Prime" ? (
+                <PrimeScreen
+                  state={active.state}
+                  fmt={active.fmt}
+                  renderLatex={active.renderLatex}
+                />
+              ) : (
+                <Display
+                  state={active.state}
+                  family={model.family}
+                  annun={annunSet(model)}
+                  showAngle={model.angle}
+                  showRegisters={model.id === "HP-12C"}
+                  // segment-display machines (classic LED / Voyager LCD / HP-41)
+                  // are single-LINE like the real hardware: pin the line state and
+                  // drop the stack echo (the 4-level stack lives in the aux panel).
+                  // The chevron still lets the user expand to the multi-line view.
+                  showStack={isSegment ? false : undefined}
+                  defaultMode={isSegment ? "line" : undefined}
+                  lcdAspect={model.lcdAspect}
+                  renderLatex={active.renderLatex}
+                  fmt={active.fmt}
+                />
+              )
             }
             paper={
               <AuxPanel

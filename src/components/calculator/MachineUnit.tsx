@@ -81,6 +81,7 @@ export function MachineUnit({ model, rpn, rpl, lcd, paper, printer }: MachineUni
       data-slot="machine"
       data-family={model.family}
       data-deck={hasPrinter ? "printer" : undefined}
+      data-screen={model.id === "HP-Prime" ? "prime" : undefined}
       style={style}
       className={cn(
         // machine plane (§13.1): the elevated instrument under warm light

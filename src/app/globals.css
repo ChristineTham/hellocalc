@@ -441,6 +441,12 @@
     --calc-machine-lcd-cap: 8rem;
     --calc-lcd-side-h: 5.5rem; /* short single-line slot in the side variant too */
   }
+  /* the HP Prime's colour touchscreen is a LARGE panel — give it a tall LCD
+     band so the Home history has room to breathe (the screen fills the width) */
+  .machine[data-screen="prime"] {
+    --calc-machine-lcd-cap: 18rem;
+    --calc-lcd-side-h: 15rem;
+  }
   .machine {
     margin: auto;
     display: grid;
