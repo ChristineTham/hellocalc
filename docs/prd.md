@@ -86,15 +86,18 @@ the unified [`hp/mapping/mapping.json`](../hp/mapping/mapping.json).
 
 ### 6.1 Number system & precision
 - **FR-NUM-1 (M):** Support arbitrary-precision decimal (BigNumber) as the default numeric
-  type, with user-selectable precision (significant digits).
+  type, with user-selectable precision (significant digits). *(Implemented: `setPrecision()`
+  + a Settings control offering 12 / 24 / 40 / 64 / 100 digits, default 40.)*
 - **FR-NUM-2 (M):** Support IEEE floating point mode for speed/compatibility where chosen.
 - **FR-NUM-3 (M):** Fixed-point / currency arithmetic with explicit rounding modes for the
   finance module (decimal.js-backed).
 - **FR-NUM-4 (M):** Complex numbers (rectangular & polar entry/display), as required by
   HP-15C/42S/48.
 - **FR-NUM-5 (S):** Fractions/rationals and exact integers where the model supports them.
-- **FR-NUM-6 (M):** Angle modes DEG / RAD / GRAD affecting trig functions.
-- **FR-NUM-7 (M):** Display formats FIX / SCI / ENG / ALL with configurable digits.
+- **FR-NUM-6 (M):** Angle modes DEG / RAD / GRAD affecting trig functions. *(GRAD ships
+  under the label `GRD`.)*
+- **FR-NUM-7 (M):** Display formats FIX / SCI / ENG / ALL with configurable digits. *(ALL
+  ships under the label `STD`.)*
 
 ### 6.2 Stack & entry logic
 - **FR-STK-1 (M):** Classic 4-level RPN stack `X/Y/Z/T` + `LAST X`, implementing the exact

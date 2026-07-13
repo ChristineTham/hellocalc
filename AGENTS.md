@@ -82,16 +82,20 @@ Follow [`docs/architecture.md`](docs/architecture.md). Key constraints:
 - **One value tower / one core.** Build on **math.js** (arithmetic, parser, units, matrices,
   complex), **configured globally to `BigNumber`** so standard arithmetic carries no
   IEEE-754 error (e.g. `0.1 + 0.2` is exact), with units handled by math.js's built-in
-  dimensional tracking; use **decimal.js** directly only in the finance module (build
-  financial formulas on high-precision numbers to avoid compounding rounding faults). Don't
-  glue in a second overlapping number library without cause.
-- **Math output is always typeset.** Render results and expressions through **KaTeX**
-  (`react-katex`) — never surface raw math strings to the user.
+  dimensional tracking. The finance module (`src/lib/engine/finance.ts`) computes on that
+  **same global BigNumber** — which *is* decimal.js under the hood — via the shared `bn`/`Value`
+  helpers, so financial formulas carry no compounding rounding fault; it does **not** import
+  `decimal.js` directly. Don't glue in a second overlapping number library without cause.
+- **Math output is always typeset.** Render results and expressions through **KaTeX** —
+  called directly as `katex.renderToString` (the `react-katex` wrapper is not used) — never
+  surface raw math strings to the user.
 - **Tiered CAS behind a `CasProvider` interface** (`diff`, `integrate`, `factor`, `simplify`,
   `solve`, `toLatex`). Light tier (Nerdamer `nerdamer-prime` / Algebrite) and heavy tier
   (Pyodide + SymPy) are **lazy-loaded** via dynamic `import()`. Never import them eagerly.
 - **Lazy-load heavy deps** (Plotly.js, Pyodide, CAS libs) with `next/dynamic` or `import()` —
-  they must not land in the initial bundle.
+  they must not land in the initial bundle. **Plotly is wired** (`plotly.js-dist-min`, lazy)
+  for 3D surfaces (`WIREFRAME`) and statistical bars/histograms (`BARPLOT`/`HISTPLOT`);
+  function-plot (also lazy) draws the 2D series.
 - **Model adapter layer** drives keystroke dispatch from [`hp/mapping/mapping.json`](hp/mapping/mapping.json)
   and per-model exposure from [`hp/functions/`](hp/functions/) / faceplates from
   [`hp/layouts/`](hp/layouts/). Don't hardcode key maps that duplicate this data — consume the

@@ -115,15 +115,21 @@ browser tab. None are in scope today.
 
 Recommendation → alternatives → rationale. Confidence tag per row.
 
-### 4.1 Arbitrary-precision core — **math.js `BigNumber` (decimal.js under the hood)**, plus **decimal.js** directly for currency
+### 4.1 Arbitrary-precision core — **math.js `BigNumber` (decimal.js under the hood)**, one global tower — AS BUILT
 - **Alternatives:** big.js, bignumber.js, native `BigInt`.
 - **Rationale:** math.js `BigNumber` *is* decimal.js internally, so "math.js vs decimal.js"
   is not either/or — using math.js gives arbitrary-precision decimals **and** the parser,
-  units, and matrices in one coherent scope. Use decimal.js **directly** inside the finance
-  module where you want tight control over rounding modes and fixed-point currency.
-  `BigInt` is integer-only (no fractional precision) so it's unsuitable as the number
-  tower. **[judgment]** — the research did not benchmark big.js vs decimal.js vs BigInt;
-  treat exact precision/perf numbers as unverified (see Open Questions).
+  units, and matrices in one coherent scope. `BigInt` is integer-only (no fractional
+  precision) so it's unsuitable as the number tower. **[judgment]** — the research did not
+  benchmark big.js vs decimal.js vs BigInt; treat exact precision/perf numbers as unverified
+  (see Open Questions).
+- **As built.** There is **one** global math.js instance configured to `BigNumber`
+  ([`src/lib/engine/config.ts`](../src/lib/engine/config.ts)); every engine module — finance
+  included — computes through it. The working precision is **user-selectable at runtime**
+  (FR-NUM-1): `setPrecision()` clamps to `[7, 100]` and the Settings control exposes the
+  12 / 24 / 40 / 64 / 100-digit steps, **default 40**. `decimal.js` is a direct dependency
+  but is used only *transitively* as math.js's BigNumber backing — the engine does not import
+  it directly.
 
 ### 4.2 Expression parsing & evaluation — **math.js parser as the spine + a thin RPN input layer**
 - **Alternatives:** hand-written Pratt/shunting-yard parser.
@@ -177,16 +183,21 @@ Recommendation → alternatives → rationale. Confidence tag per row.
   research surfaced no verified JS numerical-methods library, so treat this as
   build-it-yourself with well-known algorithms.
 
-### 4.7 Financial math — **custom decimal.js implementation** (TVM, NPV, IRR, bond, Black-Scholes)
+### 4.7 Financial math — **custom high-precision implementation** (TVM, NPV, IRR, bond, Black-Scholes) — AS BUILT
 - **Alternatives:** finance.js, formulajs, tvm-financejs, accurate-financejs.
 - **Rationale:** correctness at currency precision matters more than reusing an immature
   package. **accurate-financejs** demonstrates the right approach — it is "a fork of
   finance.js with every function rewritten to use Decimal.js" — but is abandoned at v0.0.1
   with a broken XIRR, so use it as a **reference, not a dependency**. Implement TVM
   (`n, i, PV, PMT, FV` — see [`hp/functions/HP-12C.md`](../hp/functions/HP-12C.md)),
-  NPV/IRR cash flows, bond price/yield, and Black-Scholes directly on decimal.js. **[verified]**
-  (that decimal.js is the right precision foundation; the custom-impl recommendation is
-  **[judgment]**).
+  NPV/IRR cash flows, bond price/yield, and Black-Scholes on the high-precision number tower.
+  **[verified]** (that decimal-grade precision is the right foundation; the custom-impl
+  recommendation is **[judgment]**).
+- **As built.** [`src/lib/engine/finance.ts`](../src/lib/engine/finance.ts) computes on the
+  **global math.js `BigNumber`** (which *is* decimal.js under the hood, §4.1) via the shared
+  `bn`/`Value` helpers — it does **not** import `decimal.js` directly. The formulas never
+  round mid-computation, so financial results carry no compounding IEEE-754 error at the
+  configured precision.
 
 ### 4.8 Statistics & probability — **math.js + simple-statistics**, **jStat** for distributions (verify coverage)
 - **Rationale:** math.js and simple-statistics cover descriptive stats and regression
@@ -198,27 +209,45 @@ Recommendation → alternatives → rationale. Confidence tag per row.
   **[judgment]**, with a **[verified]** caution that jStat's advertised coverage was not
   confirmed.
 
-### 4.9 LaTeX rendering — **KaTeX via `react-katex`**, fed by math.js/Nerdamer `toTex`
+### 4.9 LaTeX rendering — **KaTeX (`katex` called directly)**, fed by math.js/Nerdamer `toTex`
 - **Rationale:** matches the product intent (KaTeX display) and the current README stack. math.js
   nodes have `.toTex()`; Nerdamer emits LaTeX; SymPy has `latex()`. Pipe whichever CAS tier
   produced the result into KaTeX. **[judgment]** — the research did not verify the
-  rendering pipeline, but KaTeX/react-katex are the established, low-risk choice.
+  rendering pipeline, but KaTeX is the established, low-risk choice.
+- **As built.** Rendering calls `katex.renderToString(tex, { throwOnError: false })` **directly**
+  (in the calculator hooks, injected via `dangerouslySetInnerHTML`); the `react-katex` wrapper
+  is **not** used or installed.
 
-### 4.10 Plotting — **function-plot (2D, light) + lazy Plotly.js (3D/statistical)**
+### 4.10 Plotting — **function-plot (2D, light) + lazy Plotly.js (3D/statistical)** — BOTH WIRED
 - **Rationale:** **Plotly.js** is one standalone library covering "statistical charts, 3D
   graphs, scientific charts … financial charts" — i.e., hellocalc's 2D/3D/statistical
   needs — but it's large (~3 MB+), so **lazy-load** it for 3D/stat panels.
   **function-plot** (built on D3, minimal config) is the lightweight everyday-2D grapher.
   **[verified]** (a claim that function-plot only does line/scatter was **refuted** — it
   does more). Alternatives noted but not needed: mafs, observable-plot, raw D3.
+- **As built.** Both grapher libraries are wired and **dynamically imported** (neither lands
+  in the initial bundle). Plotly draws the 3D and statistical requests —
+  RPL `WIREFRAME` → a rotatable Plotly `surface`, and `BARPLOT`/`HISTPLOT` → a Plotly `bar`
+  — via [`src/components/calculator/PlotlyPanel.tsx`](../src/components/calculator/PlotlyPanel.tsx)
+  (`import("plotly.js-dist-min")` on first use). function-plot still draws the 2D `fn`/`polar`/`pict`
+  series in [`src/components/calculator/PlotPanel.tsx`](../src/components/calculator/PlotPanel.tsx).
 
-### 4.11 Programmability (HP-48/RPL user programs) — **custom interpreter in a Web Worker**
-- **Rationale:** HP programs are keystroke/RPL sequences, **not** JavaScript — implement a
-  small bytecode/AST interpreter over the same engine ops, so you **never `eval()` user
-  input**. Run it in a **Web Worker** for isolation, with **step/time limits** to stop
-  runaway loops (`GTO`, `DSE`/`ISG`). This sidesteps JS-sandbox-escape risk entirely.
-  **[judgment]** — the research found **no verified guidance** on RPL sandboxing; this is a
-  design proposal (see Open Questions), informed by general JS-sandboxing research.
+### 4.11 Programmability (HP-48/RPL user programs) — **custom interpreter on the main thread under a cooperative scheduler** — AS BUILT
+- **Rationale:** HP programs are keystroke/RPL sequences, **not** JavaScript — the shipped
+  interpreter is a small AST/step machine over the same engine ops, so it **never `eval()`s
+  user input** (verified: no `eval()` anywhere in the engine). This sidesteps JS-sandbox-escape
+  risk entirely. **[verified in code]**
+- **As built — no Web Worker.** The keystroke-programmable RPN machines (41/42S/15C…) run
+  their programs on the **main thread under a cooperative scheduler**
+  ([`src/hooks/useRpnCalculator.ts`](../src/hooks/useRpnCalculator.ts)): `stepProgram`
+  executes in chunks of `RUN_CHUNK = 500` ops, yields to the event loop (`setTimeout(…, 0)`)
+  between chunks so the RUN annunciator animates and the UI stays responsive, and **any key
+  (or R/S) interrupts** a running program. A hard cap of `RUN_HARD_CAP = 20_000_000` ops
+  auto-halts a truly runaway loop (`GTO`, `DSE`/`ISG`). The earlier Web-Worker isolation
+  proposal was **not** adopted.
+- **RPL `EVAL`** ([`src/lib/engine/rpl.ts`](../src/lib/engine/rpl.ts)) still runs
+  **synchronously**, bounded by a per-invocation **op budget** (default 20 000 ops) rather
+  than the chunked scheduler.
 
 ### 4.12 Mathematica-compatibility / Pyodide tier — **worth it, but lazy**
 - **Rationale:** Pyodide+SymPy delivers the closest thing to Mathematica-grade CAS fully
@@ -228,24 +257,29 @@ Recommendation → alternatives → rationale. Confidence tag per row.
 
 ---
 
-## 5. Recommended dependency set
+## 5. Dependency set — AS SHIPPED
 
-| Package | Purpose | Load | Confidence |
+What is actually installed and used (see [`package.json`](../package.json)). Several of the
+originally-recommended libraries were dropped in favour of hand-rolled code or a direct API:
+
+| Package | Purpose | Load | Status |
 |---|---|---|---|
-| **mathjs** | number tower, parser, units, matrices, complex, `toTex` | eager (core) | judgment |
-| **decimal.js** | fixed-point currency in finance module | eager (small) | verified |
-| **nerdamer-prime** | light symbolic CAS (diff/integrate/factor/solve) | lazy | verified |
-| **algebrite** | alt light CAS (factoring, roots) | lazy (optional) | verified |
-| **ml-matrix** | eigen/SVD/QR/LU/Cholesky decompositions | lazy | verified |
-| **js-quantities** | units fallback / strict dimensional checks | optional | verified |
-| **simple-statistics** | descriptive stats, regression | eager (small) | judgment |
-| **jstat** | probability distributions (verify coverage first) | lazy | judgment |
-| **katex** + **react-katex** | math rendering | eager | judgment |
-| **function-plot** | lightweight 2D function graphs | lazy | verified |
-| **plotly.js** (`plotly.js-dist-min`) | 3D + statistical charts | lazy (~3 MB) | verified |
-| **pyodide** + **sympy**/**mpmath** | heavy CAS tier (Mathematica-grade) | lazy (multi-MB WASM) | verified |
+| **mathjs** | number tower, parser, units, matrices, complex, `toTex` | eager (core) | **used** |
+| **ml-matrix** | eigen/SVD/QR/LU/Cholesky decompositions | eager | **used** |
+| **nerdamer-prime** | light symbolic CAS (diff/integrate/factor/solve) | lazy | **used** |
+| **pyodide** + **sympy**/**mpmath** | heavy CAS tier (Mathematica-grade) | lazy (multi-MB WASM) | **used** |
+| **function-plot** | lightweight 2D function graphs | lazy | **used** |
+| **plotly.js-dist-min** | 3D + statistical charts | lazy (~1 MB) | **used** (§4.10) |
+| **katex** | math rendering (called directly — `katex.renderToString`) | eager | **used** |
+| **codemirror** + **@codemirror/**\* + **@lezer/highlight** | the RPL program editor | eager | **used** |
+| **decimal.js** | BigNumber backing for mathjs | eager | direct dep, used only **transitively** via mathjs (§4.1) |
+| ~~react-katex~~ | — | — | **not installed** — rendering uses `katex` directly |
+| ~~algebrite~~ | alt light CAS | — | **not installed** — Nerdamer covers the light tier |
+| ~~simple-statistics~~ / ~~jstat~~ | descriptive stats / distributions | — | **not installed** — stats/curve-fits are hand-rolled ([`src/lib/engine/stats-fit.ts`](../src/lib/engine/stats-fit.ts)) |
+| ~~js-quantities~~ | units fallback | — | **not installed** — math.js units suffice |
 
-Keep the eager core to math.js + decimal.js + KaTeX + simple-statistics; everything else is
+The eager core is math.js (+ its decimal.js backing) + KaTeX + ml-matrix + CodeMirror;
+the CAS tiers (Nerdamer, Pyodide/SymPy) and both graphers (function-plot, Plotly) are
 code-split behind `import()`.
 
 ---
@@ -287,8 +321,8 @@ architecture:
    pretty-printing of symbolic results.
 5. **Finance & statistics parity.** Custom decimal.js TVM/NPV/IRR/bond/Black-Scholes;
    stats/regression/distributions (verify jStat coverage).
-6. **Plotting + programmability.** function-plot (2D) + lazy Plotly (3D/stat); Web-Worker
-   RPL interpreter with step limits; notebook/block editor.
+6. **Plotting + programmability.** function-plot (2D) + lazy Plotly (3D/stat); main-thread
+   program interpreter under a cooperative scheduler with op limits (§4.11); notebook/block editor.
 7. **Heavy CAS tier (optional).** Lazy Pyodide+SymPy behind an "advanced CAS" gate for the
    Mathematica-compatible goal.
 
@@ -325,8 +359,9 @@ here.
 2. **Real quality gap** between pure-JS CAS (Nerdamer/Algebrite) and SymPy-in-Pyodide for
    *your* operations (symbolic integration, factoring, solving) — and the feature threshold
    where lazy-loading Pyodide is justified.
-3. **RPL programmability sandboxing** — no verified guidance emerged; the Web-Worker +
-   interpreter + step-limit design in §4.11 needs validation.
+3. **RPL programmability sandboxing** — no verified guidance emerged. As built (§4.11) the
+   interpreter runs on the **main thread under a cooperative scheduler** with op limits (no
+   Web Worker, no `eval()`); the Web-Worker isolation idea was dropped as unnecessary.
 4. **Measured Pyodide+SymPy and Plotly cold-start/download** in a Next.js static export, and
    how much code-splitting trims it.
 
@@ -341,45 +376,47 @@ All state is **local** (NFR-10) and must survive reloads and model switches, and
 browser storage is user-clearable — be **exportable to a file** for backup/transfer
 (FR-STATE-1..4).
 
-**One serializable state tree.** The pure-TS engine keeps all durable state in a single plain,
-JSON-serializable `EngineState` (no live class instances), split by scope:
+**One serializable state tree — AS BUILT.** The pure-TS engine keeps all durable state in a
+single plain, JSON-serializable `EngineStateV1`
+([`src/lib/engine/persistence.ts`](../src/lib/engine/persistence.ts)) — **two monolithic
+engine blobs**, not the shared/perModel matrix originally proposed:
 
 ```ts
-interface EngineState {
-  version: number;                          // schema version → migrations
-  shared:   { stack; lastX; registers; modes; history };     // portable across models
-  perModel: Record<ModelId, PerModelState>; // programs, flags, wsize, fin. regs, directories
+interface EngineStateV1 {
+  version: 1;            // STATE_VERSION
+  activeModel: string;   // restores the last-selected model
+  rpn: SerializedRpn;    // the whole 4-level-RPN engine (X/Y/Z/T, LAST X, regs, fin, prgm, …)
+  rpl: SerializedRpl;    // the whole RPL engine (stack, home dir, path, base, ws, …)
 }
 ```
 
-- `shared` carries across model switches **where value types are compatible** (FR-STATE-2) — a
-  small compatibility matrix decides what transfers at each family boundary (e.g. 4-level RPN
-  models share the stack; RPN↔RPL transfers only variables/history, not the stack).
-- `perModel[id]` restores each model's own programs/flags when you switch back to it.
+Both engines are snapshotted in full on every save and restored together; there is **no
+per-model `Record<ModelId, …>` split and no shared/perModel compatibility matrix** — the
+`rpn` and `rpl` blobs each hold one live engine's complete state, and model switches simply
+swap which faceplate drives them. (The shared/perModel matrix and a family-boundary transfer
+policy remain possible future work, not shipped.)
 
-**Value-tower codec.** BigNumber / Complex / Unit / Matrix / RPL objects don't survive plain
-`JSON.stringify`, so a **tagged codec** (`{ $type: "BigNumber", v: "0.1" }`, …) with a matching
-reviver serializes them. It grows one value-type per phase (BigNumber P1 → complex/matrix P9 →
-RPL objects P12 → units P13). Every save carries `version`; a **migration chain** upgrades older
-saves as state accumulates, and an unknown/newer version degrades gracefully (start fresh, never
-crash). **Programs** persist as the interpreter's AST/bytecode — never raw JS, the same
-representation the Phase-3 sandboxed Web-Worker interpreter runs.
+**Value-tower codec.** BigNumber / Complex / Matrix / RPL objects don't survive plain
+`JSON.stringify`, so a **tagged codec** (`encodeValue`/`decodeValue`, `encodeObj`/`decodeObj`)
+with a matching reviver serializes them.
 
-**Storage backends** sit behind one `StorageAdapter` interface (swappable; an in-memory adapter
-for tests; no network):
+**No migration chain (yet).** Every save carries `version`; `parseState` accepts only
+`version === STATE_VERSION` (1) and returns `null` for anything else — an unknown/older/newer
+version, or any decode failure, **degrades gracefully to a fresh start** (never crashes).
+Migrations would chain in `parseState` as the schema evolves; v1 is the only shape today.
 
-- **Session snapshot → `localStorage`** — synchronous, restored on first paint, **debounced
-  autosave** on change; the live working state with bounded history. A reload restores exactly.
-- **Workspaces + program/expression library → `IndexedDB`** — async, larger, structured: named
-  workspaces, the saved-program library, and the native-mode expression library/notebook.
-  Scales past localStorage's ~5 MB and keeps the fast-path snapshot lean.
+**Storage backend — `localStorage` only.** A single `StorageAdapter`
+([`src/lib/storage.ts`](../src/lib/storage.ts)) reads/writes one `localStorage` key; an
+in-memory adapter backs tests; no network. Autosave is a plain effect that writes the full
+snapshot on every engine/model change — it is **not debounced** (the snapshot is ~1 KB JSON).
+The restore runs once on mount (guarded for prerender). **IndexedDB is not used** — named
+workspaces are also `localStorage` entries (a `hellocalc-ws:` prefix); moving the workspace/
+program library to IndexedDB remains possible future work.
 
-**Import / export to file (FR-STATE-4).** A workspace (or the entire state) serializes to a
-versioned JSON document the user **downloads** (`Blob` + object URL) and **re-imports** (file
-picker → validate `version` → migrate → load). This is the durable backup/transfer path since
-browser storage can be cleared, and the interchange format for sharing programs/workspaces.
-Calculator "media" map straight onto it: an **HP-65 magnetic card**, an **HP-41 extended-memory
-file**, and an **HP-50g SD-card directory** are each a named library entry, exportable as a file.
+**Import / export to file (FR-STATE-4).** The entire state serializes to a versioned JSON
+document the user **downloads** (`Blob` + object URL) and **re-imports** (file picker →
+`parseState` validates `version` → load-or-reject). This is the durable backup/transfer path
+since browser storage can be cleared.
 
 **Offline (NFR-2):** state access is fully local; a later service worker caches the app shell.
 

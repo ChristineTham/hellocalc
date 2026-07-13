@@ -483,7 +483,10 @@ artifact — a deliberate placement choice (§11 #4, resolved). As built (rev 5)
 48SX/48G are **overridden to `tall`**: their 9-row keyboards behave tall, and stacking
 them on a desktop starves the glass — the override sends them side-by-side. The HP-35
 (≈0.703, 8 rows) stays **portrait** and keeps the classic LCD-above-keys look; the
-HP-41 (0.624 with its toggle-strip row) is overridden the same way for the same reason.
+HP-41 (0.624 with its toggle-strip row) computes *below* the tall boundary but is
+**overridden to `portrait`** (the OPPOSITE direction from the 48G) so it keeps that
+classic LCD-above-keys layout — see `aspectClass` in
+[`models.ts`](../src/components/calculator/models.ts).
 
 **Dual-pitch caveat.** Classic/Woodstock/HP-41/Pioneer have a finer-pitch control area over
 a coarser number pad. Use `cols` = the max column count that spans the full field width and
@@ -632,7 +635,7 @@ renders. **[fixed]**
 **required** `geometry: KeyboardGeometry` field to `ModelBase`
 ([`models.ts:54-63`](../src/components/calculator/models.ts)) breaks every `Model` literal
 and any external `Model` construction until populated — it is **not** "byte-identical" or
-merely "additive". It is safe here **only** because all four `MODELS` entries are
+merely "additive". It is safe here **only** because all `MODELS` entries (21 as built) are
 generated/authored in-repo (`gen-models.ts` → `models.generated.ts` for voyager; authored
 `rows` for classic/rpl) and are migrated **atomically in Step 0** (§9). If any consumer ever
 constructs `Model`s outside the registry, make `geometry` optional with a
@@ -752,6 +755,20 @@ All added to the `@theme` block in [`src/app/globals.css`](../src/app/globals.cs
 inline arbitrary values (AGENTS.md §2). This also replaces the ~11 arbitrary `text-[..px]`
 values and the `639px` magic number in `Display.tsx`.
 
+> **Reconciliation note (v2, as built).** Two things drifted from this section's original
+> plan:
+> - **Breakpoints collapsed.** The shipped `globals.css` uses only **two** width media
+>   queries — `md` (`48rem`) and `lg` (`64rem`) — plus a `max-height: 34rem` short-viewport
+>   override. The `sm`/`xl`/`2xl` bands from §3.2/§3.3 **fold into the desktop template**;
+>   they survive only as labels in `breakpoints.ts`, not as distinct CSS layouts.
+> - **v2 token families supersede several tables below.** The v2 **integrated machine**
+>   (§14) introduced the `--calc-machine-*`, `--calc-key-max-pitch`, and paper/dot-matrix
+>   (`--paper-*`, `--font-lcd-dot`) token families, which now drive keyboard sizing and the
+>   region layout. Consequently the older per-family **key-aspect** (`--hp-key-aspect-*`),
+>   **`--calc-kbd-max-w/-h`**, and **`--calc-panel-min-w/-max-w`** tokens in the tables below
+>   are **superseded** by the machine/pitch tokens for layout purposes — read the tables as
+>   the v1 design intent, and §14 + `globals.css` as the as-built source of truth.
+
 **Keyboard fidelity & sizing**
 
 | Token | Purpose |
@@ -822,7 +839,8 @@ faceplate/display palette, `--font-display` (dseg7), `--font-mono`, `--font-lege
   `hotkey` map, the visual **press echo**, and the `?` cheat-sheet (§12.2). (The draft proposed
   a new FR-UI-13 for this before noticing FR-UI-2 exists.)
 - **ADD FR-UI-13** (S) — *Armed-prefix plane highlighting.* Arming `f`/`g`/`ls`/`rs`
-  brightens the matching legend plane and dims primary legends (§12.3).
+  **promotes** the matching shifted function into each key's primary slot (§12.3). (As
+  built: promotion only — the un-armed plane is **not** dimmed, for strict-AA contrast.)
 - **ADD FR-UI-14** (S) — *Three-plane visual language* (extends FR-UI-5): desk / machine /
   glass material rules, warm shadows, pastel chrome accents, cqi-proportional legend type
   (§13).
@@ -923,7 +941,7 @@ responsive-framework deliverable (built once, reused by every model).
   against real viewports.
 - **Files:** `AuxPanel.tsx`, `globals.css`, `Display.tsx` (register summary row in mini).
 - **Tests:** Vitest — TVM registers render in aux for HP-12C. Playwright — full §10 matrix
-  sweep green across all device classes for all 4 live models.
+  sweep green across all device classes for all 21 live models.
 - **Gate:** full DoD; PRD/plan doc edits (§8.2) landed in the same change.
 
 ### Step 6 — Typing & polish pass (§12–§13)
@@ -931,14 +949,15 @@ responsive-framework deliverable (built once, reused by every model).
   `hp/mapping/mapping.json`, emitted by `gen-models.ts`); **press echo** (`data-pressed`
   reuses the active press style, §12.2); `?` shortcut cheat-sheet `Dialog`; `/` / `Cmd+K`
   model picker; the `Escape` ladder (disarm prefix → close overlay); **armed-prefix plane
-  dim** in `CalcKey` (§12.3); the §13 finish — terracotta/salvia tokens + retinted chrome
+  promotion** in `CalcKey` (§12.3 — promote only, no dim); the §13 finish — terracotta/salvia tokens + retinted chrome
   `--ring`, warm shadows (`--shadow-key*`, `--shadow-machine`), cqi legend tokens
   (`--text-key-*`), Voyager trim line, hit-slop halo, toolstrip placement of phone toggles.
 - **Files:** `src/hooks/useHotkeys.ts` (new), `CalcKey.tsx`, `Keyboard*.tsx`, `Topbar.tsx`,
   `KeyboardZone.tsx`, `globals.css`, `hp/mapping/build_mapping.py` + `mapping.json`,
   `scripts/gen-models.ts`.
 - **Tests:** Playwright — **physical-keyboard arithmetic** (`2 Enter 3 +` → `5.00`); typing
-  `f` arms the prefix and the primary-legend plane dims (opacity assertion); `Escape` closes
+  `f` arms the prefix and the f-annunciator lights at full opacity (promotion, not dimming —
+  the plane stays full-contrast for strict-AA); `Escape` closes
   the bottom sheet; `?` opens the cheat-sheet; a physical keypress sets `data-pressed` on the
   matching on-screen key. Vitest — the hotkey map resolves per model; the alpha guard
   suspends letter shortcuts in RPL alpha mode; hotkeys ignored while the picker search has
@@ -1051,10 +1070,12 @@ Run across chromium/firefox/webkit — no assertion depends on container aspect-
 2. **The `sm` band (640–767px) template.** ✅ **RESOLVED — reuse the phone `stack` template**
    (design review): reach ergonomics don't change until a device is held two-handed; a
    640–767px portrait device is still a thumb-zone device.
-3. **Clamshell HP-28C/28S.** Genuinely two keyboard blocks (L 6×6 + R 5×7) under one
-   display; the single-`KeyboardFitter` model does not cover it, and `'clamshell'` is kept
-   out of the production union until then. **Recommend deferring the 28-series** (safe — not
-   in the 4 live models); or approve building a two-panel `ClamshellZone` now.
+3. **Clamshell HP-28C/28S.** ✅ **RESOLVED — shipped as merged halves.** The 28-series is
+   live among the 21 models, but rendered as **one merged keyboard** (the two clamshell
+   halves flattened to a single 13×7 grid → A≈2.038 landscape, §4.4), *not* as a genuine
+   two-panel block. The true two-keyboard `ClamshellZone` (L 6×6 + R 5×7 under one display)
+   and the `'clamshell'` aspect class remain **deferred** — the single-`KeyboardFitter`
+   model covers the merged form for now.
 4. **`tall` vs `portrait` threshold (`A ≤ 0.68`) + per-family `k`.** ✅ **RESOLVED** (design
    review): `aspectClass` is a **per-model override** with the threshold as fallback —
    placement is a deliberate choice, never a threshold artifact. The `k`-pinning pass
@@ -1136,12 +1157,15 @@ A laptop/desktop user will not mouse-click 40 on-screen keys; they will type. Ru
 ### 12.3 Modal state is always visible **[fixed]**
 
 HP calculators are shift-heavy modal machines; the display must always answer *"what will
-this key do right now?"* [`CalcKey.tsx:88-114`](../src/components/calculator/CalcKey.tsx)
-already glows the armed legend — extend it to a **plane shift**: when `f` is armed, every
-gold legend brightens to full **and every primary legend dims to ~40%** (and vice-versa for
-`g`/`ls`/`rs`). One glance shows the entire active key plane — a genuine improvement over
-the physical device that stays faithful in spirit. The armed prefix also stays mirrored in
-the LCD annunciator row (already true).
+this key do right now?"* When a prefix is armed, the keyboard **promotes** the shifted
+function into each key's primary slot (§14.4e) so one glance shows the active plane.
+
+> **AS BUILT — no plane dimming.** The draft proposed also **dimming the other plane to
+> ~40% opacity**. That was **deliberately dropped**: dimming the un-armed legends failed
+> strict-AA legend contrast, so the shipped affordance **promotes only** — the other plane
+> keeps full contrast and is not dimmed (the armed prefix still lights the LCD annunciator
+> row). See the note in [`e2e/smoke.spec.ts`](../e2e/smoke.spec.ts) (~line 820): "the plane
+> is no longer dimmed for legend contrast — a11y strict-AA pass".
 
 ### 12.4 Touch ergonomics **[partly intent change]**
 
@@ -1186,12 +1210,17 @@ the LCD annunciator row (already true).
   LCD chevron → inside the LCD; hamburger (left) → left nav sheet; sidebar is its own
   always-visible answer.
 
-### 12.6 Preferences persist **[fixed]**
+### 12.6 Preferences persist **[partly as built]**
 
-`userExpanded` (the LCD force), the last selected model, and (later) handedness persist via
-the planned persistence layer (FR-STATE, [`docs/architecture.md`](architecture.md) §9) and
-restore on load. A restore that only re-applies user intent (`data-lcd-force`) cannot cause
-a layout *correctness* flash — the CSS default remains valid until it lands.
+**AS BUILT — only the model + engine state persist; the LCD force does not.** The last
+selected model and the full RPN/RPL engine state persist and restore on load (FR-STATE,
+[`docs/architecture.md`](architecture.md) §9). The **LCD line/mini force** (`userForce` /
+the mini/line chevron) is **session-local React component state** in
+[`Display.tsx`](../src/components/calculator/Display.tsx) (`useState`, reflected as
+`data-lcd-force`) — it is **not** written to the snapshot, so it resets on reload; handedness
+is likewise not yet persisted. Because the LCD force only re-applies user intent, its absence
+from persistence cannot cause a layout *correctness* flash — the container-query CSS default
+is always valid.
 
 ---
 
@@ -1421,10 +1450,12 @@ slot (big, in its shift colour, `--text-key-promoted`): press `f` on a 12C and
 the keys read AMORT / INT / NPV…; press left-shift on a 48G and the board
 turns purple (SOLVE / PLOT / TIME…); arm `arc` on the 35 and the trig keys
 read SIN⁻¹…. The promoted plane's small row empties (its word moved down),
-the other plane dims, and keys without a function for the armed prefix keep
-their dimmed primary — which is what they still execute. This supersedes the
-narrow-module legend reveal: on phones the promoted word appears at full
-primary size instead of an 8px hint.
+and keys without a function for the armed prefix keep their primary legend —
+which is what they still execute. **The other plane is NOT dimmed:** dimming
+it failed strict-AA legend contrast, so promotion carries the whole affordance
+and every legend keeps full contrast (§12.3). This supersedes the narrow-module
+legend reveal: on phones the promoted word appears at full primary size instead
+of an 8px hint.
 
 ### 14.4f Revision 7 — authentic nameplates, trademark-safe
 
@@ -1502,5 +1533,5 @@ render the merged board full width.
   keyboard inside ONE bezel rect). Gate: full DoD.
 - **Step 8 — Paper aux.** HistoryTape + StackNote + VarsNote (+ per-component toggles and
   sheets below md); TVM chips move into VarsNote; wire the four arrangements. Gate: full DoD.
-- **Step 9 — Rhythm.** Spacing/alignment audit across all 4 live models × 6 viewport
+- **Step 9 — Rhythm.** Spacing/alignment audit across all 21 live models × 6 viewport
   classes (screenshot sweep), whitespace fixes, final tuning. Gate: full DoD + visual matrix.
