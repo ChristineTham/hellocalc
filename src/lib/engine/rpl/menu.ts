@@ -39,7 +39,7 @@ export const RPL_MENUS: Record<string, string[]> = {
   OBJ: ["→STR", "STR→", "→LIST", "LIST→", "→ARRY", "ARRY→", "OBJ→", "TYPE", "→Q"],
   LIST48: ["DOLIST", "STREAM", "SEQ", "SORT", "REVLIST", "ΣLIST", "ΠLIST", "ΔLIST"],
   MATR48: ["RREF", "RANK", "LU", "QR", "SVD", "EGV", "EGVL"],
-  TVMM: ["TVMROOT", "TVMBEG", "TVMEND", "AMORT"],
+  TVMM: ["TVMROOT", "TVMBEG", "TVMEND", "AMORT", "BS"],
   // 49G application rosters (P19)
   CALC: ["DERVX", "INTVX", "lim", "SERIES", "TAYLR", "RISCH"],
   ALG: ["FACTOR", "EXPAND", "SIMPLIFY", "PARTFRAC", "SUBST", "TEXPAND"],

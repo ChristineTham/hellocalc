@@ -273,3 +273,45 @@ export function bondYTM(settle: Date, maturity: Date, price: Value, couponPct: V
   }
   return lo.plus(hi).div(2);
 }
+
+/** Standard-normal CDF via Abramowitz & Stegun 7.1.26 (|error| < 7.5e-8). */
+function normCdf(x: number): number {
+  const t = 1 / (1 + 0.2316419 * Math.abs(x));
+  const d = 0.3989422804014327 * Math.exp((-x * x) / 2);
+  const p =
+    d *
+    t *
+    (0.31938153 +
+      t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
+  return x >= 0 ? 1 - p : p;
+}
+
+/** Black–Scholes European option prices (FR-FIN-4). `spot`, `strike`, the
+ * continuous risk-free `rate` (decimal, e.g. 0.05), volatility `vol` (decimal
+ * σ) and time `years`. Returns call + put. This is a NUMERICAL result (double,
+ * bounded by the normal-CDF approximation ≈1e-7) — like SOLVE/∫, not exact
+ * BigNumber arithmetic — then re-wrapped as a Value for the engine. */
+export function blackScholes(
+  spot: Value,
+  strike: Value,
+  rate: Value,
+  vol: Value,
+  years: Value,
+): { call: Value; put: Value } {
+  const s = spot.toNumber();
+  const k = strike.toNumber();
+  const r = rate.toNumber();
+  const v = vol.toNumber();
+  const t = years.toNumber();
+  const disc = Math.exp(-r * t);
+  if (v <= 0 || t <= 0) {
+    // degenerate: discounted intrinsic value
+    return { call: bn(Math.max(0, s - k * disc)), put: bn(Math.max(0, k * disc - s)) };
+  }
+  const sqrtT = Math.sqrt(t);
+  const d1 = (Math.log(s / k) + (r + (v * v) / 2) * t) / (v * sqrtT);
+  const d2 = d1 - v * sqrtT;
+  const call = s * normCdf(d1) - k * disc * normCdf(d2);
+  const put = k * disc * normCdf(-d2) - s * normCdf(-d1);
+  return { call: bn(call), put: bn(put) };
+}

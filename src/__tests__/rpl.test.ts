@@ -279,6 +279,15 @@ describe("P13 units & dimensional analysis", () => {
     expect(nums(s.stack)).toEqual([1]);
   });
 
+  it("FR-UNIT-4: DEFUNIT registers a user unit usable in _name syntax", () => {
+    const s = createRpl();
+    line(s, '"fortnight" "14 day" DEFUNIT');
+    line(s, "1_fortnight 1_day CONVERT");
+    const top = s.stack[0];
+    expect(top.k === "unit" && top.mag.toFixed(0)).toBe("14"); // 1 fortnight = 14 days
+    expect(top.k === "unit" && top.u).toBe("day");
+  });
+
   it("×/÷/^ compose and cancel dimensions", () => {
     const s = createRpl();
     line(s, "6_m 2_s ÷");
@@ -790,6 +799,14 @@ describe("P18 the 48G: stat plots, fits, lists, linear algebra, TVM", () => {
     expect(pr + iTot).toBeCloseTo(599.55 * 12, 1);
     expect(bal).toBeCloseTo(100000 - pr, 1);
     expect(iTot).toBeGreaterThan(5900); // first-year interest ≈ 5967
+  });
+
+  it("FR-FIN-4: BS prices a European option (spot strike rate vol years → call put)", () => {
+    const s = createRpl();
+    line(s, "100 100 0.05 0.2 1 BS");
+    const [call, put] = nums(s.stack); // call below, put on top
+    expect(call).toBeCloseTo(10.4506, 3);
+    expect(put).toBeCloseTo(5.5735, 3);
   });
 
   it("MSGBOX shows; INFORM/CHOOSE and MSOLVR/RKF defer honestly", () => {

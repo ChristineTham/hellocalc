@@ -32,6 +32,19 @@ export function validUnit(u: string): boolean {
   }
 }
 
+/** Register a user-defined unit (FR-UNIT-4). `definition` is a math.js unit
+ * expression, e.g. defineUnit("fortnight", "14 day"). Session-scoped — it lives
+ * on the global math instance until reload. `override` lets a name be
+ * redefined. Returns false if the definition is invalid. */
+export function defineUnit(name: string, definition: string): boolean {
+  try {
+    math.createUnit(name, definition, { override: true });
+    return validUnit(name);
+  } catch {
+    return false;
+  }
+}
+
 const toMU = (q: UnitQty): Unit => math.unit(q.mag, q.u);
 
 const magOf = (x: unknown): Value => {

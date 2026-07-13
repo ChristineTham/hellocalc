@@ -18,7 +18,16 @@ import {
   SingularValueDecomposition,
 } from "ml-matrix";
 import { bestFit, fit as cfit, type FitModel, forecastX, forecastY } from "./stats-fit";
-import { type FinRegs, freshFin, solveFV, solveI, solveN, solvePMT, solvePV } from "./finance";
+import {
+  blackScholes,
+  type FinRegs,
+  freshFin,
+  solveFV,
+  solveI,
+  solveN,
+  solvePMT,
+  solvePV,
+} from "./finance";
 import { bn, math, num, PI, type Value } from "./config";
 import type { DisplayFormat } from "./format";
 import type { HistEntry } from "./rpn";
@@ -43,7 +52,7 @@ import {
 } from "./rpl/parse";
 import { CATALOG_COMMANDS, RPL_MENUS } from "./rpl/menu";
 import {
-  addU, convertU, DimensionError, divU, mulU, powU, scaleU, subU, ubaseU, validUnit,
+  addU, convertU, defineUnit, DimensionError, divU, mulU, powU, scaleU, subU, ubaseU, validUnit,
 } from "./units";
 import { UNIT_CATEGORIES, UNIT_MENUS } from "./units-catalog";
 import { getCas } from "./cas/provider";
@@ -2898,6 +2907,29 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
       if (v === null) throw err("No Solution");
       storeVar(s, nm, real(v));
       s.stack.push(real(v));
+      return true;
+    }
+    // Black–Scholes European option pricing (FR-FIN-4): spot strike rate vol
+    // years BS  →  call put (put on top of the stack)
+    case "BS": {
+      const [spot, strike, rate, vol, years] = popN(s, 5);
+      const { call, put } = blackScholes(
+        wantReal(spot),
+        wantReal(strike),
+        wantReal(rate),
+        wantReal(vol),
+        wantReal(years),
+      );
+      s.stack.push(real(call), real(put));
+      return true;
+    }
+    // user-defined units (FR-UNIT-4): "name" "definition" DEFUNIT registers a
+    // custom unit usable in _name syntax, e.g. "fortnight" "14 day" DEFUNIT.
+    case "DEFUNIT": {
+      const [nameObj, defObj] = popN(s, 2);
+      const name = wantStr(nameObj);
+      const def = wantStr(defObj);
+      if (!defineUnit(name, def)) throw err("Invalid Unit");
       return true;
     }
     case "AMORT": {
