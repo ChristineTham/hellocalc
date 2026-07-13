@@ -70,6 +70,10 @@ export const MODEL_CATALOG: CatalogGroup[] = [
       { id: "HP-17BII", label: "HP-17BII", year: "1990" },
       { id: "HP-19B", label: "HP-19B", year: "1988" },
       { id: "HP-19BII", label: "HP-19BII", year: "1990" },
+      { id: "HP-12C-Platinum", label: "HP-12C Platinum", year: "2003" },
+      { id: "HP-10BII", label: "HP-10BII", year: "2001" },
+      { id: "HP-20b", label: "HP-20b", year: "2008" },
+      { id: "HP-30b", label: "HP-30b", year: "2010" },
     ],
   },
   {

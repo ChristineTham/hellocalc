@@ -189,9 +189,14 @@ export default function Home() {
             activeModel={modelId}
             onSelectModel={setModelId}
             tags={(isNative ? "NATIVE · FULL ENGINE" : model.sub).split("·").map((t) => t.trim())}
-            // the modern RPN models offer an RPN⇄ALG entry-mode toggle (FR-STK-4)
+            // the RPN⇄ALG-capable models offer an entry-mode toggle (FR-STK-4):
+            // the modern scientific/graphing (35s/Prime), and the financials that
+            // shipped both modes (12C, 12C Platinum, 17BII, 19BII)
             entryMode={
-              !isNative && (model.id === "HP-35s" || model.id === "HP-Prime" || model.id === "HP-12C")
+              !isNative &&
+              ["HP-35s", "HP-Prime", "HP-12C", "HP-12C-Platinum", "HP-17BII", "HP-19BII"].includes(
+                model.id,
+              )
                 ? { alg: Boolean(rpn.state.alg), onToggle: () => rpn.press("ALG") }
                 : undefined
             }

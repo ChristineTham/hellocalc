@@ -2727,7 +2727,7 @@ export function pressSoft42(s: RpnEngine, i: number): void {
  * whose full INPUT-into-highlighted-variable UX is a later refinement). */
 // Only the 17B-specific TVM legends need remapping; PV/PMT/FV already ARE the
 // engine's canonical ids (shared with the 12C) and fall through to its handler.
-const TVM_KEY: Record<string, string> = { N: "n", "I%YR": "i" };
+const TVM_KEY: Record<string, string> = { N: "n", "I%YR": "i", "I/YR": "i" };
 function finLeaf(s: RpnEngine, fn: string): boolean {
   const tvm = TVM_KEY[fn];
   if (tvm) return applyFunction(s, tvm);
@@ -2782,6 +2782,20 @@ const ACCEPTED_PRIME = new Set([
   "[toolbox/box icon]", "[template icons: fraction/√/matrix]", "x t θ n",
   "a b/c", "\\", "!,≠,→", "≤,≥,≠", ";", ":", "#", '" "', " ", "␣ (space)",
   "Off", "∡ (angle)", "α\" \"", "_ (underscore)", ",",
+]);
+
+/** The modern-financial (10bII/20b/30b) menu-opener and application keys whose
+ * full interactive UX (variable menus, mode dialogs, programming) is out of
+ * scope for the faceplate pass — accepted as inert so a press never errors,
+ * while the core (TVM, cash flows, %, statistics, math) resolves normally. */
+const FIN_MENU_ACCEPTED = new Set([
+  "xP/YR", "x P/YR", "IConv", "Beg", "End", "P/YR", "Depr", "Data", "Stats", "BrkEv",
+  "Date", "%calc", "Memory", "Mode", "PRGM", "Reset", "INS", "DEL", "Math", "Amort",
+  "CshFl", "Bond", "Black S", "BlackS", "MU", "CST", "PRC", "MAR", "IRR/YR", "→M",
+  "RM", "M+", "C ALL", "DISP", "./,", "NOM%", "EFF%", "CLΣ", "SWAP", "Nj", "BEG/END",
+  "K", "CFj",
+  // 10bII statistics estimates + Σ registers (mauve plane)
+  "x̄,ȳ", "Sx,Sy", "σx,σy", "x̂,r", "ŷ,m", "x̄w", "Σx²", "Σy²", "Σxy", "Σx", "Σy",
 ]);
 
 export function dispatch(s: RpnEngine, fn: string): boolean {
@@ -2895,7 +2909,10 @@ export function dispatch(s: RpnEngine, fn: string): boolean {
   }
   const before = s.pending;
   const handled = applyFunction(s, fn);
-  if (!handled) return false;
+  // A genuinely-unmapped modern-financial menu/application key (only reached
+  // AFTER the real handlers pass, so it never shadows a real id like CFj/Σx/DEL)
+  // is accepted as inert rather than erroring.
+  if (!handled) return FIN_MENU_ACCEPTED.has(fn);
   // TVM store-vs-solve context (P7): true right after digits/ENTER/recalls
   s.fresh = /^[0-9]$/.test(fn) || ENTRY_OPS.has(fn) || VALUE_PRODUCERS.has(fn) ||
     (before !== null && before.op === "RCL");

@@ -339,6 +339,37 @@ const HP18C_ROWS: ClassicKey[][] = [
   [gp(8),ck("ON","ON","black"),ck("0","0","black"),ck(".","•","black"),ck("=","=","black",{f:"LAST",fFn:"LSTx"}),ck("+","+","black",{f:"x²"})],
 ];
 
+// ---- HP-20b / HP-30b (modern algebraic/RPN financial; hp/layouts/HP-30b.md) --
+// Pioneer-chassis 6×7 dot-matrix financial with the TVM registers + finance
+// menus on DIRECT keys (not softkeys) and a single (blue) shift plane. The math
+// secondaries resolve to real engine functions; the finance-menu openers are
+// accepted-inert (FIN_MENU_ACCEPTED in rpn.ts). Shared by the 20b and 30b.
+const HP30B_ROWS: ClassicKey[][] = [
+  [ck("N","N","black",{f:"xP/YR"}),ck("I/YR","I/YR","black",{f:"IConv"}),ck("PV","PV","black",{f:"Beg"}),ck("PMT","PMT","black",{f:"P/YR"}),ck("FV","FV","black",{f:"End"}),ck("Amort","Amort","black",{f:"Depr"})],
+  [ck("CshFl","CshFl","black",{f:"Data"}),ck("IRR","IRR","black",{f:"Stats"}),ck("NPV","NPV","black",{f:"BrkEv"}),ck("Bond","Bond","black",{f:"Date"}),ck("%","%","black",{f:"%calc"}),ck("RCL","RCL","black",{f:"STO"})],
+  [ck("INPUT","INPUT","black",{flex:2,f:"Memory"}),ck("(","(","black",{f:"Mode"}),ck(")",")","black",{f:"PRGM"}),ck("+/−","CHS","black",{f:"E",fFn:"EEX"}),ck("←","←","black",{f:"Reset"})],
+  [ck("▲","▲","black",{f:"INS"}),ck("7","7","black",{f:"SIN"}),ck("8","8","black",{f:"COS"}),ck("9","9","black",{f:"TAN"}),ck("÷","÷","black",{f:"Math"})],
+  [ck("▼","▼","black",{f:"DEL"}),ck("4","4","black",{f:"LN",fFn:"ln"}),ck("5","5","black",{f:"eˣ"}),ck("6","6","black",{f:"x²"}),ck("×","×","black",{f:"√x"})],
+  [ck("","f","gold",{kind:"pf"}),ck("1","1","black",{f:"RAND",fFn:"RAN#"}),ck("2","2","black",{f:"!",fFn:"x!"}),ck("3","3","black",{f:"yˣ"}),ck("−","−","black",{f:"1/x"})],
+  [ck("ON/CE","CLx","black",{f:"OFF"}),ck("0","0","black",{f:"nPr",fFn:"Py,x"}),ck(".","•","black",{f:"nCr",fFn:"Cy,x"}),ck("=","=","black",{f:"ANS",fFn:"LSTx"}),ck("+","+","black",{f:"RND",fFn:"RND"})],
+];
+
+// ---- HP-10BII (algebraic financial, single-line; hp/layouts/HP-10BII.md) -----
+// A 5×8 Voyager-scale financial on the CLASSIC family (7-segment glass). TWO
+// prefix planes: f = orange SHIFT (function printed below each key), g = mauve
+// STATISTICS (the Σ registers above keys 4–9). TVM keys reuse the 12C engine;
+// the business/stat legends are accepted-inert (FIN_MENU_ACCEPTED).
+const HP10BII_ROWS: ClassicKey[][] = [
+  [ck("N","N","black",{f:"xP/YR"}),ck("I/YR","I/YR","black",{f:"NOM%"}),ck("PV","PV","black",{f:"EFF%"}),ck("PMT","PMT","black",{f:"P/YR"}),ck("FV","FV","black",{f:"AMORT",fFn:"Amort"})],
+  [ck("INPUT","INPUT","black"),ck("MU","MU","black"),ck("CST","CST","black",{f:"IRR/YR"}),ck("PRC","PRC","black",{f:"NPV"}),ck("MAR","MAR","black",{f:"BEG/END"})],
+  [ck("K","K","black",{f:"SWAP"}),ck("%","%","black",{f:"%CHG",fFn:"Δ%"}),ck("CFj","CFj","black",{f:"Nj"}),ck("Σ+","Σ+","black",{f:"Σ−"}),ck("←","←","black",{f:"RND",fFn:"RND"})],
+  [ck("+/−","CHS","black",{f:"E",fFn:"EEX"}),ck("RCL","RCL","black",{f:"STO"}),ck("→M","→M","black",{f:"CLΣ"}),ck("RM","RM","black",{f:"("}),ck("M+","M+","black",{f:")"})],
+  [ck("","STATS","blue",{kind:"pg"}),ck("7","7","black",{f:"x̄,ȳ",g:"Σx²"}),ck("8","8","black",{f:"Sx,Sy",g:"Σy²"}),ck("9","9","black",{f:"σx,σy",g:"Σxy"}),ck("÷","÷","black",{f:"1/x"})],
+  [ck("","SHIFT","gold",{kind:"pf"}),ck("4","4","black",{f:"x̂,r",g:"n"}),ck("5","5","black",{f:"ŷ,m",g:"Σx"}),ck("6","6","black",{f:"x̄w",g:"Σy"}),ck("×","×","black",{f:"yˣ"})],
+  [ck("C","CLx","black",{f:"C ALL"}),ck("1","1","black",{f:"eˣ"}),ck("2","2","black",{f:"LN",fFn:"ln"}),ck("3","3","black",{f:"n!",fFn:"x!"}),ck("−","−","black",{f:"√x"})],
+  [ck("ON","ON","black",{f:"OFF"}),ck("0","0","black"),ck(".","•","black",{f:"./,"}),ck("=","=","black",{f:"DISP"}),ck("+","+","black",{f:"x²"})],
+];
+
 /** RPL key helper (shared by every RPL-family board). */
 const r = (
   p: string,
@@ -463,6 +494,9 @@ const GEOM = {
   "HP-17B": computeKeyboardGeometry({ rows: HP17B_ROWS }, "pioneer"),
   // 18C/19B/19BII share the merged clamshell chassis → one geometry entry.
   "HP-18C": computeKeyboardGeometry({ rows: HP18C_ROWS }, "pioneer"),
+  // 20b/30b share the modern-financial chassis; the 10bII is a classic 5×8.
+  "HP-30b": computeKeyboardGeometry({ rows: HP30B_ROWS }, "pioneer"),
+  "HP-10BII": computeKeyboardGeometry({ rows: HP10BII_ROWS }, "classic"),
   "HP-11C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-11C"] }, "voyager"),
   "HP-12C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-12C"] }, "voyager"),
   "HP-15C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-15C"] }, "voyager"),
@@ -507,6 +541,12 @@ export const MODELS: Record<string, Model> = {
   "HP-18C":  { id: "HP-18C",  name: "HP-18C",  family: "pioneer", sub: "ALG · CLAMSHELL",  angle: false, geometry: GEOM["HP-18C"],  rows: HP18C_ROWS },
   "HP-19B":  { id: "HP-19B",  name: "HP-19B",  family: "pioneer", sub: "ALG · CLAMSHELL",  angle: false, geometry: GEOM["HP-18C"],  rows: HP18C_ROWS },
   "HP-19BII":{ id: "HP-19BII",name: "HP-19BII",family: "pioneer", sub: "RPN · ALG · CLAMSHELL", angle: false, geometry: GEOM["HP-18C"], rows: HP18C_ROWS },
+  // 12C Platinum: the 12C Voyager chassis (its additions — RPN/ALG mode, a
+  // backspace key, faster CPU — are mostly non-keyboard), with ALG entry on.
+  "HP-12C-Platinum": { id: "HP-12C-Platinum", name: "HP-12C Platinum", family: "voyager", sub: "RPN · ALG · FINANCIAL", angle: false, geometry: GEOM["HP-12C"], keys: GENERATED_VOYAGER["HP-12C"] },
+  "HP-10BII": { id: "HP-10BII", name: "HP-10BII", family: "classic", sub: "ALG · FINANCIAL", angle: false, geometry: GEOM["HP-10BII"], rows: HP10BII_ROWS },
+  "HP-20b":   { id: "HP-20b",   name: "HP-20b",   family: "pioneer", sub: "ALG · RPN · FINANCIAL", angle: false, geometry: GEOM["HP-30b"], rows: HP30B_ROWS },
+  "HP-30b":   { id: "HP-30b",   name: "HP-30b",   family: "pioneer", sub: "ALG · RPN · PROGRAM", angle: false, geometry: GEOM["HP-30b"], rows: HP30B_ROWS },
   "HP-48SX": { id: "HP-48SX", name: "HP-48SX", family: "rpl", sub: "RPL · GRAPHING", angle: true, geometry: GEOM["HP-48SX"], rows: HP48SX_ROWS,
     shift: { ls: "var(--hp-shift-ls-sx)", rs: "var(--hp-shift-rs-sx)" } },
   "HP-48G": { id: "HP-48G", name: "HP-48G", family: "rpl",     sub: "RPL · GRAPHING",   angle: true,  geometry: GEOM["HP-48G"], rows: HP48G_ROWS },
@@ -524,4 +564,5 @@ export const MODEL_ORDER = [
   "HP-48SX", "HP-48G", "HP-49G", "HP-50g",
   "HP-35s", "HP-Prime",
   "HP-17B", "HP-17BII", "HP-18C", "HP-19B", "HP-19BII",
+  "HP-12C-Platinum", "HP-10BII", "HP-20b", "HP-30b",
 ] as const;
