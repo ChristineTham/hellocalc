@@ -836,7 +836,8 @@ describe("P18 the 48G: stat plots, fits, lists, linear algebra, TVM", () => {
     dispatchRpl(s, "INFORM");
     expect(s.error).toMatch(/async UI bridge/);
     dispatchRpl(s, "MSOLVR");
-    expect(s.error).toMatch(/deferred/);
+    // the interactive MES points at the non-interactive MSLV solver now
+    expect(s.error).toMatch(/MSLV/);
   });
 });
 
