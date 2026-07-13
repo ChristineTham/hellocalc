@@ -52,6 +52,7 @@ import {
   UndefinedName,
 } from "./rpl/parse";
 import { CATALOG_COMMANDS, RPL_MENUS } from "./rpl/menu";
+import { fromWolfram, toWolfram } from "./rpl/wolfram";
 import {
   addU, convertU, defineUnit, DimensionError, divU, mulU, powU, scaleU, subU, ubaseU, validUnit,
 } from "./units";
@@ -3028,6 +3029,18 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
     // non-interactive systems solver (FR-SOLVE-3 / FR-CAS-4): multivariate
     // Newton over n equations in n unknowns.
     //   { 'eq1' 'eq2' } { X Y } { x0 y0 } MSLV → [x* y*] (and stores the vars)
+    // Mathematica / Wolfram-Language interchange (FR-IO-4)
+    case "→WL": {
+      const o = pop1(s);
+      const src = o.k === "alg" ? o.src : o.k === "name" ? o.v : formatObj(o, s.disp, s.base);
+      s.stack.push({ k: "str", v: toWolfram(src) });
+      return true;
+    }
+    case "WL→": {
+      const wl = wantStr(pop1(s));
+      s.stack.push({ k: "alg", src: fromWolfram(wl) });
+      return true;
+    }
     case "MSLV": {
       const [eqsObj, varsObj, guessObj] = popN(s, 3);
       const eqs = wantList(eqsObj).map((o) =>
