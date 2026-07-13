@@ -34,6 +34,8 @@ export interface FinApp {
    * Black–Scholes prices. Interchangeable results (YLD%⇄PRICE) are NOT here:
    * keying a number stores them so the reverse can be computed. */
   computeOnly?: Set<string>;
+  /** variables that hold a date (M.DYYYYY) — shown/echoed as a readable date. */
+  dates?: Set<string>;
   /** compute a result variable from the current variable store; `x` is the
    * value currently in the X register (used where an app needs a live argument,
    * e.g. the DEPRC year). Returns null when required inputs are missing. */
@@ -64,6 +66,7 @@ export const FIN_APPS: Record<string, FinApp> = {
     vars: ["SETT", "MAT", "CPN%", "YLD%", "PRICE", "ACCRU"],
     results: new Set(["YLD%", "PRICE", "ACCRU"]),
     computeOnly: new Set(["ACCRU"]),
+    dates: new Set(["SETT", "MAT"]),
     compute(s, t) {
       const settle = s["SETT"] !== undefined ? decodeDate(s["SETT"], false) : null;
       const mat = s["MAT"] !== undefined ? decodeDate(s["MAT"], false) : null;
@@ -106,6 +109,7 @@ export const FIN_APPS: Record<string, FinApp> = {
     title: "Date Calc",
     vars: ["DATE1", "DATE2", "DDAYS"],
     results: new Set(["DATE1", "DATE2", "DDAYS"]),
+    dates: new Set(["DATE1", "DATE2"]),
     compute(s, t) {
       const d1 = s["DATE1"] !== undefined ? decodeDate(s["DATE1"], false) : null;
       const d2 = s["DATE2"] !== undefined ? decodeDate(s["DATE2"], false) : null;

@@ -24,6 +24,7 @@ import { bn, type Value } from "@/lib/engine/config";
 import { solverVariables } from "@/lib/engine/business";
 import { FIN_APPS } from "@/lib/engine/finapps";
 import { LIST_APPS } from "@/lib/engine/listapps";
+import { formatDate } from "@/lib/engine/finance";
 import type { RpnState } from "@/components/calculator/Display";
 
 // f/g are the Voyager planes; h (HP-67 black) and fi (HP-65 f⁻¹ gold inverse)
@@ -297,13 +298,19 @@ export function useRpnCalculator(): RpnCalculator {
       app: engine.app
         ? {
             title: FIN_APPS[engine.app.name]?.title ?? engine.app.name,
-            vars: (FIN_APPS[engine.app.name]?.vars ?? []).map((name) => ({
-              name,
-              value:
-                engine.app!.vars[name] !== undefined ? fmt(bn(engine.app!.vars[name])) : "—",
-            })),
+            vars: (FIN_APPS[engine.app.name]?.vars ?? []).map((name) => {
+              const raw = engine.app!.vars[name];
+              if (raw === undefined) return { name, value: "—" };
+              const isDate = FIN_APPS[engine.app!.name]?.dates?.has(name);
+              return {
+                name,
+                value: (isDate ? formatDate(bn(raw), engine.fin.dmy) : null) ?? fmt(bn(raw)),
+              };
+            }),
           }
         : undefined,
+      // when X holds a date (a TIME/BOND date variable), echo it readably
+      dateX: engine.dateShow ? (formatDate(engine.x, engine.fin.dmy) ?? undefined) : undefined,
       prgm: {
         mode: engine.prgm.mode,
         pc: engine.prgm.pc,

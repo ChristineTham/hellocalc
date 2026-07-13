@@ -3,7 +3,19 @@
 // inputs and computes results on the softkeys.
 import { describe, it, expect } from "vitest";
 import { createRpn, dispatch, pressSoft42, xval, type RpnEngine } from "@/lib/engine/rpn";
-import { num } from "@/lib/engine/config";
+import { bn, num } from "@/lib/engine/config";
+import { formatDate } from "@/lib/engine/finance";
+
+describe("formatDate — readable M.DYYYYY dates", () => {
+  it("renders the date with weekday", () => {
+    expect(formatDate(bn("1.012020"), false)).toBe("1/1/2020 WED");
+    expect(formatDate(bn("3.312020"), false)).toBe("3/31/2020 TUE");
+  });
+  it("respects D.MY mode and rejects non-dates", () => {
+    expect(formatDate(bn("31.032020"), true)).toBe("31/3/2020 TUE");
+    expect(formatDate(bn("42"), false)).toBeNull();
+  });
+});
 
 const key = (s: RpnEngine, digits: string) => {
   for (const d of digits) dispatch(s, d);

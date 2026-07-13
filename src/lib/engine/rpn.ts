@@ -210,6 +210,9 @@ export interface RpnEngine {
   /** The active LIST app (CFLO cash flows / SUM statistics) and its items —
    * INPUT appends, the CALC submenu computes from it, the panel shows it. */
   list?: { name: string; items: string[] } | null;
+  /** true when X currently holds a DATE (a TIME/BOND date variable) — the glass
+   * echoes it as a readable date instead of a plain number. Cleared on entry. */
+  dateShow?: boolean;
 }
 
 const zeroSum = (): SumRegs => ({ n: bn(0), x: bn(0), x2: bn(0), y: bn(0), y2: bn(0), xy: bn(0) });
@@ -295,6 +298,7 @@ export function pushX(s: RpnEngine, v: Value): void {
 
 export function inputDigit(s: RpnEngine, d: string): void {
   s.error = null;
+  s.dateShow = false; // a freshly keyed number is a plain number, not a date
   if (s.int.on) {
     // base entry (P10): digits legal for the base append, no point, no EEX
     if (d === "." || !digitOk(d, s.int.base)) return;
@@ -2881,6 +2885,7 @@ function finVarKey(s: RpnEngine, label: string, appKey: string): void {
   const spec = FIN_APPS[appKey];
   if (!spec) return;
   if (!s.app || s.app.name !== appKey) s.app = { name: appKey, vars: {} };
+  s.dateShow = spec.dates?.has(label) ?? false; // this var holds a date → echo as one
   const compute = (): boolean => {
     const store: Record<string, Value> = {};
     for (const [k, v] of Object.entries(s.app!.vars)) store[k] = bn(v);

@@ -161,6 +161,20 @@ export function decodeDate(v: Value, dmy: boolean): Date | null {
   return d;
 }
 
+const WEEKDAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+
+/** Render a 12C date number (M.DYYYYY / D.MYYYYY) as a readable date with the
+ * day of week, e.g. "3/31/2020 TUE" — or null if it isn't a valid date. */
+export function formatDate(v: Value, dmy: boolean): string | null {
+  const d = decodeDate(v, dmy);
+  if (!d) return null;
+  const m = d.getUTCMonth() + 1;
+  const day = d.getUTCDate();
+  const y = d.getUTCFullYear();
+  const [a, b] = dmy ? [day, m] : [m, day];
+  return `${a}/${b}/${y} ${WEEKDAYS[d.getUTCDay()]}`;
+}
+
 export function encodeDate(d: Date, dmy: boolean): Value {
   const day = d.getUTCDate();
   const month = d.getUTCMonth() + 1;

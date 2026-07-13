@@ -42,6 +42,8 @@ export interface RpnState {
   app?: { title: string; vars: { name: string; value: string }[] };
   /** the active list app (CFLO cash flows / SUM statistics) + its items */
   list?: { title: string; items: string[] };
+  /** X rendered as a readable date (TIME/BOND date variable) — glass echo */
+  dateX?: string;
   /** the equation text being typed (SOLVER entry mode) — echoed on the glass */
   eqEntry?: string;
   /** keystroke program view (P3): mode + steps + pointer for the program note */
@@ -213,6 +215,8 @@ export function Display({
   const lineValue =
     s.eqEntry != null
       ? `${s.eqEntry || "EQ?"}_` // typing a SOLVER equation (echo the text)
+      : s.dateX != null && s.entry == null
+      ? s.dateX // X holds a date (TIME/BOND) — show it readably
       : s.prefix === "alpha" && !isRpl
       ? `${s.alpha ?? ""}_` // ALPHA entry echoes the register (P6)
       : s.entry != null
