@@ -89,6 +89,10 @@ the unified [`hp/mapping/mapping.json`](../hp/mapping/mapping.json).
   type, with user-selectable precision (significant digits). *(Implemented: `setPrecision()`
   + a Settings control offering 12 / 24 / 40 / 64 / 100 digits, default 40.)*
 - **FR-NUM-2 (M):** Support IEEE floating point mode for speed/compatibility where chosen.
+  *(Implemented: the exact BigNumber tower is the core; the RPL `EVALF` command
+  (`src/lib/engine/rpl/floateval.ts`) evaluates an expression in IEEE-754 doubles
+  (`0.1 + 0.2` → `0.30000000000000004`) as the standard-float alternative. This is the
+  EVALF evaluation path, not a separate faceplate float mode.)*
 - **FR-NUM-3 (M):** Fixed-point / currency arithmetic with explicit rounding modes for the
   finance module (decimal.js-backed).
 - **FR-NUM-4 (M):** Complex numbers (rectangular & polar entry/display), as required by
@@ -105,7 +109,11 @@ the unified [`hp/mapping/mapping.json`](../hp/mapping/mapping.json).
 - **FR-STK-2 (M):** RPL-style dynamic unlimited object stack for the 28/48/49/50g family.
 - **FR-STK-3 (M):** Algebraic entry mode (infix expressions) alongside RPN.
 - **FR-STK-4 (M):** Configurable logic mode (RPN vs algebraic) where the model supports both
-  (e.g. HP-12C Platinum, 35s, Prime).
+  (e.g. HP-12C Platinum, 35s, Prime). *(Implemented: the modern models (HP-35s / Prime /
+  HP-12C) carry an RPN⇄ALG topbar toggle backed by an `alg` mode in `src/lib/engine/rpn.ts`
+  — `applyFunction` intercepts via `algKey`/`algEval`, building an infix expression evaluated
+  exactly on the BigNumber tower through the algebraic parser, with an ALG annunciator on the
+  glass.)*
 - **FR-STK-5 (S):** Stack objects may be any engine value: number, complex, unit quantity,
   matrix/vector, string, symbolic expression, or program.
 
@@ -121,7 +129,10 @@ the unified [`hp/mapping/mapping.json`](../hp/mapping/mapping.json).
 - **FR-CAS-1 (M):** Symbolic differentiation.
 - **FR-CAS-2 (M):** Symbolic & numeric integration.
 - **FR-CAS-3 (M):** Simplification, expansion, factoring, substitution.
-- **FR-CAS-4 (M):** Symbolic equation solving (single equations and systems).
+- **FR-CAS-4 (M):** Symbolic equation solving (single equations and systems). *(Systems
+  implemented: the `MSLV` command (`src/lib/engine/rpl.ts`) solves n equations in n unknowns
+  by multivariate Newton; the interactive MSOLVR/MES still needs the async form UI, so it
+  points at `MSLV`.)*
 - **FR-CAS-5 (C):** Advanced/Mathematica-grade CAS via the optional heavy tier (Pyodide+SymPy).
 - **FR-CAS-6 (S):** All symbolic results renderable as KaTeX.
 
@@ -129,25 +140,32 @@ the unified [`hp/mapping/mapping.json`](../hp/mapping/mapping.json).
 - **FR-UNIT-1 (M):** Parse and compute unit quantities, e.g. `5 cm + 2 inches` → auto-convert.
 - **FR-UNIT-2 (M):** Reject dimensionally incompatible operations with a clear error.
 - **FR-UNIT-3 (S):** Unit conversion command and a units catalog (SI, imperial, common derived).
-- **FR-UNIT-4 (C):** User-defined units.
+- **FR-UNIT-4 (C):** User-defined units. *(Implemented: `defineUnit()` in
+  `src/lib/engine/units.ts` via `math.createUnit`, exposed as the RPL `DEFUNIT` command.)*
 
 ### 6.6 Matrices & linear algebra
 - **FR-MAT-1 (M):** Matrix/vector entry, display, and element editing.
 - **FR-MAT-2 (M):** Core ops: add/mul/transpose, determinant, inverse, solve `Ax=b`.
 - **FR-MAT-3 (S):** Decompositions: eigenvalues/vectors, SVD, QR, LU, Cholesky (ml-matrix).
-- **FR-MAT-4 (S):** Complex-valued matrices (HP-15C parity).
+- **FR-MAT-4 (S):** Complex-valued matrices (HP-15C parity). *(Implemented: the `CMUL` /
+  `CDET` / `CINV` commands (`src/lib/engine/rpl.ts`) do complex matrix product / determinant
+  / inverse on (real-part, imag-part) real-array pairs via math.js.)*
 
 ### 6.7 Equation solving & numerics
 - **FR-SOLVE-1 (M):** Numerical root finder (HP `SOLVE`): solve `f(x)=0` for a chosen variable.
 - **FR-SOLVE-2 (M):** Numerical definite integration (HP `∫f(x)`).
 - **FR-SOLVE-3 (S):** Multiple-equation / system solver where the model supports it.
+  *(Implemented: the `MSLV` command (`src/lib/engine/rpl.ts`) solves n-equations-in-n-unknowns
+  by multivariate Newton; the interactive MES form UI still points at `MSLV`.)*
 
 ### 6.8 Financial math
 - **FR-FIN-1 (M):** Time Value of Money — `n, i, PV, PMT, FV` with begin/end modes
   (HP-12C parity; see [`hp/functions/HP-12C.md`](../hp/functions/HP-12C.md)).
 - **FR-FIN-2 (M):** Cash-flow analysis — NPV, IRR over uneven cash flows (CFo/CFj/Nj).
 - **FR-FIN-3 (S):** Bond price & yield.
-- **FR-FIN-4 (S):** Black-Scholes option pricing.
+- **FR-FIN-4 (S):** Black-Scholes option pricing. *(Implemented: `blackScholes()` in
+  `src/lib/engine/finance.ts`, exposed as the RPL `BS` command — spot strike rate vol years
+  → call put.)*
 - **FR-FIN-5 (S):** Amortization, depreciation, interest conversions, calendar/date math.
 - **FR-FIN-6 (M):** All finance computed at currency precision (decimal.js), not float.
 
@@ -178,6 +196,8 @@ the unified [`hp/mapping/mapping.json`](../hp/mapping/mapping.json).
   feasible).
 - **FR-IO-3 (S):** Export an expression/result as KaTeX/LaTeX.
 - **FR-IO-4 (C):** Mathematica-compatible expression interchange (best-effort).
+  *(Implemented: the `→WL` / `WL→` commands (`src/lib/engine/rpl/wolfram.ts`) convert
+  algebraic expressions ↔ Wolfram InputForm.)*
 
 ### 6.13 State & persistence
 - **FR-STATE-1 (M):** Persist session state locally (stack, memory/registers, variables,
@@ -185,6 +205,9 @@ the unified [`hp/mapping/mapping.json`](../hp/mapping/mapping.json).
 - **FR-STATE-2 (M):** Retain compatible state when switching models (stack, memory) per
   the product intent (see the [README](../README.md)).
 - **FR-STATE-3 (S):** Save/load named workspaces; store user programs and the expression library.
+  *(Implemented: the Settings "Named workspaces" panel — save / list / load / delete —
+  `src/components/calculator/WorkspacesPanel.tsx`, backed by `localStorage` entries under a
+  `hellocalc-ws:` prefix.)*
 - **FR-STATE-4 (M):** Export/import state — a workspace, or the full state — as a downloadable,
   versioned file. This is the **durable backup/transfer path** (browser storage is
   user-clearable) and the interchange format for sharing programs/workspaces.
@@ -267,8 +290,10 @@ the unified [`hp/mapping/mapping.json`](../hp/mapping/mapping.json).
 
 - **NFR-1 Deployment (M):** Static client-side build deployable to GitHub Pages / Vercel; no
   required backend.
-- **NFR-2 Offline (S):** Core calculator works offline after first load (PWA/service worker
-  candidate).
+- **NFR-2 Offline (S):** Core calculator works offline after first load. *(Implemented: the
+  app is an installable, offline-capable PWA — `public/manifest.webmanifest`, a `public/sw.js`
+  service worker (stale-while-revalidate + offline app-shell fallback) registered via
+  `ServiceWorkerRegister`. Heavy CAS (the Pyodide CDN tier) still needs connectivity.)*
 - **NFR-3 Bundle size (M):** Small initial bundle; heavy deps (Plotly, Pyodide, CAS libs)
   code-split and lazy-loaded on first use (see architecture §5).
 - **NFR-4 Performance (M):** Keystroke/eval latency imperceptible for standard operations;

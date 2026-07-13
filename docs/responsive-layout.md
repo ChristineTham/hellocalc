@@ -1212,15 +1212,16 @@ function into each key's primary slot (§14.4e) so one glance shows the active p
 
 ### 12.6 Preferences persist **[partly as built]**
 
-**AS BUILT — only the model + engine state persist; the LCD force does not.** The last
-selected model and the full RPN/RPL engine state persist and restore on load (FR-STATE,
+**AS BUILT — the model, engine state, and the LCD force persist; handedness does not.** The
+last selected model and the full RPN/RPL engine state persist and restore on load (FR-STATE,
 [`docs/architecture.md`](architecture.md) §9). The **LCD line/mini force** (`userForce` /
-the mini/line chevron) is **session-local React component state** in
-[`Display.tsx`](../src/components/calculator/Display.tsx) (`useState`, reflected as
-`data-lcd-force`) — it is **not** written to the snapshot, so it resets on reload; handedness
-is likewise not yet persisted. Because the LCD force only re-applies user intent, its absence
-from persistence cannot cause a layout *correctness* flash — the container-query CSS default
-is always valid.
+the mini/line chevron) now **persists to `localStorage`** under `LCD_FORCE_KEY`
+(`hellocalc-lcd-force`) in [`Display.tsx`](../src/components/calculator/Display.tsx): the
+chevron writes the chosen mode and it is read back on mount (browser-only, so the static
+prerender never mismatches) and reflected as `data-lcd-force`. Handedness is **not** yet
+persisted. Because the LCD force only re-applies user intent, its absence from persistence
+could not cause a layout *correctness* flash anyway — the container-query CSS default is
+always valid.
 
 ---
 

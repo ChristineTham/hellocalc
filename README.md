@@ -47,7 +47,14 @@ library.
 - **Interchange & rendering** — textbook-quality KaTeX rendering; copy and paste equations in
   multiple formats; export equations as KaTeX/LaTeX; editor-based block (notebook) evaluations.
 - **Persistent state** — memory/registers, variables, saved programs, and history retained
-  across sessions and (where compatible) across model switches.
+  across sessions and (where compatible) across model switches; **named workspaces**
+  (save/list/load/delete) live in Settings.
+- **Now live** — an **RPN⇄algebraic toggle** on the modern models (HP-35s/Prime/HP-12C),
+  **IEEE-754 float evaluation** via the RPL `EVALF` command, **complex matrices** (`CMUL`/
+  `CDET`/`CINV`), **Black-Scholes** option pricing (`BS`), an n×n **systems solver** (`MSLV`),
+  **user-defined units** (`DEFUNIT`), **Wolfram/Mathematica interchange** (`→WL`/`WL→`), and
+  an installable, **offline-capable PWA** (service worker; heavy Pyodide CAS still needs the
+  network).
 
 See the [PRD](docs/prd.md) for the full, prioritized requirement set.
 
