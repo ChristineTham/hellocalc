@@ -1069,20 +1069,24 @@ function integrateLabel(s: RpnEngine, label: string): void {
   s.lift = true;
 }
 
-/** RUN from the current pointer until R/S, RTN, the end, or the op budget. */
-export function runProgram(s: RpnEngine): void {
-  commit(s); // R/S is a function key — it terminates digit entry first
-  let ops = 0;
+/** Run from the current pointer for at most `budget` ops. Returns **true** iff
+ * it stopped ONLY because it exhausted `budget` (more work remains) — the
+ * cooperative scheduler in `useRpnCalculator` uses that to yield to the event
+ * loop between chunks, so a long or looping program never freezes the tab and
+ * stays interruptible (R/S). Returns **false** when the program pauses (a
+ * stored R/S), returns (RTN), runs off the end, or errors. `first` commits
+ * digit entry (a real R/S is a function key) and must be set on the OPENING
+ * chunk only, never on a resume. */
+export function stepProgram(s: RpnEngine, budget: number, first = false): boolean {
+  if (first) commit(s);
   const { steps } = s.prgm;
+  let ops = 0;
   while (s.prgm.pc < steps.length) {
-    if (++ops > MAX_PROGRAM_OPS) {
-      s.error = "Error";
-      break;
-    }
+    if (++ops > budget) return true; // yield: more to run
     const fn = steps[s.prgm.pc];
     if (fn === "R/S") {
       s.prgm.pc += 1; // pause; resume from here
-      return;
+      return false;
     }
     if (fn === "RTN") {
       const back = s.prgm.ret.pop();
@@ -1091,12 +1095,25 @@ export function runProgram(s: RpnEngine): void {
         continue;
       }
       s.prgm.pc = 0;
-      return;
+      return false;
     }
     execStep(s);
     if (s.error) break;
   }
   s.prgm.pc = 0; // ran off the end (or halted on error) — reset like RTN
+  return false;
+}
+
+/** RUN synchronously to the next stopping point (stored R/S / RTN / end),
+ * bounded by the op budget (the runaway guard). Keeps the synchronous engine
+ * API used by tests and label/XEQ runs; the interactive R/S loop drives the
+ * chunked `stepProgram` from the hook instead. */
+export function runProgram(s: RpnEngine): void {
+  commit(s); // R/S is a function key — it terminates digit entry first
+  if (stepProgram(s, MAX_PROGRAM_OPS)) {
+    s.error = "Error";
+    s.prgm.pc = 0;
+  }
 }
 
 /** Jump to `LBL <label>` and run (the HP-65 A–E user keys). */

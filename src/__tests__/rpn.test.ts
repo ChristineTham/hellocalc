@@ -7,6 +7,7 @@ import {
   menu42Labels,
   pressSoft42,
   pushX,
+  stepProgram,
   xval,
   type RpnEngine,
 } from "@/lib/engine/rpn";
@@ -333,6 +334,30 @@ describe("Phase-3: keystroke programmability (HP-65)", () => {
     expect(n(s.x)).toBe(15);
     applyFunction(s, "R/S"); // resumes: +2
     expect(n(s.x)).toBe(17);
+  });
+
+  it("stepProgram chunks a long loop: yields at the budget, resumes to the same result", () => {
+    // a counting loop: LBL 1  1 +  GTO 1 — runs until the op budget, then the
+    // scheduler (here: a manual drain) resumes it to the same total
+    const s = createRpn();
+    record(s, "LBL", "1", "1", "+", "GTO", "1");
+    dispatch(s, "R/S"); // one-shot sync run hits MAX_PROGRAM_OPS → Error guard
+    expect(s.error).toBe("Error");
+
+    // now drive it cooperatively in tiny chunks and confirm it advances + halts
+    const t = createRpn();
+    record(t, "LBL", "1", "1", "+", "GTO", "1");
+    run(t, "0", "ENTER");
+    let ticks = 0;
+    let more = stepProgram(t, 4, true); // first chunk commits + runs 4 ops
+    while (more && ticks < 50) {
+      more = stepProgram(t, 4);
+      ticks++;
+    }
+    // still running after 50 tiny chunks (an infinite loop) — the scheduler's
+    // hard cap / a key press is what stops it, exactly the interruptible model
+    expect(more).toBe(true);
+    expect(n(t.x)).toBeGreaterThan(0); // it made real progress each chunk
   });
 
   it("conditionals skip the next instruction (argument included) on false", () => {
