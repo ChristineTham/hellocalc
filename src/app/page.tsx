@@ -218,7 +218,11 @@ export default function Home() {
                   // are single-LINE like the real hardware: pin the line state and
                   // drop the stack echo (the 4-level stack lives in the aux panel).
                   // The chevron still lets the user expand to the multi-line view.
-                  showStack={isSegment ? false : undefined}
+                  // Pioneer dot-matrix machines (42S/35s) also drop the in-glass
+                  // echo in line mode so the hero number fills the glass without
+                  // overflowing a keyboard-cramped LCD slot (the stack still lives
+                  // in the aux panel; mini mode keeps the full multi-line stack).
+                  showStack={isSegment || model.family === "pioneer" ? false : undefined}
                   defaultMode={isSegment ? "line" : undefined}
                   lcdAspect={model.lcdAspect}
                   renderLatex={active.renderLatex}

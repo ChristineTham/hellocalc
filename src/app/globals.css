@@ -681,6 +681,11 @@
   .lcd-panel .lcd-line {
     display: flex;
     flex-direction: column;
+    /* fill the LCD slot so the stacked rows (annunciators + hero + echo) are
+       bounded by the glass and can't overflow down into the keyboard when the
+       slot is short (§ dot-matrix hero fit) */
+    block-size: 100%;
+    overflow: hidden;
   }
   .lcd-panel .lcd-mini {
     display: none;
@@ -724,7 +729,13 @@
      by the utilities layer. Stack echo / registers keep their token sizes. */
   .lcd-dot-hero {
     display: inline-block;
-    font-size: var(--text-hp-lcd-dot-hero);
+    /* Base size, capped to the LCD's own height (cqh of the `lcd` size
+       container) so a cramped glass — e.g. the 35s, whose dense keyboard
+       starves the display — scales the hero DOWN to fit instead of letting
+       the scaleY(1.55) stretch overflow and clip. The coefficient is tuned
+       so a roomy pioneer glass (42S, ~135px slot) keeps ~44px while the
+       cramped 35s (~85px slot) drops to ~27px — both uncut. */
+    font-size: min(var(--text-hp-lcd-dot-hero), 32cqh);
     line-height: 1;
     letter-spacing: 0.04em;
     transform: scaleY(1.55);

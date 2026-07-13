@@ -234,7 +234,11 @@ export function Display({
           role="status"
           aria-label="Display"
           className="flex flex-1 items-center justify-end overflow-hidden"
-          style={{ minBlockSize: "var(--calc-lcd-line-h)" }}
+          // Non-dot displays keep the fixed line-height floor. Dot-hero glasses
+          // omit it so the status box fits the (sometimes cramped) glass — the
+          // hero font is capped to the glass height (cqh) instead, so it never
+          // overflows the box and clips.
+          style={isDotHero ? undefined : { minBlockSize: "var(--calc-lcd-line-h)" }}
         >
           <span className={cn(num, heroValue)}>{lineValue}</span>
         </div>
