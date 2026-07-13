@@ -1363,8 +1363,11 @@ the machine's left column (paper resting on the machine body).
 ### 14.4 Rhythm & cosiness pass **[fixed]**
 
 One spacing rhythm across chrome and machine (`--calc-region-gap` everywhere, consistent
-panel padding/radius), aux columns top-aligned with the machine, no orphaned dead zones at
-any (model × viewport) cell. Cozy, not tight; professional with Italian whitespace.
+panel padding/radius), no orphaned dead zones at any (model × viewport) cell. Cozy, not
+tight; professional with Italian whitespace. (Rev 14.4g: the machine now CENTRES on both
+axes in its region at every size — a device photographed on the desk — so short machines,
+the landscape Voyagers and compact decks, split their surplus estate evenly instead of
+pooling it below the bezel.)
 
 ### 14.4b Revision 3 (user feedback on v2)
 
@@ -1470,6 +1473,15 @@ Post-deploy polish, all shipped:
 - **Default model + navigation.** The app opens on the **HP-35s** (the most
   modern RPN scientific that keeps the classic keyboard-and-LCD look); models
   are chosen from a collapsible sidebar tree **and** a topbar gallery picker.
+- **Device-matrix polish (UI/UX review).** The machine centres on both axes in
+  its region everywhere (no dead band pooled under short machines). Pioneer
+  (42S/35s) glasses pin the LINE state with a short 2-line-era band
+  (`--calc-machine-lcd-cap: 9.5rem`, hero capped at `24cqh`) — no more
+  mostly-empty 4:3 mini panel; RPL machines pin MINI (the stack IS the 48
+  display) and the stack always prints its idle level labels (`4: 3: 2: 1:`)
+  like the real firmware. The 28C/28S clamshell parks its shallow 137:40 glass
+  over the RIGHT keyboard half (`data-deck="clam"`), as on the real opened
+  book — the left lid keeps only printed branding.
 
 ### 14.5 Clamshell note (HP-28 — SHIPPED as a merged grid; stacked halves deferred)
 

@@ -418,10 +418,16 @@ function RplStack({
   msg?: string;
   menu?: { name: string; labels: string[]; page: number; pages: number };
 }) {
-  const start = Math.max(0, rpl.length - 6);
-  const lines = rpl
-    .slice(start)
-    .map((val, i) => ({ lvl: rpl.length - (start + i), val }));
+  // The real 28/48 glass always prints its level labels — an idle machine
+  // shows "4: 3: 2: 1:" down the display, not a blank panel. Render at least
+  // four levels (blank where the stack is shorter), newest at the bottom.
+  const shown = Math.max(4, Math.min(6, rpl.length));
+  const start = Math.max(0, rpl.length - shown);
+  const lines = Array.from({ length: shown }, (_, i) => {
+    const lvl = shown - i;
+    const idx = rpl.length - lvl;
+    return { lvl, val: idx >= start && idx >= 0 ? rpl[idx] : "" };
+  });
   return (
     <div className="mt-1 flex flex-1 flex-col justify-end gap-px">
       {msg && (
@@ -432,25 +438,19 @@ function RplStack({
           {msg}
         </div>
       )}
-      {lines.length === 0 ? (
-        <div className="py-5 text-center font-mono text-hp-lcd-stack text-hp-display-dim">
-          ( empty stack )
+      {lines.map((l) => (
+        <div
+          key={l.lvl}
+          role={l.lvl === 1 ? "status" : undefined}
+          aria-label={l.lvl === 1 ? "Stack level 1" : undefined}
+          className="flex items-baseline gap-2.5 border-t border-black/10 py-[3px]"
+        >
+          <span className="min-w-[20px] font-mono text-hp-lcd-stack text-hp-display-dim">
+            {l.lvl}:
+          </span>
+          <span className={cn("flex-1 text-right", dotNum, "lcd-dot-line")}>{l.val}</span>
         </div>
-      ) : (
-        lines.map((l) => (
-          <div
-            key={l.lvl}
-            role={l.lvl === 1 ? "status" : undefined}
-            aria-label={l.lvl === 1 ? "Stack level 1" : undefined}
-            className="flex items-baseline gap-2.5 border-t border-black/10 py-[3px]"
-          >
-            <span className="min-w-[20px] font-mono text-hp-lcd-stack text-hp-display-dim">
-              {l.lvl}:
-            </span>
-            <span className={cn("flex-1 text-right", dotNum, "lcd-dot-line")}>{l.val}</span>
-          </div>
-        ))
-      )}
+      ))}
       <div className="mt-1.5 flex items-center gap-1.5 border-t-2 border-hp-display-border pt-1.5">
         <span className="font-mono text-hp-lcd-stack text-hp-display-dim">⊳</span>
         <span className={cn("flex-1 text-right", dotNum, "lcd-dot-line")}>{entry ?? ""}</span>

@@ -441,6 +441,18 @@
     --calc-machine-lcd-cap: 8rem;
     --calc-lcd-side-h: 5.5rem; /* short single-line slot in the side variant too */
   }
+  /* Pioneer dot-matrix machines (42S/35s) are TWO-line-era displays, never a
+     tall panel: a short band (a touch taller than the segment families — the
+     42S line state carries its softkey menu row) pinned to the line state. */
+  .machine[data-family="pioneer"] {
+    --calc-machine-lcd-cap: 9.5rem;
+    --calc-lcd-side-h: 8rem;
+  }
+  /* the short pioneer glass shares its height with annunciators + menu row, so
+     its hero scales a notch earlier than the roomy RPL glasses */
+  .machine[data-family="pioneer"] .lcd-dot-hero {
+    font-size: min(var(--text-hp-lcd-dot-hero), 24cqh);
+  }
   /* the HP Prime's colour touchscreen is a LARGE panel — give it a tall LCD
      band so the Home history has room to breathe (the screen fills the width) */
   .machine[data-screen="prime"] {
@@ -498,6 +510,24 @@
     grid-template-rows: 6.5rem auto auto auto;
     column-gap: var(--calc-machine-gap);
   }
+  /* ── Clamshell deck (HP-28C/28S) — on the real unit the display sits above
+     the RIGHT (numeric) half of the opened book; the left lid carries only
+     printed branding. Park the glass over the right keyboard half and keep
+     the band short so no empty bezel yawns between glass and keys. */
+  .machine[data-deck="clam"] {
+    --calc-machine-lcd-cap: 12rem;
+  }
+  .machine[data-deck="clam"] .machine-lcd {
+    justify-self: end;
+    /* the right half is 6 of the merged 13 row units (§14.5) */
+    inline-size: 46%;
+    align-items: center;
+  }
+  .machine[data-deck="clam"] .lcd-panel .lcd-mini {
+    /* fill the right-half band — its width, not the 4:3 height rule, is the
+       constraint (the 28's glass is the shallow 137:40 raster) */
+    inline-size: 100%;
+  }
   .machine-switches {
     grid-area: switches;
     display: flex;
@@ -534,14 +564,12 @@
     container: kbdmod / inline-size;
   }
 
-  /* ── Rhythm (§14.4): one spacing beat everywhere ─────────────────────────
-     At md+ the machine top-aligns with the paper column (captions level with
-     the bezel top) and both keep a region-gap of air from the viewport edges.
-     Phones keep the machine centred — cosier for one-handed use. */
+  /* ── Rhythm (§14.4, rev 14.4g): one spacing beat everywhere ──────────────
+     The machine centres on BOTH axes in its region at every size (the base
+     .machine margin:auto) — a device photographed on the desk. Short machines
+     (landscape Voyagers, the compact deck units) split their surplus estate
+     evenly instead of pooling it below the bezel. */
   @media (width >= 48rem) {
-    .calc-shell .machine {
-      margin-block: 0 auto;
-    }
     .calc-shell > [data-region="machine"] {
       padding-block-end: var(--calc-region-gap);
     }

@@ -97,7 +97,7 @@ export function MachineUnit({
     <div
       data-slot="machine"
       data-family={model.family}
-      data-deck={hasPrinter ? "printer" : undefined}
+      data-deck={hasPrinter ? "printer" : model.clam ? "clam" : undefined}
       data-screen={model.id === "HP-Prime" ? "prime" : undefined}
       style={style}
       className={cn(

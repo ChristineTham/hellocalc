@@ -94,6 +94,9 @@ export interface ModelBase {
   /** Desktop PRINTER models (HP-97): render the top as a deck — compact
    * display LEFT, printer paper-tape RIGHT, keyboard below (§14 desktop deck). */
   printer?: boolean;
+  /* clamshell deck (HP-28C/28S): the display parks over the RIGHT keyboard
+   * half of the opened book (§14.5) — drives the `data-deck="clam"` CSS */
+  clam?: boolean;
   /** Physical slide switches printed above the keyboard (power / mode / trace)
    * — the classic programmables and the HP-97 desk unit (§ toggle-switch audit).
    * Decorative, in their rest positions. */
@@ -448,9 +451,9 @@ export const MODELS: Record<string, Model> = {
   "HP-16C": { id: "HP-16C", name: "HP-16C", family: "voyager", sub: "RPN · PROGRAMMER", angle: false, geometry: GEOM["HP-16C"], keys: GENERATED_VOYAGER["HP-16C"] },
   // the 28-series dot-matrix panel is wider + shorter than the 48-series glass
   // (a ~137×32 4-line display), not the 131×64 the family default assumes
-  "HP-28C": { id: "HP-28C", name: "HP-28C", family: "rpl", sub: "RPL · CLAMSHELL", angle: true, geometry: GEOM["HP-28C"], rows: HP28C_ROWS, lcdAspect: "137 / 40",
+  "HP-28C": { id: "HP-28C", name: "HP-28C", family: "rpl", sub: "RPL · CLAMSHELL", angle: true, geometry: GEOM["HP-28C"], rows: HP28C_ROWS, lcdAspect: "137 / 40", clam: true,
     shift: { ls: "var(--hp-shift-ls-28)", rs: "var(--hp-shift-ls-28)" } },
-  "HP-28S": { id: "HP-28S", name: "HP-28S", family: "rpl", sub: "RPL · CLAMSHELL", angle: true, geometry: GEOM["HP-28S"], rows: HP28S_ROWS, lcdAspect: "137 / 40",
+  "HP-28S": { id: "HP-28S", name: "HP-28S", family: "rpl", sub: "RPL · CLAMSHELL", angle: true, geometry: GEOM["HP-28S"], rows: HP28S_ROWS, lcdAspect: "137 / 40", clam: true,
     shift: { ls: "var(--hp-shift-ls-28)", rs: "var(--hp-shift-ls-28)" } },
   "HP-42S":  { id: "HP-42S",  name: "HP-42S",  family: "pioneer", sub: "RPN · MENU",       angle: true, geometry: GEOM["HP-42S"],  rows: HP42S_ROWS },
   "HP-35s":  { id: "HP-35s",  name: "HP-35s",  family: "pioneer", sub: "RPN · SCIENTIFIC", angle: true, geometry: GEOM["HP-35s"],  rows: HP35S_ROWS },

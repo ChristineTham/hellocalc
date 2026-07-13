@@ -234,7 +234,15 @@ export default function Home() {
                   // overflowing a keyboard-cramped LCD slot (the stack still lives
                   // in the aux panel; mini mode keeps the full multi-line stack).
                   showStack={isSegment || model.family === "pioneer" ? false : undefined}
-                  defaultMode={isSegment ? "line" : undefined}
+                  // pioneers are 2-line-era displays — pin the short line state;
+                  // RPL machines ARE their multi-line stack glass — pin mini
+                  defaultMode={
+                    isSegment || model.family === "pioneer"
+                      ? "line"
+                      : model.family === "rpl"
+                        ? "mini"
+                        : undefined
+                  }
                   lcdAspect={model.lcdAspect}
                   renderLatex={active.renderLatex}
                   fmt={active.fmt}
