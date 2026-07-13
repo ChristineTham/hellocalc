@@ -801,6 +801,29 @@ describe("P18 the 48G: stat plots, fits, lists, linear algebra, TVM", () => {
     expect(iTot).toBeGreaterThan(5900); // first-year interest ≈ 5967
   });
 
+  it("FR-MAT-4: CMUL/CDET/CINV do complex matrix algebra on real+imag parts", () => {
+    const s = createRpl();
+    // (1+i)·(2+3i) = −1+5i, as 1×1 matrices: Are Aim Bre Bim CMUL → Cre Cim
+    line(s, "[ [ 1 ] ] [ [ 1 ] ] [ [ 2 ] ] [ [ 3 ] ] CMUL");
+    const cim = s.stack.at(-1)!;
+    const cre = s.stack.at(-2)!;
+    expect(cre.k === "arr" && cre.rows[0][0]).toBeCloseTo(-1, 9);
+    expect(cim.k === "arr" && cim.rows[0][0]).toBeCloseTo(5, 9);
+
+    // det of the complex diagonal [[2+0i, 0],[0, 0+1i]] = (2)(i) = 2i
+    line(s, "CLEAR [ [ 2 0 ] [ 0 0 ] ] [ [ 0 0 ] [ 0 1 ] ] CDET");
+    const [dr, di] = nums(s.stack);
+    expect(dr).toBeCloseTo(0, 9);
+    expect(di).toBeCloseTo(2, 9);
+
+    // inverse of the real [[2]] is [[0.5]] with zero imaginary part
+    line(s, "CLEAR [ [ 2 ] ] [ [ 0 ] ] CINV");
+    const invIm = s.stack.at(-1)!;
+    const invRe = s.stack.at(-2)!;
+    expect(invRe.k === "arr" && invRe.rows[0][0]).toBeCloseTo(0.5, 9);
+    expect(invIm.k === "arr" && invIm.rows[0][0]).toBeCloseTo(0, 9);
+  });
+
   it("FR-FIN-4: BS prices a European option (spot strike rate vol years → call put)", () => {
     const s = createRpl();
     line(s, "100 100 0.05 0.2 1 BS");

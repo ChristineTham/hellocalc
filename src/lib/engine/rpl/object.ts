@@ -38,7 +38,8 @@ export function typeNumber(o: RplObj): number {
     case "str":
       return 2;
     case "arr":
-      return 3; // complex arrays (4) are out of scope in P12
+      return 3; // complex matrices (type 4) are handled via CMUL/CDET/CINV on
+    // real+imag array pairs (FR-MAT-4), not a distinct stack object type
     case "list":
       return 5;
     case "name":

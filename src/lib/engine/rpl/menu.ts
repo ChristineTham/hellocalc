@@ -32,7 +32,7 @@ export const RPL_MENUS: Record<string, string[]> = {
   PARTS: ["ABS", "SIGN", "IP", "FP", "FLOOR", "CEIL", "RND", "MANT", "XPON", "MAX", "MIN", "MOD", "%T", "%CH"],
   PROB: ["COMB", "PERM", "!", "RAND", "RDZ", "UTPC", "UTPF", "UTPN", "UTPT"],
   HYP: ["SINH", "ASINH", "COSH", "ACOSH", "TANH", "ATANH", "EXPM", "LNP1"],
-  MATR: ["DET", "TRN", "INV", "RSD", "RNRM", "CNRM", "→ARRY", "ARRY→", "RDM", "CON", "IDN", "PROOT", "PEVAL"],
+  MATR: ["DET", "TRN", "INV", "RSD", "RNRM", "CNRM", "→ARRY", "ARRY→", "RDM", "CON", "IDN", "PROOT", "PEVAL", "CMUL", "CDET", "CINV"],
   VECTR: ["→V2", "→V3", "V→", "CROSS", "DOT", "ABS"],
   BASE: ["HEX", "DEC", "OCT", "BIN", "STWS", "RCWS", "R→B", "B→R"],
   PRG: ["STACK", "OBJ", "DSPL", "CTRL", "BRANCH", "TEST"],

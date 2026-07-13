@@ -368,6 +368,27 @@ const cPow = (a: Cpx, n: number): RplObj => {
 // ---- array helpers (float64 rows, ml-matrix for the linear algebra) ---------------
 
 const arrOf = (rows: number[][], vec: boolean): RplObj => ({ k: "arr", rows, vec });
+
+// Complex matrices (FR-MAT-4): the 15C represents a complex matrix as a pair of
+// real matrices (real part, imaginary part); these commands operate on that
+// pair via math.js complex linear algebra. Numerical (Complex is double-based),
+// like ROOT/∫ — the 15C carried 10 digits, so doubles ≥ hardware precision.
+type CMatrix = ReturnType<typeof math.matrix>;
+const toCMatrix = (re: number[][], im: number[][]): CMatrix =>
+  math.matrix(re.map((row, i) => row.map((x, j) => math.complex(x, im[i]?.[j] ?? 0))));
+function fromCMatrix(m: CMatrix): { re: number[][]; im: number[][] } {
+  const rows = m.toArray() as (number | { re: number; im: number })[][];
+  return {
+    re: rows.map((r) => r.map((c) => (typeof c === "number" ? c : c.re))),
+    im: rows.map((r) => r.map((c) => (typeof c === "number" ? 0 : c.im))),
+  };
+}
+// math.js's public MathType over-broadens (it lists Unit), so the numeric
+// matrix ops don't typecheck against it directly — wrap them in loose, purpose-
+// built signatures (the runtime values are always numeric complex matrices).
+const cmatMul = math.multiply as unknown as (a: CMatrix, b: CMatrix) => CMatrix;
+const cmatInv = math.inv as unknown as (m: CMatrix) => CMatrix;
+const cmatDet = math.det as unknown as (m: CMatrix) => number | { re: number; im: number };
 const dimsOf = (a: { rows: number[][]; vec: boolean }): [number, number] => [
   a.rows.length,
   a.rows[0]?.length ?? 0,
@@ -3030,6 +3051,31 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
     // non-interactive systems solver (FR-SOLVE-3 / FR-CAS-4): multivariate
     // Newton over n equations in n unknowns.
     //   { 'eq1' 'eq2' } { X Y } { x0 y0 } MSLV → [x* y*] (and stores the vars)
+    // Complex matrices (FR-MAT-4): operate on (realPart imagPart) array pairs.
+    case "CMUL": {
+      // Are Aim Bre Bim CMUL → Cre Cim
+      const [are, aim, bre, bim] = popN(s, 4).map(wantArr);
+      const prod = cmatMul(toCMatrix(are.rows, aim.rows), toCMatrix(bre.rows, bim.rows));
+      const { re, im } = fromCMatrix(prod);
+      s.stack.push(arrOf(re, false), arrOf(im, false));
+      return true;
+    }
+    case "CINV": {
+      // Are Aim CINV → invRe invIm
+      const [are, aim] = popN(s, 2).map(wantArr);
+      const { re, im } = fromCMatrix(cmatInv(toCMatrix(are.rows, aim.rows)));
+      s.stack.push(arrOf(re, false), arrOf(im, false));
+      return true;
+    }
+    case "CDET": {
+      // Are Aim CDET → detRe detIm
+      const [are, aim] = popN(s, 2).map(wantArr);
+      const d = cmatDet(toCMatrix(are.rows, aim.rows));
+      const dr = typeof d === "number" ? d : d.re;
+      const di = typeof d === "number" ? 0 : d.im;
+      s.stack.push(real(bn(String(dr))), real(bn(String(di))));
+      return true;
+    }
     // Mathematica / Wolfram-Language interchange (FR-IO-4)
     case "→WL": {
       const o = pop1(s);
