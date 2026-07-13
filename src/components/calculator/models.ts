@@ -94,7 +94,29 @@ export interface ModelBase {
   /** Desktop PRINTER models (HP-97): render the top as a deck — compact
    * display LEFT, printer paper-tape RIGHT, keyboard below (§14 desktop deck). */
   printer?: boolean;
+  /** Physical slide switches printed above the keyboard (power / mode / trace)
+   * — the classic programmables and the HP-97 desk unit (§ toggle-switch audit).
+   * Decorative, in their rest positions. */
+  switches?: SwitchSpec[];
 }
+
+/** One two-position slide switch printed on the faceplate. */
+export interface SwitchSpec {
+  caption: string;
+  left: string;
+  right: string;
+  /** which end the nub rests at (the machine's default state) */
+  pos: "left" | "right";
+}
+
+/** Shared switch presets. */
+const POWER: SwitchSpec = { caption: "Power", left: "Off", right: "On", pos: "right" };
+const RUN_MODE = (left: string): SwitchSpec => ({
+  caption: "Mode",
+  left,
+  right: "Run",
+  pos: "right",
+});
 export type Model =
   | (ModelBase & { family: "voyager"; keys: VoyagerKey[] })
   | (ModelBase & { family: "classic"; rows: ClassicKey[][] })
@@ -401,12 +423,13 @@ const GEOM = {
 } satisfies Record<string, KeyboardGeometry>;
 
 export const MODELS: Record<string, Model> = {
-  "HP-35":  { id: "HP-35",  name: "HP-35",  family: "classic", sub: "RPN · LED",        angle: false, geometry: GEOM["HP-35"],  rows: HP35_ROWS },
-  "HP-45":  { id: "HP-45",  name: "HP-45",  family: "classic", sub: "RPN · SCIENTIFIC", angle: true,  geometry: GEOM["HP-45"],  rows: HP45_ROWS },
-  "HP-65":  { id: "HP-65",  name: "HP-65",  family: "classic", sub: "RPN · MAG CARD",   angle: true,  geometry: GEOM["HP-65"],  rows: HP65_ROWS },
-  "HP-25":  { id: "HP-25",  name: "HP-25",  family: "classic", sub: "RPN · PROGRAM",    angle: true,  geometry: GEOM["HP-25"],  rows: HP25_ROWS },
-  "HP-67":  { id: "HP-67",  name: "HP-67",  family: "classic", sub: "RPN · MAG CARD",   angle: true,  geometry: GEOM["HP-67"],  rows: HP67_ROWS },
-  "HP-97":  { id: "HP-97",  name: "HP-97",  family: "classic", sub: "RPN · PRINTER",  angle: true, geometry: GEOM["HP-97"],  rows: HP97_ROWS, printer: true },
+  "HP-35":  { id: "HP-35",  name: "HP-35",  family: "classic", sub: "RPN · LED",        angle: false, geometry: GEOM["HP-35"],  rows: HP35_ROWS, switches: [POWER] },
+  "HP-45":  { id: "HP-45",  name: "HP-45",  family: "classic", sub: "RPN · SCIENTIFIC", angle: true,  geometry: GEOM["HP-45"],  rows: HP45_ROWS, switches: [POWER] },
+  "HP-65":  { id: "HP-65",  name: "HP-65",  family: "classic", sub: "RPN · MAG CARD",   angle: true,  geometry: GEOM["HP-65"],  rows: HP65_ROWS, switches: [POWER, RUN_MODE("W/Prgm")] },
+  "HP-25":  { id: "HP-25",  name: "HP-25",  family: "classic", sub: "RPN · PROGRAM",    angle: true,  geometry: GEOM["HP-25"],  rows: HP25_ROWS, switches: [POWER, RUN_MODE("Prgm")] },
+  "HP-67":  { id: "HP-67",  name: "HP-67",  family: "classic", sub: "RPN · MAG CARD",   angle: true,  geometry: GEOM["HP-67"],  rows: HP67_ROWS, switches: [POWER, RUN_MODE("W/Prgm")] },
+  "HP-97":  { id: "HP-97",  name: "HP-97",  family: "classic", sub: "RPN · PRINTER",  angle: true, geometry: GEOM["HP-97"],  rows: HP97_ROWS, printer: true,
+    switches: [POWER, RUN_MODE("Prgm"), { caption: "Trace", left: "Man", right: "Norm", pos: "right" }] },
   "HP-41C-CV": { id: "HP-41C-CV", name: "HP-41C/CV", family: "hp41", sub: "RPN · ALPHA", angle: true, geometry: GEOM["HP-41"], rows: HP41_ROWS },
   "HP-41CX":   { id: "HP-41CX",   name: "HP-41CX",   family: "hp41", sub: "RPN · ALPHA · TIME", angle: true, geometry: GEOM["HP-41"], rows: HP41_ROWS },
   "HP-11C": { id: "HP-11C", name: "HP-11C", family: "voyager", sub: "RPN · SCIENTIFIC", angle: true,  geometry: GEOM["HP-11C"], keys: GENERATED_VOYAGER["HP-11C"] },

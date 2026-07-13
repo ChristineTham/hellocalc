@@ -60,6 +60,7 @@ const textVar = (keyVar: string): string => keyVar.replace(/\)\s*$/, "-text)");
 
 export function MachineUnit({ model, rpn, rpl, lcd, paper, printer }: MachineUnitProps) {
   const hasPrinter = Boolean(model.printer && printer);
+  const switches = model.switches;
   const badgeName = nameplateModel(model.name);
   // Re-theme every ls/rs surface inside the bezel (keys, legends, gradients)
   // by overriding the colour tokens at the machine root — the 48SX prints
@@ -129,17 +130,19 @@ export function MachineUnit({ model, rpn, rpl, lcd, paper, printer }: MachineUni
         {lcd}
       </div>
 
-      {/* desktop deck: below the display, the mode slide switches; the printer
-          paper-tape runs alongside on the right (§14 desktop deck) */}
+      {/* slide switches printed above the keyboard (power / mode / trace) —
+          the classic programmables and the HP-97 desk unit */}
+      {switches && switches.length > 0 && (
+        <div data-slot="machine-switches" className="machine-switches">
+          <DeckSwitches switches={switches} />
+        </div>
+      )}
+
+      {/* desktop deck: the printer paper-tape runs alongside on the right */}
       {hasPrinter && (
-        <>
-          <div data-slot="machine-switches" className="machine-switches">
-            <DeckSwitches />
-          </div>
-          <div data-slot="machine-printer" className="machine-printer">
-            {printer}
-          </div>
-        </>
+        <div data-slot="machine-printer" className="machine-printer">
+          {printer}
+        </div>
       )}
 
       {/* paper bay — visible only in the side variant (§14.3) */}
