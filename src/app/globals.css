@@ -475,7 +475,7 @@
       "lcd printer"
       "kbd kbd"
       "np  np";
-    grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
     grid-template-rows: minmax(var(--calc-lcd-line-h), auto) auto auto;
     column-gap: var(--calc-machine-gap);
   }
@@ -484,6 +484,10 @@
     display: flex;
     min-inline-size: 0;
     min-block-size: 0;
+  }
+  /* the paper tape fills its whole column — no bezel gap to its right */
+  .machine[data-deck="printer"] [data-slot="printer"] {
+    flex: 1;
   }
   .machine-lcd {
     grid-area: lcd;
