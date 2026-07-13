@@ -24,7 +24,7 @@ export const RPL_MENUS: Record<string, string[]> = {
   STAT: ["Σ+", "Σ−", "NΣ", "CLΣ", "STOΣ", "RCLΣ", "TOT", "MEAN", "SDEV", "VAR", "MAXΣ", "MINΣ", "COLΣ", "CORR", "COV", "LR", "PREDV", "UTPC", "UTPF", "UTPN", "UTPT", "COMB", "PERM", "LINFIT", "LOGFIT", "EXPFIT", "PWRFIT", "BESTFIT", "PREDX", "PREDY", "SCATRPLOT", "BARPLOT", "HISTPLOT"],
   PLOT: ["STEQ", "RCEQ", "PMIN", "PMAX", "INDEP", "DRAW", "PPAR", "RES", "AXES", "CENTR", "*W", "*H", "STOΣ", "RCLΣ", "COLΣ", "SCLΣ", "DRWΣ", "CLLCD", "DISP", "PRLCD", "XRNG", "YRNG", "AUTO", "WIREFRAME", "ERASE"],
   PRINT: ["PR1", "PRST", "PRVAR", "PRLCD", "TRACE", "NORM", "PRSTC", "PRUSR", "PRMD", "CR"],
-  SOLVE: ["STEQ", "RCEQ", "SOLVR", "ISOL", "QUAD", "SHOW", "ROOT", "TVM", "AMORT"],
+  SOLVE: ["STEQ", "RCEQ", "SOLVR", "ISOL", "QUAD", "SHOW", "ROOT", "MSLV", "TVM", "AMORT"],
   // labels render; execution defers to the P14 CAS (delivery note)
   ALGEBRA: ["COLCT", "EXPAN", "SIZE", "FORM", "OBSUB", "EXSUB", "TAYLR", "ISOL", "QUAD", "SHOW", "OBGET", "EXGET"],
   // ---- 48-series menus (P17) — labels naming another roster OPEN it ----------

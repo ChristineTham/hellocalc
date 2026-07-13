@@ -16,6 +16,7 @@ import {
   Matrix,
   QrDecomposition,
   SingularValueDecomposition,
+  solve as mlSolve,
 } from "ml-matrix";
 import { bestFit, fit as cfit, type FitModel, forecastX, forecastY } from "./stats-fit";
 import {
@@ -656,6 +657,98 @@ function evalAtPoint(s: RplEngine, src: string, indep: string, t: number): numbe
   } catch {
     return null;
   }
+}
+
+/** Split an equation string on its single top-level '=' (equality), leaving
+ * ==, <=, >=, != intact. No '=' ⇒ the whole expression equated to 0. */
+function splitEquation(src: string): [string, string] {
+  for (let i = 0; i < src.length; i++) {
+    if (
+      src[i] === "=" &&
+      src[i - 1] !== "<" &&
+      src[i - 1] !== ">" &&
+      src[i - 1] !== "!" &&
+      src[i - 1] !== "=" &&
+      src[i + 1] !== "="
+    ) {
+      return [src.slice(0, i), src.slice(i + 1)];
+    }
+  }
+  return [src, "0"];
+}
+
+/** Multivariate Newton–Raphson (FR-SOLVE-3): solve n equations (each lhs=rhs)
+ * in n unknowns from an initial guess. The Jacobian is estimated by central
+ * differences and each step solves J·Δ = −F via ml-matrix. Returns the root
+ * vector, or null if it doesn't converge. Numerical (double), like ROOT/∫. */
+function solveSystem(
+  s: RplEngine,
+  eqs: string[],
+  vars: string[],
+  guess: number[],
+): number[] | null {
+  const n = vars.length;
+  if (eqs.length !== n || guess.length !== n || n === 0) return null;
+
+  const residual = (src: string, x: number[]): number | null => {
+    const [lhs, rhs] = splitEquation(src);
+    const at = (expr: string): number => {
+      const env = envOf(s, freshCtx());
+      const inner = env.get.bind(env);
+      return num(
+        evalExpr(parseExpr(expr), {
+          ...env,
+          get: (q: string) => {
+            const idx = vars.indexOf(q);
+            return idx >= 0 ? bn(String(x[idx])) : inner(q);
+          },
+        }),
+      );
+    };
+    try {
+      const r = at(lhs) - at(rhs);
+      return Number.isFinite(r) ? r : null;
+    } catch {
+      return null;
+    }
+  };
+
+  let x = [...guess];
+  for (let iter = 0; iter < 80; iter++) {
+    const F = eqs.map((e) => residual(e, x));
+    if (F.some((v) => v === null)) return null;
+    const Fv = F as number[];
+    if (Math.max(...Fv.map(Math.abs)) < 1e-11) return x;
+
+    const J = Array.from({ length: n }, () => new Array<number>(n).fill(0));
+    for (let j = 0; j < n; j++) {
+      const h = Math.max(1e-7, Math.abs(x[j]) * 1e-7);
+      const xp = [...x];
+      const xm = [...x];
+      xp[j] += h;
+      xm[j] -= h;
+      for (let i = 0; i < n; i++) {
+        const fp = residual(eqs[i], xp);
+        const fm = residual(eqs[i], xm);
+        if (fp === null || fm === null) return null;
+        J[i][j] = (fp - fm) / (2 * h);
+      }
+    }
+
+    let delta: number[];
+    try {
+      const sol = mlSolve(new Matrix(J), Matrix.columnVector(Fv.map((v) => -v)));
+      delta = sol.to1DArray();
+    } catch {
+      return null;
+    }
+    if (delta.some((d) => !Number.isFinite(d))) return null;
+    x = x.map((v, i) => v + delta[i]);
+  }
+
+  const F = eqs.map((e) => residual(e, x));
+  if (F.some((v) => v === null) || Math.max(...(F as number[]).map(Math.abs)) > 1e-6) return null;
+  return x;
 }
 
 /** DRAW: sample the current equation over the PPAR window (FR-PLOT-1). */
@@ -2932,6 +3025,22 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
       if (!defineUnit(name, def)) throw err("Invalid Unit");
       return true;
     }
+    // non-interactive systems solver (FR-SOLVE-3 / FR-CAS-4): multivariate
+    // Newton over n equations in n unknowns.
+    //   { 'eq1' 'eq2' } { X Y } { x0 y0 } MSLV → [x* y*] (and stores the vars)
+    case "MSLV": {
+      const [eqsObj, varsObj, guessObj] = popN(s, 3);
+      const eqs = wantList(eqsObj).map((o) =>
+        o.k === "alg" ? o.src : o.k === "name" ? o.v : String(fRe(o)),
+      );
+      const vars = wantList(varsObj).map((o) => wantNameOf(o));
+      const guess = wantList(guessObj).map((o) => fRe(o));
+      const sol = solveSystem(s, eqs, vars, guess);
+      if (!sol) throw err("No Solution");
+      vars.forEach((v, i) => storeVar(s, v, real(bn(String(sol[i])))));
+      s.stack.push(arrOf([sol], true)); // a vector of the solved values
+      return true;
+    }
     case "AMORT": {
       // n AMORT → principal, interest, balance for the next n payments
       const n2 = wantInt(pop1(s));
@@ -2963,7 +3072,9 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
     case "MROOT":
     case "MINIT":
     case "MCALC":
-      throw err("Multiple-equation solver deferred (documented)");
+      // the INTERACTIVE Multiple-Equation Solver menu needs the async form UI;
+      // the non-interactive MSLV solves systems directly (FR-SOLVE-3)
+      throw err("Use MSLV for systems (interactive MES needs the form UI)");
     case "RKF":
     case "RRK":
     case "RKFSTEP":

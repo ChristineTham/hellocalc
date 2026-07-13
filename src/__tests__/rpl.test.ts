@@ -809,6 +809,26 @@ describe("P18 the 48G: stat plots, fits, lists, linear algebra, TVM", () => {
     expect(put).toBeCloseTo(5.5735, 3);
   });
 
+  it("FR-SOLVE-3: MSLV solves a 2×2 system by multivariate Newton", () => {
+    const s = createRpl();
+    // X + Y = 10, X − Y = 2  →  X = 6, Y = 4
+    line(s, "{ 'X+Y=10' 'X-Y=2' } { X Y } { 1 1 } MSLV");
+    line(s, "CLEAR X Y"); // recall the stored solutions
+    const [x, y] = nums(s.stack);
+    expect(x).toBeCloseTo(6, 6);
+    expect(y).toBeCloseTo(4, 6);
+  });
+
+  it("FR-SOLVE-3: MSLV solves a nonlinear system", () => {
+    const s = createRpl();
+    // X·Y = 6, X + Y = 5, guess near (2,3) → (2,3)
+    line(s, "{ 'X*Y=6' 'X+Y=5' } { X Y } { 1.5 3.5 } MSLV");
+    line(s, "CLEAR X Y");
+    const [x, y] = nums(s.stack);
+    expect(x).toBeCloseTo(2, 5);
+    expect(y).toBeCloseTo(3, 5);
+  });
+
   it("MSGBOX shows; INFORM/CHOOSE and MSOLVR/RKF defer honestly", () => {
     const s = createRpl();
     line(s, '"HI" MSGBOX');
