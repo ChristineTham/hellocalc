@@ -328,7 +328,7 @@ const HP27S_ROWS: ClassicKey[][] = [
   [ck("","SK1","black",{f:"√x"}),ck("","SK2","black",{f:"x²"}),ck("","SK3","black",{f:"eˣ"}),ck("","SK4","black",{f:"LN",fFn:"ln"}),ck("","SK5","black",{f:"yˣ"}),ck("","SK6","black",{f:"1/x"})],
   [ck("STO","STO","black",{f:"10ˣ"}),ck("RCL","RCL","black",{f:"LOG",fFn:"log"}),ck("SIN","SIN","black",{f:"ASIN"}),ck("COS","COS","black",{f:"ACOS"}),ck("TAN","TAN","black",{f:"ATAN"}),ck("EXIT","EXIT","black",{f:"MAIN",fFn:"Esc"})],
   [ck("INPUT","INPUT","black",{flex:2,f:"CLEAR DATA",fFn:"CLEARM"}),ck("+/−","CHS","black",{f:"E",fFn:"EEX"}),ck("(","(","black",{f:"%"}),ck(")",")","black",{f:"π"}),ck("←","←","black")],
-  [ck("▲","▲","black"),ck("7","7","black",{f:"SOLVE",fFn:"SOLVER"}),ck("8","8","black",{f:"STAT"}),ck("9","9","black",{f:"TVM"}),ck("÷","÷","black",{f:"TIME"})],
+  [ck("▲","▲","black"),ck("7","7","black",{f:"SOLVE",fFn:"EQN"}),ck("8","8","black",{f:"STAT"}),ck("9","9","black",{f:"TVM"}),ck("÷","÷","black",{f:"TIME"})],
   [ck("▼","▼","black"),ck("4","4","black",{f:"BASE"}),ck("5","5","black",{f:"PROB"}),ck("6","6","black",{f:"HYP"}),ck("×","×","black",{f:"CONVERT"})],
   [ck("","f","gold",{kind:"pf"}),ck("1","1","black",{f:"%CHG",fFn:"Δ%"}),ck("2","2","black",{f:"PARTS"}),ck("3","3","black",{f:"MODES"}),ck("−","−","black",{f:"PRINTER"})],
   [ck("CLR","CLx","black",{f:"OFF"}),ck("0","0","black",{f:"MEM"}),ck(".","•","black",{f:"SHOW"}),ck("=","=","black",{f:"LAST",fFn:"LSTx"}),ck("+","+","black",{f:"PRT"})],
@@ -344,7 +344,7 @@ const HP32S_ROWS: ClassicKey[][] = [
   [ck("ENTER","ENTER","black",{flex:2,f:"LAST x",fFn:"LSTx",al:"M"}),ck("x≷y","x⇄y","black",{f:"PARTS",al:"N"}),ck("+/−","CHS","black",{f:"MODES",al:"O"}),ck("E","EEX","black",{f:"DISP",al:"P"}),ck("←","←","black",{f:"CLEAR",fFn:"CLEARM"})],
   [ck("XEQ","XEQ","black",{f:"GTO"}),ck("7","7","black",{f:"P↔RECT",al:"Q"}),ck("8","8","black",{f:"H↔HMS",al:"R"}),ck("9","9","black",{f:"D↔RAD",al:"S"}),ck("÷","÷","black",{f:"BASE"})],
   [ck("▼","▼","black",{f:"▲"}),ck("4","4","black",{f:"LBL/RTN",al:"T"}),ck("5","5","black",{f:"LOOP",al:"U"}),ck("6","6","black",{f:"FLAGS",al:"V"}),ck("×","×","black",{f:"TESTS"})],
-  [ck("","f","gold",{kind:"pf"}),ck("1","1","black",{f:"SOLVE/∫",fFn:"SOLVER",al:"W"}),ck("2","2","black",{f:"STAT",al:"X"}),ck("3","3","black",{f:"PROB",al:"Y"}),ck("−","−","black",{f:"MEM"})],
+  [ck("","f","gold",{kind:"pf"}),ck("1","1","black",{f:"SOLVE/∫",fFn:"EQN",al:"W"}),ck("2","2","black",{f:"STAT",al:"X"}),ck("3","3","black",{f:"PROB",al:"Y"}),ck("−","−","black",{f:"MEM"})],
   [ck("C","CLx","black",{f:"OFF"}),ck("0","0","black",{f:"INPUT",al:"Z"}),ck(".","•","black",{f:"SHOW",al:"i"}),ck("R/S","R/S","black",{f:"PRGM",fFn:"W/PRGM"}),ck("+","+","black",{f:"VIEW"})],
 ];
 

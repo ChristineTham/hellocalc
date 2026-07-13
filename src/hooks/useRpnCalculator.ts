@@ -21,6 +21,7 @@ import {
 import { formatValue } from "@/lib/engine/format";
 import { intFormat } from "@/lib/engine/integer";
 import { bn, type Value } from "@/lib/engine/config";
+import { solverVariables } from "@/lib/engine/business";
 import type { RpnState } from "@/components/calculator/Display";
 
 // f/g are the Voyager planes; h (HP-67 black) and fi (HP-65 f⁻¹ gold inverse)
@@ -267,6 +268,21 @@ export function useRpnCalculator(): RpnCalculator {
         FV: fmt(engine.fin.fv),
       },
       registers,
+      // the equation SOLVER (17B family / 27S / 35s): the active equation and
+      // its variables + stored values — the "variable menu" panel
+      solver: engine.solver
+        ? {
+            eq: engine.solver.eq,
+            vars: (solverVariables(engine.solver.eq) ?? []).map((name) => ({
+              name,
+              value:
+                engine.solver!.vars[name] !== undefined
+                  ? fmt(bn(engine.solver!.vars[name]))
+                  : "—",
+            })),
+          }
+        : undefined,
+      eqEntry: engine.eqEntry ? engine.alpha : undefined,
       prgm: {
         mode: engine.prgm.mode,
         pc: engine.prgm.pc,

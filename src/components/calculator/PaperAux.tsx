@@ -260,6 +260,40 @@ export function VarsNote({
       </section>
     );
   }
+  // the equation SOLVER (17B family / 27S / 35s): the current equation and its
+  // variables — the "variable menu" the softkeys select. Takes priority over
+  // the TVM/registers view while an equation is active.
+  if (s.solver) {
+    return (
+      <section data-slot="vars-note" className={className}>
+        <h2 className={CAPTION}>Solver</h2>
+        <div data-slot="solver-note" className={NOTE}>
+          <p className="border-b border-paper-line py-1 font-mono text-[11px] break-all text-foreground">
+            {s.solver.eq}
+          </p>
+          {s.solver.vars.length === 0 ? (
+            <p className="py-1 text-center font-mono text-[11px] text-muted-foreground">
+              — no variables —
+            </p>
+          ) : (
+            s.solver.vars.map((v) => (
+              <div
+                key={v.name}
+                className="flex justify-between border-b border-paper-line py-1 last:border-0"
+              >
+                <span className="font-mono text-[12px] tracking-[0.1em] text-muted-foreground">
+                  {v.name}
+                </span>
+                <span className="font-mono text-[13.5px] tabular-nums text-foreground">
+                  {v.value}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
+    );
+  }
   if (!tvm) {
     const rows = s.registers ?? [];
     return (

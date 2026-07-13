@@ -36,6 +36,10 @@ export interface RpnState {
   reg?: Record<"n" | "i" | "PV" | "PMT" | "FV", string>; // TVM readout
   /** nonzero storage registers (M, R0–R9, Σn), formatted — the vars note */
   registers?: { name: string; value: string }[];
+  /** the equation SOLVER: current equation + its variables/values (var menu) */
+  solver?: { eq: string; vars: { name: string; value: string }[] };
+  /** the equation text being typed (SOLVER entry mode) — echoed on the glass */
+  eqEntry?: string;
   /** keystroke program view (P3): mode + steps + pointer for the program note */
   prgm?: { mode: "RUN" | "PRGM"; pc: number; steps: string[] };
   /** the ALPHA register (P6, HP-41) — shown on the glass while ALPHA is armed */
@@ -203,7 +207,9 @@ export function Display({
   const heroX = isDotHero ? "lcd-dot-hero" : "text-hp-lcd-hero";
 
   const lineValue =
-    s.prefix === "alpha" && !isRpl
+    s.eqEntry != null
+      ? `${s.eqEntry || "EQ?"}_` // typing a SOLVER equation (echo the text)
+      : s.prefix === "alpha" && !isRpl
       ? `${s.alpha ?? ""}_` // ALPHA entry echoes the register (P6)
       : s.entry != null
         ? s.entry

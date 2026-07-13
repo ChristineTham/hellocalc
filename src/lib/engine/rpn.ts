@@ -12,7 +12,7 @@ import { appendDigit, backspace, parseEntry, startExponent, toggleSign } from ".
 import { bestFit, fit as cfit, forecastX, forecastY } from "./stats-fit";
 import { ALPHA_PAGES, CONST_VALUES, DYNAMIC_MENUS, MENUS42 } from "./menu42";
 import { MENUS_FIN } from "./menuFin";
-import { markupOnCost, markupOnPrice } from "./business";
+import { markupOnCost, markupOnPrice, solveEquation, solverVariables } from "./business";
 import { determinant as det, inverse, Matrix } from "ml-matrix";
 import {
   digitOk,
@@ -195,6 +195,13 @@ export interface RpnEngine {
    * infix expression in `entry` instead of keying RPN. Optional — undefined =
    * RPN (the default); a session mode, not persisted. */
   alg?: boolean;
+  /** The equation SOLVER of the 17B/17BII/18C/19B/19BII/27S (and the 35s EQN):
+   * the current user equation and its stored variable values. When set, the
+   * SOLVER menu lists these variables as softkeys — press one after keying a
+   * number to STORE it, or with no fresh number to SOLVE for it. */
+  solver?: { eq: string; vars: Record<string, string> } | null;
+  /** true while typing an equation into `alpha` (keys append instead of run). */
+  eqEntry?: boolean;
 }
 
 const zeroSum = (): SumRegs => ({ n: bn(0), x: bn(0), x2: bn(0), y: bn(0), y2: bn(0), xy: bn(0) });
@@ -219,6 +226,8 @@ export function createRpn(): RpnEngine {
     clip42: null,
     fit: "LINF",
     pts: [],
+    solver: null,
+    eqEntry: false,
     prgm: freshPrgm(),
     fin: freshFin(),
     rng: 12345,
@@ -2650,9 +2659,13 @@ function openMenu42(s: RpnEngine, name: string): void {
 export function menu42Labels(s: RpnEngine): string[] {
   if (!s.menu) return [];
   const roster =
-    s.menu.name === "SOLVER" || s.menu.name === "∫f(x)"
-      ? programLabels(s)
-      : s.menu.name === "CUSTOM"
+    s.menu.name === "SOLVER"
+      ? s.solver
+        ? solverLabels(s) // the current equation's variables
+        : programLabels(s) // the 42S/35s program-solver target list
+      : s.menu.name === "∫f(x)"
+        ? programLabels(s)
+        : s.menu.name === "CUSTOM"
         ? s.custom42
         : s.menu.name === "ALPHA"
           ? ALPHA_PAGES
@@ -2707,13 +2720,22 @@ export function pressSoft42(s: RpnEngine, i: number): void {
     return;
   }
   if (s.menu?.name === "SOLVER") {
-    dispatch(s, "SOLVE");
+    if (s.solver) {
+      solverKey(s, label); // store-or-solve the equation variable
+      return;
+    }
+    dispatch(s, "SOLVE"); // the 42S/35s program-solver
     dispatch(s, label);
     return;
   }
   if (s.menu?.name === "∫f(x)") {
     dispatch(s, "∫");
     dispatch(s, label);
+    return;
+  }
+  // the MAIN-menu SOLVE app (17B family): start / re-open the equation solver
+  if (label === "SOLVE") {
+    dispatch(s, "EQN");
     return;
   }
   dispatch(s, label);
@@ -2750,6 +2772,78 @@ function finLeaf(s: RpnEngine, fn: string): boolean {
     return true;
   }
   return false;
+}
+
+// ---- the equation SOLVER (17B/17BII/18C/19B/19BII/27S/35s) --------------------
+
+/** Map a key id to its character in an equation string (null = not eq text). */
+function eqChar(fn: string): string | null {
+  if (fn.startsWith("α") && fn.length >= 2) return fn.slice(1); // a typed letter
+  if (/^[0-9]$/.test(fn)) return fn;
+  const M: Record<string, string> = {
+    "+": "+", "−": "-", "×": "*", "÷": "/", "yˣ": "^", "(": "(", ")": ")",
+    "=": "=", ".": ".", "•": ".", "π": "pi",
+  };
+  return M[fn] ?? null;
+}
+
+/** Begin typing a new SOLVER equation into the alpha buffer. Opens the on-screen
+ * ALPHA menu so the six softkeys become letters — the menu-driven machines
+ * (17B/27S/32S) have no physical letter keys; the ALPHA softkeys append to the
+ * same `alpha` buffer the digit/operator keys write to. */
+function startEqEntry(s: RpnEngine): void {
+  s.eqEntry = true;
+  s.alpha = "";
+  s.entry = null;
+  s.error = null;
+  openMenu42(s, "ALPHA");
+}
+
+/** Finalize the typed equation: store it and open its variable menu. */
+function commitEquation(s: RpnEngine): void {
+  const eq = s.alpha.trim();
+  s.eqEntry = false;
+  s.alpha = "";
+  s.menu = null; // drop the ALPHA entry menu
+  s.menuStack = [];
+  const vars = solverVariables(eq);
+  if (!eq || vars === null || vars.length === 0) {
+    s.error = "INVALID EQ";
+    return;
+  }
+  s.solver = { eq, vars: {} };
+  openMenu42(s, "SOLVER");
+}
+
+/** A SOLVER variable softkey: STORE the freshly-keyed number into the variable,
+ * or — with no pending entry — SOLVE the equation for it. */
+function solverKey(s: RpnEngine, name: string): void {
+  if (!s.solver) return;
+  if (s.fresh || s.entry !== null) {
+    const v = xval(s);
+    s.x = v; // commit the keyed number and clear the entry so the next keying
+    s.entry = null; // starts fresh (else digits would concatenate across stores)
+    s.lift = true;
+    s.fresh = false; // a stored value is no longer "fresh" — the next bare var
+    //                   press must SOLVE, not store the same number again
+    s.solver = { ...s.solver, vars: { ...s.solver.vars, [name]: v.toString() } };
+    return;
+  }
+  const known: Record<string, Value> = {};
+  for (const [k, v] of Object.entries(s.solver.vars)) if (k !== name) known[k] = bn(v);
+  const guess = s.solver.vars[name] ? bn(s.solver.vars[name]) : xval(s);
+  const res = solveEquation(s.solver.eq, known, name, guess);
+  if (!res) {
+    s.error = "NO ROOT FND";
+    return;
+  }
+  pushX(s, res.value);
+  s.solver = { ...s.solver, vars: { ...s.solver.vars, [name]: res.value.toString() } };
+}
+
+/** The active SOLVER equation's variables (display order), or [] if none. */
+function solverLabels(s: RpnEngine): string[] {
+  return s.solver ? (solverVariables(s.solver.eq) ?? []) : [];
 }
 
 /** Pioneer/35s mapping prints → canonical engine ids (P21). */
@@ -2814,6 +2908,40 @@ const FIN_MENU_ACCEPTED = new Set([
 
 export function dispatch(s: RpnEngine, fn: string): boolean {
   fn = RPN_PRINTS[fn] ?? fn;
+  // equation-entry mode (the SOLVER): keys build the equation text in `alpha`
+  // instead of running; ENTER/INPUT commits, EXIT/C cancels, ← backspaces.
+  if (s.eqEntry) {
+    if (fn === "ENTER" || fn === "INPUT" || fn === "R/S") {
+      commitEquation(s);
+      return true;
+    }
+    if (fn === "EXIT" || fn === "Esc" || fn === "CLx") {
+      s.eqEntry = false;
+      s.alpha = "";
+      s.menu = null;
+      s.menuStack = [];
+      return true;
+    }
+    if (fn === "▲" || fn === "▼") {
+      // page the on-screen ALPHA letters
+      if (s.menu) s.menu = { ...s.menu, page: s.menu.page + (fn === "▼" ? 1 : -1) };
+      return true;
+    }
+    if (fn === "←") {
+      s.alpha = s.alpha.slice(0, -1);
+      return true;
+    }
+    const ch = eqChar(fn);
+    if (ch !== null) s.alpha += ch;
+    return true;
+  }
+  // the SOLVER app key: with no equation yet, start typing one; otherwise
+  // re-open the current equation's variable menu.
+  if (fn === "EQN") {
+    if (s.solver) openMenu42(s, "SOLVER");
+    else startEqEntry(s);
+    return true;
+  }
   if (ACCEPTED_35S.has(fn) || ACCEPTED_PRIME.has(fn)) return true;
   if (fn === "Esc") {
     s.entry = null;

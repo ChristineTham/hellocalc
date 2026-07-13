@@ -162,7 +162,14 @@ export default function Home() {
   // Paper aux (§14.3) — rendered in the page's aux region AND in the machine's
   // side-variant bay; CSS shows exactly one per template (like the LCD's
   // line/mini dual render).
-  const showRegisters = model.id === "HP-12C";
+  // TVM strip: the financial machines all compute on the shared engine.fin
+  // registers (N/I%YR/PV/PMT/FV), so they show the same variable panel as the
+  // 12C — the "financial calculation" variables the machine is solving for.
+  const TVM_MODELS = new Set([
+    "HP-12C", "HP-12C-Platinum", "HP-17B", "HP-17BII", "HP-18C", "HP-19B",
+    "HP-19BII", "HP-10BII", "HP-20b", "HP-30b", "HP-27S",
+  ]);
+  const showRegisters = TVM_MODELS.has(model.id);
   // keystroke-programmable models grow the program note (P3: the 65; later
   // phases add their models as the subsystem reaches them)
   const showProgram = [
@@ -277,7 +284,7 @@ export default function Home() {
                   family={model.family}
                   annun={annunSet(model)}
                   showAngle={model.angle}
-                  showRegisters={model.id === "HP-12C"}
+                  showRegisters={showRegisters}
                   // segment-display machines (classic LED / Voyager LCD / HP-41)
                   // are single-LINE like the real hardware: pin the line state and
                   // drop the stack echo (the 4-level stack lives in the aux panel).
