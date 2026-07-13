@@ -30,6 +30,14 @@ const fmt = (n: Value, dec?: number) => n.toFixed(dec ?? 2);
 const renderLatex = (tex: string) => ({ __html: tex });
 const noop = () => {};
 
+// faceplate slide-switch state (only the switch-bearing classics render them)
+const switchProps = {
+  powered: true,
+  onTogglePower: noop,
+  trace: true,
+  onToggleTrace: noop,
+} as const;
+
 const rpn: RpnCalculator = {
   state,
   prefix: "none",
@@ -65,6 +73,7 @@ describe("MachineUnit", () => {
         rpl={rpl}
         lcd={<div data-testid="the-lcd" />}
         paper={<div data-testid="the-paper" />}
+        {...switchProps}
       />,
     );
     const machine = container.querySelector<HTMLElement>('[data-slot="machine"]');
@@ -87,7 +96,7 @@ describe("MachineUnit", () => {
 
   it("classic machines wear a centred text-only nameplate (below the keys via CSS)", () => {
     const { container } = render(
-      <MachineUnit model={MODELS["HP-35"]} rpn={rpn} rpl={rpl} lcd={<div />} />,
+      <MachineUnit model={MODELS["HP-35"]} rpn={rpn} rpl={rpl} lcd={<div />} {...switchProps} />,
     );
     const machine = container.querySelector<HTMLElement>('[data-slot="machine"]');
     if (!machine) throw new Error("no machine bezel");
@@ -101,7 +110,7 @@ describe("MachineUnit", () => {
 
   it("renders the family keyboard for RPL models too", () => {
     const { container } = render(
-      <MachineUnit model={MODELS["HP-48G"]} rpn={rpn} rpl={rpl} lcd={<div />} />,
+      <MachineUnit model={MODELS["HP-48G"]} rpn={rpn} rpl={rpl} lcd={<div />} {...switchProps} />,
     );
     const machine = container.querySelector<HTMLElement>('[data-slot="machine"]');
     if (!machine) throw new Error("no machine bezel");

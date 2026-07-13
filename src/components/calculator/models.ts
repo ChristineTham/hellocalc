@@ -105,17 +105,27 @@ export interface SwitchSpec {
   caption: string;
   left: string;
   right: string;
-  /** which end the nub rests at (the machine's default state) */
+  /** which end the nub rests at (the machine's default / powered-on state) */
   pos: "left" | "right";
+  /** what the switch controls, so DeckSwitches can wire it live:
+   *  power → LCD on/off · mode → PRGM/RUN program entry · trace → printer echo */
+  kind: "power" | "mode" | "trace";
 }
 
 /** Shared switch presets. */
-const POWER: SwitchSpec = { caption: "Power", left: "Off", right: "On", pos: "right" };
+const POWER: SwitchSpec = {
+  caption: "Power",
+  left: "Off",
+  right: "On",
+  pos: "right",
+  kind: "power",
+};
 const RUN_MODE = (left: string): SwitchSpec => ({
   caption: "Mode",
   left,
   right: "Run",
   pos: "right",
+  kind: "mode",
 });
 export type Model =
   | (ModelBase & { family: "voyager"; keys: VoyagerKey[] })
@@ -429,7 +439,7 @@ export const MODELS: Record<string, Model> = {
   "HP-25":  { id: "HP-25",  name: "HP-25",  family: "classic", sub: "RPN · PROGRAM",    angle: true,  geometry: GEOM["HP-25"],  rows: HP25_ROWS, switches: [POWER, RUN_MODE("Prgm")] },
   "HP-67":  { id: "HP-67",  name: "HP-67",  family: "classic", sub: "RPN · MAG CARD",   angle: true,  geometry: GEOM["HP-67"],  rows: HP67_ROWS, switches: [POWER, RUN_MODE("W/Prgm")] },
   "HP-97":  { id: "HP-97",  name: "HP-97",  family: "classic", sub: "RPN · PRINTER",  angle: true, geometry: GEOM["HP-97"],  rows: HP97_ROWS, printer: true,
-    switches: [POWER, RUN_MODE("Prgm"), { caption: "Trace", left: "Man", right: "Norm", pos: "right" }] },
+    switches: [POWER, RUN_MODE("Prgm"), { caption: "Trace", left: "Man", right: "Norm", pos: "right", kind: "trace" }] },
   "HP-41C-CV": { id: "HP-41C-CV", name: "HP-41C/CV", family: "hp41", sub: "RPN · ALPHA", angle: true, geometry: GEOM["HP-41"], rows: HP41_ROWS },
   "HP-41CX":   { id: "HP-41CX",   name: "HP-41CX",   family: "hp41", sub: "RPN · ALPHA · TIME", angle: true, geometry: GEOM["HP-41"], rows: HP41_ROWS },
   "HP-11C": { id: "HP-11C", name: "HP-11C", family: "voyager", sub: "RPN · SCIENTIFIC", angle: true,  geometry: GEOM["HP-11C"], keys: GENERATED_VOYAGER["HP-11C"] },

@@ -35,6 +35,12 @@ export interface MachineUnitProps {
   /** desktop PRINTER (HP-97): the paper-tape strip that shares the top deck
    * with the compact display — present only for printer models */
   printer?: React.ReactNode;
+  /** faceplate slide-switch state (power / trace live in view state; the mode
+   * switch drives the RPN engine's PRGM/RUN through press("W/PRGM")) */
+  powered: boolean;
+  onTogglePower: () => void;
+  trace: boolean;
+  onToggleTrace: () => void;
 }
 
 /** CSSProperties + the per-model shift-palette vars (§14 — RPL siblings).
@@ -58,7 +64,18 @@ type MachineStyle = React.CSSProperties &
  * var(--hp-shift-ls-sx-text). Keeps the per-model override to one source. */
 const textVar = (keyVar: string): string => keyVar.replace(/\)\s*$/, "-text)");
 
-export function MachineUnit({ model, rpn, rpl, lcd, paper, printer }: MachineUnitProps) {
+export function MachineUnit({
+  model,
+  rpn,
+  rpl,
+  lcd,
+  paper,
+  printer,
+  powered,
+  onTogglePower,
+  trace,
+  onToggleTrace,
+}: MachineUnitProps) {
   const hasPrinter = Boolean(model.printer && printer);
   const switches = model.switches;
   const badgeName = nameplateModel(model.name);
@@ -135,7 +152,19 @@ export function MachineUnit({ model, rpn, rpl, lcd, paper, printer }: MachineUni
           the classic programmables and the HP-97 desk unit */}
       {switches && switches.length > 0 && (
         <div data-slot="machine-switches" className="machine-switches">
-          <DeckSwitches switches={switches} />
+          <DeckSwitches
+            switches={switches}
+            state={{
+              // the classic programmables drive their PRGM/RUN mode on the
+              // shared RPN engine (same op as the aux panel's W/PRGM button)
+              mode: rpn.state.prgm?.mode,
+              onToggleMode: () => rpn.press("W/PRGM"),
+              power: powered,
+              onTogglePower,
+              trace,
+              onToggleTrace,
+            }}
+          />
         </div>
       )}
 

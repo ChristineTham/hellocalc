@@ -40,6 +40,13 @@ export default function Home() {
   const rpl = useRplCalculator();
   const active = isNative || model.family === "rpl" ? rpl : rpn;
   const [cheatOpen, setCheatOpen] = useState(false);
+  // Faceplate slide-switch view state (classics/HP-97). Power lights/darkens the
+  // LCD; Trace gates the HP-97 printer echo. The Mode switch drives the engine's
+  // PRGM/RUN directly (no view state needed). Both default to their "on" rest.
+  const [powered, setPowered] = useState(true);
+  const [trace, setTrace] = useState(true);
+  const hasPower = Boolean(model.switches?.some((sw) => sw.kind === "power"));
+  const hasTrace = Boolean(model.switches?.some((sw) => sw.kind === "trace"));
 
   // ── Persistence (FR-STATE-1/4, architecture §9) ─────────────────────────
   // Restore AFTER mount (not in the state initializer): the static export
@@ -198,6 +205,10 @@ export default function Home() {
             model={model}
             rpn={rpn}
             rpl={rpl}
+            powered={powered}
+            onTogglePower={() => setPowered((p) => !p)}
+            trace={trace}
+            onToggleTrace={() => setTrace((t) => !t)}
             lcd={
               // the HP Prime is a COLOUR touchscreen — rendered natively (real
               // fonts + KaTeX math), not the pixel/dot-matrix LCD
@@ -227,6 +238,8 @@ export default function Home() {
                   lcdAspect={model.lcdAspect}
                   renderLatex={active.renderLatex}
                   fmt={active.fmt}
+                  // only models with a Power switch (classics) can be darkened
+                  powered={hasPower ? powered : true}
                 />
               )
             }
@@ -240,8 +253,13 @@ export default function Home() {
                 variant="bay"
               />
             }
-            // the HP-97 desktop printer shares the top deck with the display
-            printer={model.printer ? <Printer hist={active.state.hist} /> : undefined}
+            // the HP-97 desktop printer shares the top deck with the display;
+            // the Trace switch gates the live echo (Man = no auto-print)
+            printer={
+              model.printer ? (
+                <Printer hist={hasTrace && !trace ? [] : active.state.hist} />
+              ) : undefined
+            }
           />
           )
         }

@@ -88,6 +88,9 @@ export interface DisplayProps {
   /** inject your KaTeX renderer so this file has no hard dependency */
   renderLatex: (tex: string) => { __html: string };
   fmt: (n: Value, dec?: number) => string;
+  /** faceplate Power switch (classics): when false the glass is dark/blank —
+   * state is preserved (continuous memory), just not lit. Defaults on. */
+  powered?: boolean;
 }
 
 // Segment numerals (DSEG7) for the seven-segment families; dot-matrix
@@ -162,6 +165,7 @@ export function Display({
   lcdAspect,
   renderLatex,
   fmt,
+  powered = true,
 }: DisplayProps) {
   const isRpl = family === "rpl";
   // §5.3: null ⇒ no data-lcd-force attribute ⇒ the @container/lcd default
@@ -204,6 +208,23 @@ export function Display({
   const panelStyle = lcdAspect
     ? ({ "--hp-lcd-aspect-rpl": lcdAspect } as React.CSSProperties)
     : undefined;
+
+  // Power switch OFF (classics): the glass is dark — same panel/glass geometry
+  // (so the machine doesn't reflow) but no lit content. State is preserved.
+  if (!powered) {
+    return (
+      <div
+        className="lcd-panel w-full"
+        data-lcd-off
+        data-lcd-force={force ?? undefined}
+        data-lcd-family={family}
+        style={panelStyle}
+      >
+        <div data-lcd-mode="line" className={cn(glass, "lcd-line")} aria-hidden />
+        <div data-lcd-mode="mini" className={cn(glass, "lcd-mini")} aria-hidden />
+      </div>
+    );
+  }
 
   return (
     <div
