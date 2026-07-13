@@ -299,6 +299,25 @@ const HPPRIME_ROWS: ClassicKey[][] = [
   [ck("On","On","black",{g:"Off"}),ck("0","0","black",{g:"Notes",al:"\" \""}),ck(".",".","black",{g:"="}),ck("␣","SPC","black",{g:"_"}),ck("+","+","black",{g:"Ans",al:";"})],
 ];
 
+// ---- HP-17B / HP-17BII (Pioneer financial: single gold shift, 2-line dot glass,
+// six menu softkeys on the top row; hp/layouts/HP-17B.md) ----------------------
+// Same Pioneer chassis as the 42S (6 cols; rows 1–3 six keys, rows 4–7 five
+// keys on the lcm subgrid). The top row is SIX BLANK menu/soft keys (fn SK1…SK6)
+// — the active menu's labels ride the display's bottom line (Display MenuRow),
+// and ClassicKeyboard turns these top keys into softkeys when a menu is open.
+// Shared by the algebraic-only 17B and the RPN/ALG 17BII (identical keyplate;
+// the 17BII's "=" doubles as ENTER in RPN mode, handled by the engine).
+const sk = (n: number): ClassicKey => ({ legend: "", fn: `SK${n}`, cat: "black" });
+const HP17B_ROWS: ClassicKey[][] = [
+  [sk(1),sk(2),sk(3),sk(4),sk(5),sk(6)],
+  [ck("STO","STO","black"),ck("RCL","RCL","black"),ck("%","%","black",{f:"MATH"}),ck("DSP","DSP","black",{f:"MODES"}),ck("PRT","PRT","black",{f:"PRINTER"}),ck("EXIT","EXIT","black",{f:"MAIN"})],
+  [ck("▲","▲","black"),ck("INPUT","INPUT","black",{f:"CLEAR DATA",fFn:"CLEARM"}),ck("+/−","CHS","black",{f:"E",fFn:"EEX"}),ck("(","(","black"),ck(")",")","black"),ck("←","←","black")],
+  [ck("▼","▼","black"),ck("7","7","black"),ck("8","8","black"),ck("9","9","black"),ck("÷","÷","black",{f:"1/x"})],
+  [ck("","f","gold",{kind:"pf"}),ck("4","4","black"),ck("5","5","black"),ck("6","6","black"),ck("×","×","black",{f:"yˣ"})],
+  [ck("CLR","CLx","black",{f:"OFF"}),ck("1","1","black"),ck("2","2","black"),ck("3","3","black"),ck("−","−","black",{f:"√x"})],
+  [ck("","","black",{kind:"gap"}),ck("0","0","black",{f:"MEM"}),ck(".","•","black",{f:"SHOW"}),ck("=","=","black",{f:"LAST",fFn:"LSTx"}),ck("+","+","black",{f:"x²"})],
+];
+
 /** RPL key helper (shared by every RPL-family board). */
 const r = (
   p: string,
@@ -419,6 +438,8 @@ const GEOM = {
   "HP-42S": computeKeyboardGeometry({ rows: HP42S_ROWS }, "pioneer"),
   "HP-35s": computeKeyboardGeometry({ rows: HP35S_ROWS }, "pioneer"),
   "HP-Prime": computeKeyboardGeometry({ rows: HPPRIME_ROWS }, "pioneer"),
+  // 17B/17BII share the Pioneer chassis (same rows) → one geometry entry.
+  "HP-17B": computeKeyboardGeometry({ rows: HP17B_ROWS }, "pioneer"),
   "HP-11C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-11C"] }, "voyager"),
   "HP-12C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-12C"] }, "voyager"),
   "HP-15C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-15C"] }, "voyager"),
@@ -458,6 +479,8 @@ export const MODELS: Record<string, Model> = {
   "HP-42S":  { id: "HP-42S",  name: "HP-42S",  family: "pioneer", sub: "RPN · MENU",       angle: true, geometry: GEOM["HP-42S"],  rows: HP42S_ROWS },
   "HP-35s":  { id: "HP-35s",  name: "HP-35s",  family: "pioneer", sub: "RPN · SCIENTIFIC", angle: true, geometry: GEOM["HP-35s"],  rows: HP35S_ROWS },
   "HP-Prime":{ id: "HP-Prime",name: "HP Prime",family: "pioneer", sub: "CAS · TOUCH",      angle: true, geometry: GEOM["HP-Prime"],rows: HPPRIME_ROWS },
+  "HP-17B":  { id: "HP-17B",  name: "HP-17B",  family: "pioneer", sub: "ALG · FINANCIAL",  angle: false, geometry: GEOM["HP-17B"],  rows: HP17B_ROWS },
+  "HP-17BII":{ id: "HP-17BII",name: "HP-17BII",family: "pioneer", sub: "RPN · ALG · FINANCIAL", angle: false, geometry: GEOM["HP-17B"], rows: HP17B_ROWS },
   "HP-48SX": { id: "HP-48SX", name: "HP-48SX", family: "rpl", sub: "RPL · GRAPHING", angle: true, geometry: GEOM["HP-48SX"], rows: HP48SX_ROWS,
     shift: { ls: "var(--hp-shift-ls-sx)", rs: "var(--hp-shift-rs-sx)" } },
   "HP-48G": { id: "HP-48G", name: "HP-48G", family: "rpl",     sub: "RPL · GRAPHING",   angle: true,  geometry: GEOM["HP-48G"], rows: HP48G_ROWS },
@@ -474,4 +497,5 @@ export const MODEL_ORDER = [
   "HP-28C", "HP-28S", "HP-42S",
   "HP-48SX", "HP-48G", "HP-49G", "HP-50g",
   "HP-35s", "HP-Prime",
+  "HP-17B", "HP-17BII",
 ] as const;

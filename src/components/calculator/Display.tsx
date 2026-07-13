@@ -305,8 +305,10 @@ export function Display({
           </div>
         )}
         {/* the softkey row shows in BOTH LCD states (P16 — the 42S is a
-            two-line machine; its menu row is always visible) */}
-        {s.menu && <MenuRow menu={s.menu} />}
+            two-line machine; its menu row is always visible). Gated to the
+            menu-driven families (pioneer + RPL) so a menu left in the shared
+            engine never bleeds onto a segment-display classic/voyager. */}
+        {s.menu && (family === "pioneer" || isRpl) && <MenuRow menu={s.menu} />}
         {s.plot && <PlotPanel plot={s.plot} />}
       </div>
 

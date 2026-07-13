@@ -63,6 +63,16 @@ export const MODEL_CATALOG: CatalogGroup[] = [
     models: [{ id: "HP-42S", label: "HP-42S", year: "1988" }],
   },
   {
+    family: "Business / financial",
+    models: [
+      { id: "HP-18C", label: "HP-18C", year: "1986" },
+      { id: "HP-17B", label: "HP-17B", year: "1988" },
+      { id: "HP-17BII", label: "HP-17BII", year: "1990" },
+      { id: "HP-19B", label: "HP-19B", year: "1988" },
+      { id: "HP-19BII", label: "HP-19BII", year: "1990" },
+    ],
+  },
+  {
     family: "RPL graphing",
     models: [
       { id: "HP-48SX", label: "HP-48SX", year: "1990" },

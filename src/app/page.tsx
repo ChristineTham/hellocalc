@@ -46,6 +46,17 @@ export default function Home() {
   const rpl = useRplCalculator();
   const active = isNative || model.family === "rpl" ? rpl : rpn;
   const [cheatOpen, setCheatOpen] = useState(false);
+
+  // The menu-driven business machines (17B/17BII) wake into the MAIN menu, like
+  // the real hardware — their six top-row keys are softkeys over FIN/BUS/SUM/
+  // TIME/SOLVE. Clear first so a menu left by another Pioneer model doesn't stack.
+  useEffect(() => {
+    if (modelId === "HP-17B" || modelId === "HP-17BII") {
+      rpn.press("Esc");
+      rpn.press("MAIN");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- rpn.press is stable; wake only on model change
+  }, [modelId]);
   // Faceplate slide-switch view state (classics/HP-97). Power lights/darkens the
   // LCD; Trace gates the HP-97 printer echo. The Mode switch drives the engine's
   // PRGM/RUN directly (no view state needed). Both default to their "on" rest.

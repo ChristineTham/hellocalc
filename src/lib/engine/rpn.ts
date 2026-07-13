@@ -11,6 +11,8 @@ import { DEFAULT_FORMAT, type DisplayFormat } from "./format";
 import { appendDigit, backspace, parseEntry, startExponent, toggleSign } from "./entry";
 import { bestFit, fit as cfit, forecastX, forecastY } from "./stats-fit";
 import { ALPHA_PAGES, CONST_VALUES, DYNAMIC_MENUS, MENUS42 } from "./menu42";
+import { MENUS_FIN } from "./menuFin";
+import { markupOnCost, markupOnPrice } from "./business";
 import { determinant as det, inverse, Matrix } from "ml-matrix";
 import {
   digitOk,
@@ -2658,7 +2660,7 @@ export function menu42Labels(s: RpnEngine): string[] {
             ? [] // named-variable menus arrive with the 48 workflow (note)
             : s.menu.name === "CATALOG"
               ? CATALOG42
-              : MENUS42[s.menu.name] ?? [];
+              : MENUS42[s.menu.name] ?? MENUS_FIN[s.menu.name] ?? [];
   const pages = Math.max(1, Math.ceil(roster.length / 6));
   const pg = ((s.menu.page % pages) + pages) % pages;
   const out = roster.slice(pg * 6, pg * 6 + 6);
@@ -2715,6 +2717,39 @@ export function pressSoft42(s: RpnEngine, i: number): void {
     return;
   }
   dispatch(s, label);
+}
+
+/** The business machines' menu leaves that map onto engine behaviour
+ * (17B/17BII/18C/19B/19BII): the TVM variable keys reuse the 12C financial
+ * registers (store-a-number / solve-when-empty), and the BUS percentages
+ * resolve off the stack (Y,X). Returns true when handled; false leaves the
+ * menu leaf navigable-but-inert (the ICNV/CFLO/BOND/DEPRC variable menus,
+ * whose full INPUT-into-highlighted-variable UX is a later refinement). */
+// Only the 17B-specific TVM legends need remapping; PV/PMT/FV already ARE the
+// engine's canonical ids (shared with the 12C) and fall through to its handler.
+const TVM_KEY: Record<string, string> = { N: "n", "I%YR": "i" };
+function finLeaf(s: RpnEngine, fn: string): boolean {
+  const tvm = TVM_KEY[fn];
+  if (tvm) return applyFunction(s, tvm);
+  if (fn === "%CHG") return applyFunction(s, "Δ%");
+  if (fn === "%TOTL") return applyFunction(s, "%T");
+  if (fn === "MU%C") {
+    binary(s, (y, x) => {
+      const r = markupOnCost(y, x);
+      if (!r) throw new Error("div0");
+      return r;
+    });
+    return true;
+  }
+  if (fn === "MU%P") {
+    binary(s, (y, x) => {
+      const r = markupOnPrice(y, x);
+      if (!r) throw new Error("div0");
+      return r;
+    });
+    return true;
+  }
+  return false;
 }
 
 /** Pioneer/35s mapping prints → canonical engine ids (P21). */
@@ -2804,10 +2839,22 @@ export function dispatch(s: RpnEngine, fn: string): boolean {
     openMenu42(s, menu35);
     return true;
   }
+  // The business machines wake into (and shift-EXIT back to) MAIN. Only MAIN
+  // opens from dispatch — the deeper financial menus are reached through
+  // pressSoft42's "@" navigation, so their names (FIN/SUM/BOND…) never shadow
+  // the shared engine's own commands (the 12C's CLEAR-FIN, the 42S's SUM stat).
+  if (fn === "MAIN") {
+    openMenu42(s, "MAIN");
+    return true;
+  }
   if (MENUS42[fn] || DYNAMIC_MENUS.has(fn) || fn === "CLEARM") {
     openMenu42(s, fn === "CLEARM" ? "CLEAR" : fn);
     return true;
   }
+  // ---- the business machines' menu leaves (17B/17BII/18C/19B/19BII) ----------
+  // BUS percentages and ICNV interest conversion resolve off the stack (Y,X);
+  // TVM variable keys reuse the 12C financial registers via the print map below.
+  if (finLeaf(s, fn)) return true;
   if (s.prgm.mode === "PRGM") {
     const p = s.prgm;
     switch (fn) {
