@@ -231,7 +231,7 @@ export function Display({
         <div
           role="status"
           aria-label="Display"
-          className="flex flex-1 items-center justify-end"
+          className="flex flex-1 items-center justify-end overflow-hidden"
           style={{ minBlockSize: "var(--calc-lcd-line-h)" }}
         >
           <span className={cn(num, heroValue)}>{lineValue}</span>

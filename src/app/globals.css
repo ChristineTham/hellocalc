@@ -431,6 +431,16 @@
      fixed overhead (nameplate + pads + gaps + line-LCD floor), multiply by
      the keyboard aspect, cap at the per-model key-pitch limit. The LCD row
      is the flexible remainder (line ↔ mini via @container/lcd). */
+  /* Segment-display machines (classic LED / Voyager LCD / HP-41 alphanumeric)
+     are single-LINE like the real hardware: reserve a SHORT LCD band so the
+     @container/lcd query stays in its line state and the keyboard dominates.
+     (The printer deck overrides this again for the HP-97.) */
+  .machine[data-family="classic"],
+  .machine[data-family="voyager"],
+  .machine[data-family="hp41"] {
+    --calc-machine-lcd-cap: 8rem;
+    --calc-lcd-side-h: 5.5rem; /* short single-line slot in the side variant too */
+  }
   .machine {
     margin: auto;
     display: grid;

@@ -29,6 +29,10 @@ export default function Home() {
   // native mode (P23) borrows the 48G's layout class for the shell templates;
   // the machine region renders the NativeSurface instead of a faceplate
   const model = MODELS[isNative ? "HP-48G" : modelId];
+  // segment-display families (LED classics / Voyager LCD / HP-41) render a
+  // single-line display like the real hardware
+  const isSegment =
+    model.family === "classic" || model.family === "voyager" || model.family === "hp41";
   // Voyager + classic share one 4-level RPN engine; RPL (HP-48G) has its own.
   // Both stay mounted so state survives model switches (FR-MODEL retention).
   const rpn = useRpnCalculator();
@@ -200,9 +204,12 @@ export default function Home() {
                 annun={annunSet(model)}
                 showAngle={model.angle}
                 showRegisters={model.id === "HP-12C"}
-                // the HP-97's LED is a single line — no stack echo on the glass
-                // (its 4-level stack lives in the aux panel)
-                showStack={model.printer ? false : undefined}
+                // segment-display machines (classic LED / Voyager LCD / HP-41)
+                // are single-LINE like the real hardware: pin the line state and
+                // drop the stack echo (the 4-level stack lives in the aux panel).
+                // The chevron still lets the user expand to the multi-line view.
+                showStack={isSegment ? false : undefined}
+                defaultMode={isSegment ? "line" : undefined}
                 lcdAspect={model.lcdAspect}
                 renderLatex={active.renderLatex}
                 fmt={active.fmt}

@@ -600,8 +600,9 @@ test.describe("hellocalc — smoke", () => {
     await selectModel(page, "HP-15C");
     // HP-15C is a distinct model with its own scientific keys (e.g. SIN)
     await expect(page.getByRole("button", { name: "SIN", exact: true })).toBeVisible();
-    // the keyed 7 survived the switch (shared engine)
-    await expect(page.getByText("7.00").first()).toBeVisible();
+    // the keyed 7 survived the switch (shared engine) — the visible single-line
+    // display shows the carried-over entry
+    await expect(page.getByRole("status", { name: "Display" })).toContainText("7");
     // the shell re-stamped the new model's static aspect class (§3.1)
     await expect(page.locator("main.calc-shell")).toHaveAttribute("data-aspect", "landscape");
   });
@@ -860,22 +861,21 @@ test.describe("hellocalc — smoke", () => {
   }) => {
     await page.setViewportSize({ width: 375, height: 700 });
     await page.goto("/");
-    await selectModel(page, "HP-12C"); // a landscape model → the LCD slot goes mini
+    await selectModel(page, "HP-12C");
     // no horizontal page overflow
     const noOverflow = await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth + 1,
     );
     expect(noOverflow).toBe(true);
-    // the LCD slot is tall enough on a phone → container default is MINI
-    // ("LCD takes most of the remaining estate"); user can force the
-    // single-line state and back (§5.3 data-lcd-force)
+    // segment machines (Voyager LCD) are single-LINE by default; the chevron
+    // toggles to the mini multi-line state and back (§5.3 data-lcd-force)
+    await expect(page.locator('[data-lcd-mode="line"]')).toBeVisible();
+    await page.getByRole("button", { name: "Expand display" }).click();
     await expect(page.locator('[data-lcd-mode="mini"]')).toBeVisible();
+    await expect(page.locator(".lcd-panel")).toHaveAttribute("data-lcd-force", "mini");
     await page.getByRole("button", { name: "Collapse display" }).click();
     await expect(page.locator('[data-lcd-mode="line"]')).toBeVisible();
     await expect(page.locator('[data-lcd-mode="mini"]')).toBeHidden();
-    await expect(page.locator(".lcd-panel")).toHaveAttribute("data-lcd-force", "line");
-    await page.getByRole("button", { name: "Expand display" }).click();
-    await expect(page.locator('[data-lcd-mode="mini"]')).toBeVisible();
     // each paper panel has its OWN toggle (§14.3) → bottom sheets, Escape closes
     await expect(page.getByRole("button", { name: "Toggle history tape" })).toBeVisible();
     await page.getByRole("button", { name: "Toggle stack" }).click();
@@ -958,7 +958,9 @@ test.describe("hellocalc — smoke", () => {
 
   test("KaTeX hero renders a .katex node in the mini LCD (AGENTS §6)", async ({ page }) => {
     await page.goto("/");
-    await selectModel(page, "HP-12C"); // landscape → desktop lcd slot tall → mini
+    await selectModel(page, "HP-12C"); // segment machine → single-line by default
+    // expand to the mini multi-line state where the KaTeX hero renders
+    await page.getByRole("button", { name: "Expand display" }).click();
     await expect(page.locator('[data-lcd-mode="mini"]')).toBeVisible();
     await page.getByRole("button", { name: "2", exact: true }).click();
     await page.getByRole("button", { name: "ENTER", exact: true }).click();
