@@ -67,7 +67,9 @@ const clone = (e: RplEngine): RplEngine => ({
   menuStack48: [...e.menuStack48],
   ans: e.ans,
 
-  plot: e.plot ? { ...e.plot, points: [...e.plot.points] } : null,
+  // the plot is rebuilt wholesale by each plot command, never mutated in
+  // place, so a shallow copy is enough across the union's kinds
+  plot: e.plot ? { ...e.plot } : null,
   flags: [...e.flags],
   last: [...e.last],
   lastCmd: [...e.lastCmd],

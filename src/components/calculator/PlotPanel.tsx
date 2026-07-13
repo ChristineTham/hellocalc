@@ -1,16 +1,27 @@
 // src/components/calculator/PlotPanel.tsx
 // The 48-series picture surface (P17, FR-PLOT-1): renders the engine's
-// sampled PlotReq through function-plot (architecture §4.10), which is
-// dynamically imported HERE so the D3-based grapher never enters the
-// initial bundle (NFR-3). The engine samples; this only draws.
+// sampled PlotReq. 2D line/scatter/pixel series draw through function-plot
+// (light, D3); statistical bars and 3D surfaces hand off to the lazy Plotly
+// panel (architecture §4.10). Both grapher libraries are dynamically imported
+// so neither enters the initial bundle (NFR-3). The engine samples; this only
+// draws.
 "use client";
 
 import { useEffect, useRef } from "react";
 import type { RpnState } from "./Display";
+import { PlotlyPanel } from "./PlotlyPanel";
 
 type PlotSpec = NonNullable<RpnState["plot"]>;
 
 export function PlotPanel({ plot }: { plot: PlotSpec }) {
+  // statistical / 3D requests render natively in Plotly
+  if (plot.kind === "bars" || plot.kind === "surface") {
+    return <PlotlyPanel plot={plot} />;
+  }
+  return <SeriesPanel plot={plot} />;
+}
+
+function SeriesPanel({ plot }: { plot: Extract<PlotSpec, { kind: "fn" | "polar" | "pict" }> }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

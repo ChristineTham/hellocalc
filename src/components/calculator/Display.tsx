@@ -14,6 +14,7 @@ import { ChevronsDownUp, ChevronsUpDown, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AnnunSet, Family } from "./models";
 import type { Value } from "@/lib/engine/config";
+import type { PlotReq } from "@/lib/engine/rpl/plot";
 import { PlotPanel } from "./PlotPanel";
 
 // ---- shared types the engine/hook exposes ----------------------------------
@@ -50,15 +51,9 @@ export interface RpnState {
   menu?: { name: string; labels: string[]; page: number; pages: number };
   /** RPL DISP message line (P12) */
   msg?: string;
-  /** the 48-series plot request (P17) — rendered by the lazy PlotPanel */
-  plot?: {
-    kind: "fn" | "polar" | "pict";
-    points: { x: number; y: number | null }[];
-    src?: string;
-    pmin: [number, number];
-    pmax: [number, number];
-    axes: boolean;
-  };
+  /** the 48-series plot request (P17) — rendered by the lazy PlotPanel
+   * (function-plot for 2D series, Plotly for bars/3D surfaces) */
+  plot?: PlotReq;
   hist?: { op: string; v: string; raw?: string }[];
   /** a keystroke program is running under the cooperative scheduler (P3) —
    * the glass shows a RUN annunciator; any key halts it */

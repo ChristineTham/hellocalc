@@ -737,19 +737,23 @@ describe("P18 the 48G: stat plots, fits, lists, linear algebra, TVM", () => {
     expect(nums(s.stack)[0]).toBeCloseTo(4, 6);
   });
 
-  it("FR-PLOT-3: SCLΣ autoscales, DRWΣ scatters, BARPLOT/HISTPLOT draw segments", () => {
+  it("FR-PLOT-3: SCLΣ autoscales, DRWΣ scatters, BARPLOT/HISTPLOT emit native bars", () => {
     const s = createRpl();
     for (const [x, y] of [[1, 2], [2, 4], [3, 6]]) line(s, `{ ${x} ${y} } Σ+`);
     dispatchRpl(s, "SCLΣ");
     dispatchRpl(s, "DRWΣ");
     expect(s.plot?.kind).toBe("pict");
-    expect(s.plot?.points).toHaveLength(3);
+    if (s.plot?.kind === "pict") expect(s.plot.points).toHaveLength(3);
     dispatchRpl(s, "BARPLOT");
-    expect(s.plot?.kind).toBe("fn");
-    // one segment (2 points + gap) per bar
-    expect(s.plot?.points.length).toBe(9);
+    expect(s.plot?.kind).toBe("bars");
+    if (s.plot?.kind === "bars") {
+      expect(s.plot.cats).toHaveLength(3); // one bar per datum
+      expect(s.plot.values).toHaveLength(3);
+      expect(s.plot.histogram).toBe(false);
+    }
     dispatchRpl(s, "HISTPLOT");
-    expect(s.plot?.points.length).toBeGreaterThan(0);
+    expect(s.plot?.kind).toBe("bars");
+    if (s.plot?.kind === "bars") expect(s.plot.histogram).toBe(true);
   });
 
   it("XRNG/YRNG/AUTO control the window", () => {
@@ -761,12 +765,17 @@ describe("P18 the 48G: stat plots, fits, lists, linear algebra, TVM", () => {
     expect(s.ppar.pmax[1]).toBe(10);
   });
 
-  it("FR-PLOT-2: WIREFRAME projects a 3D surface to polylines", () => {
+  it("FR-PLOT-2: WIREFRAME builds a native 3D surface grid (z = f(x,y))", () => {
     const s = createRpl();
     line(s, "'X+Y' STEQ WIREFRAME");
-    expect(s.plot?.kind).toBe("polar"); // free-extent projection
-    const finite = (s.plot?.points ?? []).filter((p) => p.y !== null);
-    expect(finite.length).toBeGreaterThan(200); // 2×15 polylines × 15 samples
+    expect(s.plot?.kind).toBe("surface"); // a real Plotly surface, not a projection
+    if (s.plot?.kind === "surface") {
+      expect(s.plot.xs.length).toBeGreaterThan(4);
+      expect(s.plot.z.length).toBe(s.plot.ys.length); // one row per y
+      expect(s.plot.z[0]?.length).toBe(s.plot.xs.length); // one col per x
+      // z[j][i] = xs[i] + ys[j] for the equation X + Y
+      expect(s.plot.z[0]?.[0]).toBeCloseTo(s.plot.xs[0]! + s.plot.ys[0]!, 6);
+    }
   });
 
   it("FR-FIN: TVMROOT solves PMT on the P7 engine; AMORT splits payments", () => {

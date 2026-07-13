@@ -400,6 +400,25 @@ test.describe("hellocalc — smoke", () => {
     await expect(glass().locator('[data-slot="plot-panel"]')).toHaveCount(0);
   });
 
+  test("Phase 18: BARPLOT draws a native Plotly bar chart in the glass (FR-PLOT-3, §4.10)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await selectModel(page, "HP-48G");
+    // run a stat + BARPLOT program through the RPL code editor (deterministic)
+    await page.getByRole("button", { name: "Open code editor" }).click();
+    const cm = page.locator('[data-slot="code-editor"] .cm-content');
+    await cm.click();
+    await page.keyboard.type("{ 1 5 } Σ+ { 2 9 } Σ+ { 3 4 } Σ+ { 4 11 } Σ+ BARPLOT");
+    await page.getByRole("button", { name: "Run", exact: true }).click();
+    await page.keyboard.press("Escape"); // close the drawer to reveal the glass
+    // the panel routed to Plotly (not function-plot) and Plotly drew its SVG —
+    // the ~1 MB lib is lazy-loaded so allow generous time
+    const panel = page.locator('[data-slot="plotly-panel"]:visible').first();
+    await expect(panel).toBeAttached({ timeout: 20000 });
+    await expect(panel.locator(".main-svg, svg").first()).toBeVisible({ timeout: 20000 });
+  });
+
   test("Phase 19 on the live HP-49G: ARITH number theory + app menus", async ({
     page,
   }) => {

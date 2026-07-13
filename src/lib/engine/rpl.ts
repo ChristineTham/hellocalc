@@ -50,7 +50,7 @@ import { getCas } from "./cas/provider";
 import type { HeavyCasProvider } from "./cas/pyodide-provider";
 import { factorsBig, gcdBig, isPrimeBig, lcmBig, nextPrimeBig, totientBig } from "./numtheory";
 import {
-  cToPx, PICT_H, PICT_W, type PlotPoint, type PlotReq, pxToC, rasterLine, sampleSeries,
+  cToPx, PICT_H, PICT_W, type PlotPoint, type PlotReq, pxToC, rasterLine, sampleGrid, sampleSeries,
 } from "./rpl/plot";
 
 export type Angle = "DEG" | "RAD" | "GRD";
@@ -2770,8 +2770,8 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
     }
     case "BARPLOT":
     case "HISTPLOT": {
-      // period-accurate segment bars on the 2D panel (the 48 draws pixel
-      // columns; Plotly stays out of the bundle — delivery note)
+      // native Plotly bar chart / histogram (architecture §4.10) — the panel
+      // lazy-loads Plotly and draws real columns
       const col = s.sdat.map((r) => r[s.cols[0] - 1] ?? 0);
       if (!col.length) throw err("No Statistics Data");
       let bars: [number, number][];
@@ -2786,17 +2786,15 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
         for (const v of col) counts[Math.min(bins - 1, Math.floor((v - lo) / width))]++;
         bars = counts.map((n2, i) => [lo + (i + 0.5) * width, n2]);
       }
-      const points: PlotPoint[] = [];
-      for (const [x, h] of bars) {
-        points.push({ x, y: 0 }, { x, y: h }, { x, y: null }); // one segment per bar
-      }
-      const xs = bars.map((b) => b[0]);
-      const hs = bars.map((b) => b[1]);
+      const cats = bars.map((b) => b[0]);
+      const values = bars.map((b) => b[1]);
       s.plot = {
-        kind: "fn",
-        points,
-        pmin: [Math.min(...xs) - 1, 0],
-        pmax: [Math.max(...xs) + 1, Math.max(...hs) + 1],
+        kind: "bars",
+        cats,
+        values,
+        histogram: w === "HISTPLOT",
+        pmin: [Math.min(...cats) - 1, 0],
+        pmax: [Math.max(...cats) + 1, Math.max(...values) + 1],
         axes: true,
       };
       return true;
@@ -2834,20 +2832,13 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
     case "ATICK":
       pop1(s); // tick spacing accepted (the panel draws its own grid)
       return true;
-    // WIREFRAME: real 3D → 2D projection polylines, exactly how the 48G's
-    // mono LCD draws surfaces (FR-PLOT-2; richer types defer to Plotly-era)
+    // WIREFRAME: a real, rotatable 3D surface z = f(x, y), rendered by Plotly
+    // (architecture §4.10, FR-PLOT-2) — no longer a mono 2D projection.
     case "WIREFRAME": {
       const eq = lookupVar(s, "EQ");
       if (!eq || eq.k !== "alg") throw err("No Current Equation");
-      const N = 14;
       const [x0, y0] = s.ppar.pmin;
       const [x1, y1] = s.ppar.pmax;
-      const cosA = Math.cos(Math.PI / 6);
-      const sinA = Math.sin(Math.PI / 6);
-      const project = (gx: number, gy: number, gz: number): PlotPoint => ({
-        x: (gx - (x0 + x1) / 2) * cosA + ((gy - (y0 + y1) / 2) * cosA) / 2,
-        y: gz + (gy - (y0 + y1) / 2) * sinA - (gx - (x0 + x1) / 2) * sinA * 0.3,
-      });
       const zAt = (gx: number, gy: number): number | null => {
         const env = envOf(s, freshCtx());
         const inner = env.get.bind(env);
@@ -2863,34 +2854,18 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
           return null;
         }
       };
-      const points: PlotPoint[] = [];
-      for (let i = 0; i <= N; i++) {
-        const gx = x0 + ((x1 - x0) * i) / N;
-        for (let j = 0; j <= N; j++) {
-          const gy = y0 + ((y1 - y0) * j) / N;
-          const z = zAt(gx, gy);
-          points.push(z === null ? { x: gx, y: null } : project(gx, gy, z));
-        }
-        points.push({ x: 0, y: null });
-      }
-      for (let j = 0; j <= N; j++) {
-        const gy = y0 + ((y1 - y0) * j) / N;
-        for (let i = 0; i <= N; i++) {
-          const gx = x0 + ((x1 - x0) * i) / N;
-          const z = zAt(gx, gy);
-          points.push(z === null ? { x: gx, y: null } : project(gx, gy, z));
-        }
-        points.push({ x: 0, y: null });
-      }
-      if (points.every((p) => p.y === null)) throw err("Invalid PPAR / Undefined Name");
-      const fin = points.filter((p) => p.y !== null) as { x: number; y: number }[];
+      const { xs, ys, z } = sampleGrid(zAt, x0, x1, y0, y1, 24);
+      if (z.every((row) => row.every((v) => v === null)))
+        throw err("Invalid PPAR / Undefined Name");
       s.plot = {
-        kind: "polar", // free-extent rendering (the panel autoscales this kind)
-        points,
+        kind: "surface",
+        xs,
+        ys,
+        z,
         src: eq.src,
-        pmin: [Math.min(...fin.map((p) => p.x)), Math.min(...fin.map((p) => p.y))],
-        pmax: [Math.max(...fin.map((p) => p.x)), Math.max(...fin.map((p) => p.y))],
-        axes: false,
+        pmin: [x0, y0],
+        pmax: [x1, y1],
+        axes: true,
       };
       return true;
     }

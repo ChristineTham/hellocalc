@@ -9,14 +9,60 @@ export interface PlotPoint {
   y: number | null; // null = domain gap (undefined name / domain fault)
 }
 
-export interface PlotReq {
-  kind: "fn" | "polar" | "pict";
-  /** the sampled series (fn/polar) or lit pixels as points (pict) */
-  points: PlotPoint[];
+export interface PlotReqBase {
   src?: string; // the plotted expression, for the caption
   pmin: [number, number];
   pmax: [number, number];
   axes: boolean;
+}
+
+/** 2D line/scatter/pixel series — drawn by function-plot (light, D3). */
+export interface PlotSeriesReq extends PlotReqBase {
+  kind: "fn" | "polar" | "pict";
+  /** the sampled series (fn/polar) or lit pixels as points (pict) */
+  points: PlotPoint[];
+}
+
+/** Statistical bar chart / histogram — drawn NATIVELY by Plotly (heavy, lazy),
+ * replacing the old segment-column emulation (architecture §4.10). */
+export interface PlotBarsReq extends PlotReqBase {
+  kind: "bars";
+  cats: number[]; // bar centres (x)
+  values: number[]; // bar heights
+  histogram?: boolean; // contiguous bins vs discrete bars
+}
+
+/** 3D surface z = f(x, y) sampled to a grid — drawn as a real rotatable Plotly
+ * surface (heavy, lazy), replacing the mono 2D wireframe projection. */
+export interface PlotSurfaceReq extends PlotReqBase {
+  kind: "surface";
+  xs: number[];
+  ys: number[];
+  /** z[j][i] over (xs[i], ys[j]); null marks a domain gap */
+  z: (number | null)[][];
+}
+
+export type PlotReq = PlotSeriesReq | PlotBarsReq | PlotSurfaceReq;
+
+/** Sample z = f(x, y) over the window into an (N+1)×(N+1) grid for a surface. */
+export function sampleGrid(
+  zAt: (x: number, y: number) => number | null,
+  xmin: number,
+  xmax: number,
+  ymin: number,
+  ymax: number,
+  steps: number,
+): { xs: number[]; ys: number[]; z: (number | null)[][] } {
+  const n = Math.max(4, Math.min(60, steps));
+  const xs = Array.from({ length: n + 1 }, (_, i) => xmin + ((xmax - xmin) * i) / n);
+  const ys = Array.from({ length: n + 1 }, (_, j) => ymin + ((ymax - ymin) * j) / n);
+  const z = ys.map((gy) =>
+    xs.map((gx) => {
+      const v = zAt(gx, gy);
+      return v !== null && Number.isFinite(v) ? v : null;
+    }),
+  );
+  return { xs, ys, z };
 }
 
 /** Sample y = f(x) (or r = f(θ) mapped to cartesian) over [xmin, xmax]. */
