@@ -2796,6 +2796,13 @@ const FIN_MENU_ACCEPTED = new Set([
   "K", "CFj",
   // 10bII statistics estimates + Σ registers (mauve plane)
   "x̄,ȳ", "Sx,Sy", "σx,σy", "x̂,r", "ŷ,m", "x̄w", "Σx²", "Σy²", "Σxy", "Σx", "Σy",
+  // 27S menu-openers / keys without a wired handler (fallback-inert, so a real
+  // id like SHOW/PRT is still handled first if the engine grows one)
+  "HYP", "PARTS", "PRINTER", "PRT", "MEM", "SHOW", "TIME",
+  // 20S program/format/stat-estimate legends without a wired handler
+  "SWAP", "CLPRGM", "LOAD", "m,b", "x̂,r", "ŷ,r", "x̄w", "x̄,ȳ", "Sx,Sy", "·/,",
+  "CLRG", "CLΣ", "LBL", "HEX", "OCT", "DEC", "BIN", "→HR", "→HMS", "FIX", "SCI",
+  "ENG", "ALL", "x≤y?", "x=0?", "→P", "→R",
 ]);
 
 export function dispatch(s: RpnEngine, fn: string): boolean {
@@ -2859,6 +2866,12 @@ export function dispatch(s: RpnEngine, fn: string): boolean {
   // the shared engine's own commands (the 12C's CLEAR-FIN, the 42S's SUM stat).
   if (fn === "MAIN") {
     openMenu42(s, "MAIN");
+    return true;
+  }
+  // the 27S opens the TVM variable menu directly (shift-9); no collision — TVM
+  // is not an engine command, only a financial-menu roster name.
+  if (fn === "TVM") {
+    openMenu42(s, "TVM");
     return true;
   }
   if (MENUS42[fn] || DYNAMIC_MENUS.has(fn) || fn === "CLEARM") {

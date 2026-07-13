@@ -60,7 +60,13 @@ export const MODEL_CATALOG: CatalogGroup[] = [
   },
   {
     family: "Pioneer",
-    models: [{ id: "HP-42S", label: "HP-42S", year: "1988" }],
+    models: [
+      { id: "HP-20S", label: "HP-20S", year: "1988" },
+      { id: "HP-27S", label: "HP-27S", year: "1988" },
+      { id: "HP-32S", label: "HP-32S", year: "1988" },
+      { id: "HP-42S", label: "HP-42S", year: "1988" },
+      { id: "HP-32SII", label: "HP-32SII", year: "1991" },
+    ],
   },
   {
     family: "Business / financial",
