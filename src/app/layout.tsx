@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Archivo, Barlow_Semi_Condensed, IBM_Plex_Mono, Silkscreen } from "next/font/google";
+import { Archivo, Barlow_Semi_Condensed, DotGothic16, IBM_Plex_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 // KaTeX styles at the shell level so typeset math is styled on first paint
@@ -33,13 +33,14 @@ const plexMono = IBM_Plex_Mono({
   weight: ["400", "500", "600"],
 });
 
-// Dot-matrix LCD numerals for RPL machines (the HP-48's display is a 131×64
-// pixel matrix, not seven-segment) — a 5×7-style pixel font reads exactly
-// like its character set. DSEG7 stays for the segment-display families.
-const silkscreen = Silkscreen({
+// Dot-matrix LCD glyphs for the matrix-display machines (RPL / pioneer / HP-41):
+// DotGothic16 is a FINE dot-matrix face — denser, crisper dots than the chunky
+// Silkscreen — so it reads like a high-quality HP dot-matrix panel. DSEG7 stays
+// for the seven-segment families. (Var kept as --font-silkscreen for the token.)
+const silkscreen = DotGothic16({
   variable: "--font-silkscreen",
   subsets: ["latin"],
-  weight: ["400", "700"],
+  weight: ["400"],
   display: "swap",
 });
 
