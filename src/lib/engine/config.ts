@@ -8,9 +8,25 @@
 import { create, all } from "mathjs";
 import type { BigNumber } from "mathjs";
 
-/** 40 significant digits: HP hardware carried 10–13; the headroom keeps
- * chained reference computations exact to the displayed precision. */
-export const math = create(all, { number: "BigNumber", precision: 40 });
+/** 40 significant digits (default): HP hardware carried 10–13; the headroom
+ * keeps chained reference computations exact to the displayed precision. */
+export const DEFAULT_PRECISION = 40;
+export const math = create(all, { number: "BigNumber", precision: DEFAULT_PRECISION });
+
+/** The working precision the tower currently computes at (FR-NUM-1). */
+let currentPrecision = DEFAULT_PRECISION;
+
+/** Set the BigNumber working precision at runtime (FR-NUM-1, user-selectable).
+ * Affects every subsequent operation; existing values keep their stored digits.
+ * Clamped to a sane [7, 100] window. */
+export function setPrecision(digits: number): void {
+  currentPrecision = Math.max(7, Math.min(100, Math.round(digits)));
+  math.config({ precision: currentPrecision });
+}
+
+export function getPrecision(): number {
+  return currentPrecision;
+}
 
 /** The engine's numeric type — mathjs BigNumber (a decimal.js Decimal). */
 export type Value = BigNumber;

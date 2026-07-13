@@ -64,13 +64,12 @@ export default function Home() {
         // mount-only client-data sync: localStorage is unreadable during the
         // static prerender, so restoring here (post-hydration) is the pattern —
         // a one-shot set, not an effect-driven state loop
-        // eslint-disable-next-line react-hooks/set-state-in-effect
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot restore of the saved model on mount
         setModelId(engines.activeModel);
       }
     }
     hydrated.current = true;
-    // rpn.restore / rpl.restore are stable useCallbacks; run once on mount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- rpn/rpl.restore are stable useCallbacks; this restore runs once on mount
   }, []);
 
   // Autosave the session on every engine/model change (cheap: ~1 KB JSON).

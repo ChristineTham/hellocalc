@@ -762,8 +762,10 @@ function sdatPairs(s: RplEngine): [number, number][] {
   if (s.sdat.length < 2) throw err("Insufficient Data");
   return s.sdat.map((r) => [r[s.cols[0] - 1] ?? 0, r[s.cols[1] - 1] ?? 0]);
 }
-const fitModelOf = (s: RplEngine): FitModel =>
-  s.fitModel.replace("FIT", "F") as FitModel;
+// the two naming schemes are a fixed bijection (LINFIT↔LINF, LOGFIT↔LOGF,
+// EXPFIT↔EXPF, PWRFIT↔PWRF), so the string surgery always yields a valid
+// member — the cast is safe and cheaper than a lookup table.
+const fitModelOf = (s: RplEngine): FitModel => s.fitModel.replace("FIT", "F") as FitModel;
 
 /** The 48G TVM variables (N, I%YR, PV, PMT, FV) → a P7 FinRegs view.
  * I%YR is annual; the monthly rate drives the P7 solvers (12/yr, documented). */
@@ -2729,7 +2731,8 @@ function execWord(s: RplEngine, w: string, ctx: Ctx): boolean {
       s.fitModel = w;
       return true;
     case "BESTFIT": {
-      s.fitModel = (bestFit(sdatPairs(s)).model.replace("F", "FIT") as RplEngine["fitModel"]);
+      // inverse of fitModelOf's bijection (LINF→LINFIT …) — always valid
+      s.fitModel = bestFit(sdatPairs(s)).model.replace("F", "FIT") as RplEngine["fitModel"];
       return true;
     }
     case "PREDY": {

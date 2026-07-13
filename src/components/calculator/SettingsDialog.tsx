@@ -15,6 +15,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { PrecisionControl } from "@/components/calculator/PrecisionControl";
 import { cn } from "@/lib/utils";
 
 const ITEM =
@@ -66,6 +67,19 @@ export function SettingsDialog({
           <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2">
             <span className="text-[13px] font-semibold text-foreground">Theme</span>
             <ThemeToggle />
+          </div>
+        </section>
+
+        <section className="space-y-2">
+          <h3 className="font-mono text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+            Precision
+          </h3>
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2">
+            <span className="text-[13px] font-semibold text-foreground">
+              Working digits
+              <span className="ml-1 font-normal text-muted-foreground">(BigNumber tower)</span>
+            </span>
+            <PrecisionControl />
           </div>
         </section>
 

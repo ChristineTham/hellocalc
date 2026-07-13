@@ -32,11 +32,15 @@ const OPTIONS: { value: Theme; label: string; icon: typeof Sun }[] = [
 export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>("system");
 
-  // hydrate the saved choice after mount (localStorage is browser-only)
+  // hydrate the saved choice after mount (localStorage is browser-only, so
+  // reading it here avoids a static-prerender hydration mismatch) — validate
+  // the stored string against the known set rather than trusting it
   useEffect(() => {
-    const saved = (localStorage.getItem(THEME_KEY) as Theme | null) ?? "system";
+    const saved = localStorage.getItem(THEME_KEY);
+    const restored: Theme =
+      saved === "light" || saved === "dark" || saved === "system" ? saved : "system";
     // eslint-disable-next-line react-hooks/set-state-in-effect -- client-data sync on mount
-    setTheme(saved);
+    setTheme(restored);
   }, []);
 
   // keep "system" tracking the OS preference while selected
