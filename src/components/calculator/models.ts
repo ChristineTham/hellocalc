@@ -550,6 +550,8 @@ export const MODELS: Record<string, Model> = {
   "HP-48SX": { id: "HP-48SX", name: "HP-48SX", family: "rpl", sub: "RPL · GRAPHING", angle: true, geometry: GEOM["HP-48SX"], rows: HP48SX_ROWS,
     shift: { ls: "var(--hp-shift-ls-sx)", rs: "var(--hp-shift-rs-sx)" } },
   "HP-48G": { id: "HP-48G", name: "HP-48G", family: "rpl",     sub: "RPL · GRAPHING",   angle: true,  geometry: GEOM["HP-48G"], rows: HP48G_ROWS },
+  // 48GX = the 48G keyboard exactly (the GX adds expansion ports, not keys).
+  "HP-48GX": { id: "HP-48GX", name: "HP-48GX", family: "rpl", sub: "RPL · GRAPHING", angle: true, geometry: GEOM["HP-48G"], rows: HP48G_ROWS },
   "HP-49G": { id: "HP-49G", name: "HP-49G", family: "rpl", sub: "RPL · CAS", angle: true, geometry: GEOM["HP-49G"], rows: HP49G_ROWS,
     shift: { ls: "var(--hp-shift-ls-49)", rs: "var(--hp-shift-rs-49)" } },
   "HP-50g": { id: "HP-50g", name: "HP-50g", family: "rpl", sub: "RPL · CAS", angle: true, geometry: GEOM["HP-50g"], rows: HP50G_ROWS, lcdAspect: "131 / 80",
@@ -565,4 +567,5 @@ export const MODEL_ORDER = [
   "HP-35s", "HP-Prime",
   "HP-17B", "HP-17BII", "HP-18C", "HP-19B", "HP-19BII",
   "HP-12C-Platinum", "HP-10BII", "HP-20b", "HP-30b",
+  "HP-48GX",
 ] as const;

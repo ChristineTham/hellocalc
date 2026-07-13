@@ -81,6 +81,7 @@ export const MODEL_CATALOG: CatalogGroup[] = [
     models: [
       { id: "HP-48SX", label: "HP-48SX", year: "1990" },
       { id: "HP-48G", label: "HP-48G", year: "1993" },
+      { id: "HP-48GX", label: "HP-48GX", year: "1993" },
       { id: "HP-49G", label: "HP-49G", year: "1999" },
       { id: "HP-50g", label: "HP-50g", year: "2006" },
     ],
