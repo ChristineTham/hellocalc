@@ -939,6 +939,35 @@
     inline-size: auto; /* derived from the aspect + block-size */
     min-inline-size: 0;
   }
+  /* On WIDE (landscape) machine slots, lay the Prime out side-by-side — the
+     colour screen LEFT, keyboard RIGHT — using the horizontal room instead of a
+     tall portrait device. The machine holds a landscape aspect that scales to
+     fit; columns are proportioned so a 4:3 screen and the natural-height
+     keyboard both fill the row height. */
+  @container machine (min-aspect-ratio: 1 / 1) {
+    .calc-shell[data-aspect] .machine[data-screen="prime"] {
+      grid-template-areas:
+        "np  np"
+        "lcd kbd";
+      grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr);
+      grid-template-rows: auto minmax(0, 1fr);
+      aspect-ratio: 1.95 / 1;
+      block-size: min(100cqb, calc(100cqi / 1.95));
+      inline-size: min(100cqi, calc(100cqb * 1.95));
+      column-gap: var(--calc-machine-gap);
+    }
+    /* centre the keyboard in its column and fit it to the column HEIGHT (a size
+       container gives the keyboard 100cqb; aspect-ratio derives the width) */
+    .calc-shell[data-aspect] .machine[data-screen="prime"] .machine-kbd {
+      container: kbdmod / size;
+      display: grid;
+      place-items: center;
+      min-block-size: 0;
+    }
+    .calc-shell[data-aspect] .machine[data-screen="prime"] [data-slot="keyboard"] {
+      inline-size: min(100cqi, calc(100cqb * var(--kbd-a)));
+    }
+  }
 
   /* ── One home for the stack (§14.3 rev 3): when an in-plane paper stack
         exists (md+ aux, or the short machine's bay), the RPN LCD shows only
