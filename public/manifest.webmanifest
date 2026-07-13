@@ -1,0 +1,19 @@
+{
+  "name": "Hello Calc",
+  "short_name": "Hello Calc",
+  "description": "HP calculator emulator over a shared TypeScript math engine — RPN & RPL, CAS, units, matrices, finance and plotting, fully client-side.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#12151b",
+  "theme_color": "#12151b",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

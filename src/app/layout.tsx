@@ -1,7 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Archivo, Barlow_Semi_Condensed, DotGothic16, IBM_Plex_Mono } from "next/font/google";
 import localFont from "next/font/local";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import "./globals.css";
+
+// mirrors next.config.ts basePath — for base-path-safe manifest/icon/SW URLs
+const BASE = process.env.NODE_ENV === "production" ? "/hellocalc" : "";
 // KaTeX styles at the shell level so typeset math is styled on first paint
 // (docs/responsive-layout.md §11 FOUC row).
 import "katex/dist/katex.min.css";
@@ -47,6 +51,16 @@ const silkscreen = DotGothic16({
 export const metadata: Metadata = {
   title: "Hello Calc",
   description: "Advanced modern calculator app",
+  manifest: `${BASE}/manifest.webmanifest`,
+  appleWebApp: { capable: true, title: "Hello Calc", statusBarStyle: "black-translucent" },
+  icons: { icon: `${BASE}/icon.svg`, apple: `${BASE}/icon.svg` },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#12151b" },
+    { media: "(prefers-color-scheme: light)", color: "#f6f3ec" },
+  ],
 };
 
 export default function RootLayout({
@@ -69,7 +83,10 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <ServiceWorkerRegister />
+        {children}
+      </body>
     </html>
   );
 }
