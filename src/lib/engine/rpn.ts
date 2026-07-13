@@ -2803,6 +2803,13 @@ const FIN_MENU_ACCEPTED = new Set([
   "SWAP", "CLPRGM", "LOAD", "m,b", "x̂,r", "ŷ,r", "x̄w", "x̄,ȳ", "Sx,Sy", "·/,",
   "CLRG", "CLΣ", "LBL", "HEX", "OCT", "DEC", "BIN", "→HR", "→HMS", "FIX", "SCI",
   "ENG", "ALL", "x≤y?", "x=0?", "→P", "→R",
+  // 32S/32SII compound menu labels without a wired handler
+  "CMPLX", "LOOP", "TESTS", "LBL/RTN", "P↔RECT", "H↔HMS", "D↔RAD", "VIEW",
+  "FDISP", "ALGBRA", "INTG", "y,x", "ACC", "FN", "→lb", "→kg",
+  // 32SII second-plane (blue R-shift) menu/program labels
+  "PARTS", "RTN", "DSE", "ISG", "x?y", "x?0", "x<>", "R↑", "→θ,r", "→y,x",
+  "→DEG", "→RAD", "SOLVE", "EQN", "FN=", "SCRL", "PSE", "ˣ√y", "PROB", "FLAGS",
+  "SOLVE/∫", "∫",
 ]);
 
 export function dispatch(s: RpnEngine, fn: string): boolean {

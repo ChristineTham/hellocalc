@@ -334,6 +334,36 @@ const HP27S_ROWS: ClassicKey[][] = [
   [ck("CLR","CLx","black",{f:"OFF"}),ck("0","0","black",{f:"MEM"}),ck(".","•","black",{f:"SHOW"}),ck("=","=","black",{f:"LAST",fFn:"LSTx"}),ck("+","+","black",{f:"PRT"})],
 ];
 
+// ---- HP-32S (Pioneer single-shift RPN scientific; hp/layouts/HP-32S.md) ------
+// The 42S chassis: 6×7, single gold shift, RPN 4-level, letters A–Z for
+// variable/label entry. Menu-openers reuse existing rosters (BASE/FLAGS/STAT/
+// PROB/MODES/DISP), SOLVE opens SOLVER; the compound labels are fallback-inert.
+const HP32S_ROWS: ClassicKey[][] = [
+  [ck("√x","√x","black",{f:"x²",al:"A"}),ck("eˣ","eˣ","black",{f:"10ˣ",al:"B"}),ck("LN","LN","black",{f:"LOG",fFn:"log",al:"C"}),ck("yˣ","yˣ","black",{f:"%",al:"D"}),ck("1/x","1/x","black",{f:"%CHG",fFn:"Δ%",al:"E"}),ck("Σ+","Σ+","black",{f:"Σ−"})],
+  [ck("STO","STO","black",{f:"CMPLX",al:"G"}),ck("RCL","RCL","black",{f:"π",al:"H"}),ck("R↓","R↓","black",{f:"HYP",al:"I"}),ck("SIN","SIN","black",{f:"ASIN",al:"J"}),ck("COS","COS","black",{f:"ACOS",al:"K"}),ck("TAN","TAN","black",{f:"ATAN",al:"L"})],
+  [ck("ENTER","ENTER","black",{flex:2,f:"LAST x",fFn:"LSTx",al:"M"}),ck("x≷y","x⇄y","black",{f:"PARTS",al:"N"}),ck("+/−","CHS","black",{f:"MODES",al:"O"}),ck("E","EEX","black",{f:"DISP",al:"P"}),ck("←","←","black",{f:"CLEAR",fFn:"CLEARM"})],
+  [ck("XEQ","XEQ","black",{f:"GTO"}),ck("7","7","black",{f:"P↔RECT",al:"Q"}),ck("8","8","black",{f:"H↔HMS",al:"R"}),ck("9","9","black",{f:"D↔RAD",al:"S"}),ck("÷","÷","black",{f:"BASE"})],
+  [ck("▼","▼","black",{f:"▲"}),ck("4","4","black",{f:"LBL/RTN",al:"T"}),ck("5","5","black",{f:"LOOP",al:"U"}),ck("6","6","black",{f:"FLAGS",al:"V"}),ck("×","×","black",{f:"TESTS"})],
+  [ck("","f","gold",{kind:"pf"}),ck("1","1","black",{f:"SOLVE/∫",fFn:"SOLVER",al:"W"}),ck("2","2","black",{f:"STAT",al:"X"}),ck("3","3","black",{f:"PROB",al:"Y"}),ck("−","−","black",{f:"MEM"})],
+  [ck("C","CLx","black",{f:"OFF"}),ck("0","0","black",{f:"INPUT",al:"Z"}),ck(".","•","black",{f:"SHOW",al:"i"}),ck("R/S","R/S","black",{f:"PRGM",fFn:"W/PRGM"}),ck("+","+","black",{f:"VIEW"})],
+];
+
+// ---- HP-32SII (Pioneer TWO-shift RPN scientific; hp/layouts/HP-32SII.md) -----
+// The 32S chassis with the gold plane split into orange left-shift (f, math
+// functions) + blue right-shift (g, menu names). Two prefix keys bottom-left.
+// Shared-with-32S legends are confidently placed; a few 32SII-new positions are
+// inferred (the Edition-5 manual has no keyboard diagram). Menu/program labels
+// resolve to real ids where they exist, else fallback-inert.
+const HP32SII_ROWS: ClassicKey[][] = [
+  [ck("√x","√x","black",{f:"x²",g:"PARTS",al:"A"}),ck("eˣ","eˣ","black",{f:"10ˣ",al:"B"}),ck("LN","LN","black",{f:"LOG",fFn:"log",al:"C"}),ck("yˣ","yˣ","black",{f:"ˣ√y",g:"%",al:"D"}),ck("1/x","1/x","black",{f:"x!",fFn:"x!",g:"%CHG",gFn:"Δ%",al:"E"}),ck("Σ+","Σ+","black",{f:"Σ−"})],
+  [ck("STO","STO","black",{f:"CMPLX",al:"G"}),ck("RCL","RCL","black",{g:"π",al:"H"}),ck("R↓","R↓","black",{f:"HYP",g:"R↑",al:"I"}),ck("SIN","SIN","black",{f:"ASIN",al:"J"}),ck("COS","COS","black",{f:"ACOS",al:"K"}),ck("TAN","TAN","black",{f:"ATAN",al:"L"})],
+  [ck("ENTER","ENTER","black",{flex:2,f:"LAST x",fFn:"LSTx",al:"M"}),ck("x≷y","x⇄y","black",{g:"x<>",al:"N"}),ck("+/−","CHS","black",{f:"MODES",al:"O"}),ck("E","EEX","black",{f:"DISP",al:"P"}),ck("←","←","black",{f:"CLEAR",fFn:"CLEARM",g:"SCRL"})],
+  [ck("XEQ","XEQ","black",{f:"GTO"}),ck("7","7","black",{f:"→θ,r",g:"→y,x",al:"Q"}),ck("8","8","black",{f:"→HR",g:"→HMS",al:"R"}),ck("9","9","black",{f:"→DEG",g:"→RAD",al:"S"}),ck("÷","÷","black",{f:"BASE"})],
+  [ck("","g","blue",{kind:"pg"}),ck("4","4","black",{f:"LBL",g:"RTN",al:"T"}),ck("5","5","black",{f:"ISG",g:"DSE",al:"U"}),ck("6","6","black",{g:"FLAGS",al:"V"}),ck("×","×","black",{f:"x?y",g:"x?0"})],
+  [ck("","f","gold",{kind:"pf"}),ck("1","1","black",{f:"∫",g:"SOLVE",al:"W"}),ck("2","2","black",{f:"FN=",g:"EQN",al:"X"}),ck("3","3","black",{g:"PROB",al:"Y"}),ck("−","−","black",{f:"MEM"})],
+  [ck("C","CLx","black",{g:"OFF"}),ck("0","0","black",{f:"INPUT",al:"Z"}),ck(".","•","black",{f:"FDISP",g:"SHOW",al:"i"}),ck("R/S","R/S","black",{f:"PRGM",fFn:"W/PRGM",g:"PSE"}),ck("+","+","black",{g:"VIEW"})],
+];
+
 // ---- HP-18C / HP-19B / HP-19BII (clamshell financial; hp/layouts/HP-18C.md …)
 // Two hinged panels merged into ONE Pioneer grid (the HP-97/28C pattern): a LEFT
 // alphabetic keyboard (types Solver-equation text into the α register via the
@@ -530,6 +560,8 @@ const GEOM = {
   "HP-10BII": computeKeyboardGeometry({ rows: HP10BII_ROWS }, "classic"),
   "HP-27S": computeKeyboardGeometry({ rows: HP27S_ROWS }, "pioneer"),
   "HP-20S": computeKeyboardGeometry({ rows: HP20S_ROWS }, "classic"),
+  "HP-32S": computeKeyboardGeometry({ rows: HP32S_ROWS }, "pioneer"),
+  "HP-32SII": computeKeyboardGeometry({ rows: HP32SII_ROWS }, "pioneer"),
   "HP-11C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-11C"] }, "voyager"),
   "HP-12C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-12C"] }, "voyager"),
   "HP-15C": computeKeyboardGeometry({ keys: GENERATED_VOYAGER["HP-15C"] }, "voyager"),
@@ -582,6 +614,8 @@ export const MODELS: Record<string, Model> = {
   "HP-30b":   { id: "HP-30b",   name: "HP-30b",   family: "pioneer", sub: "ALG · RPN · PROGRAM", angle: false, geometry: GEOM["HP-30b"], rows: HP30B_ROWS },
   "HP-27S":   { id: "HP-27S",   name: "HP-27S",   family: "pioneer", sub: "ALG · SCIENTIFIC · MENU", angle: true, geometry: GEOM["HP-27S"], rows: HP27S_ROWS },
   "HP-20S":   { id: "HP-20S",   name: "HP-20S",   family: "classic", sub: "ALG · SCIENTIFIC", angle: true, geometry: GEOM["HP-20S"], rows: HP20S_ROWS },
+  "HP-32S":   { id: "HP-32S",   name: "HP-32S",   family: "pioneer", sub: "RPN · SCIENTIFIC", angle: true, geometry: GEOM["HP-32S"], rows: HP32S_ROWS },
+  "HP-32SII": { id: "HP-32SII", name: "HP-32SII", family: "pioneer", sub: "RPN · SCIENTIFIC", angle: true, geometry: GEOM["HP-32SII"], rows: HP32SII_ROWS },
   "HP-48SX": { id: "HP-48SX", name: "HP-48SX", family: "rpl", sub: "RPL · GRAPHING", angle: true, geometry: GEOM["HP-48SX"], rows: HP48SX_ROWS,
     shift: { ls: "var(--hp-shift-ls-sx)", rs: "var(--hp-shift-rs-sx)" } },
   "HP-48G": { id: "HP-48G", name: "HP-48G", family: "rpl",     sub: "RPL · GRAPHING",   angle: true,  geometry: GEOM["HP-48G"], rows: HP48G_ROWS },
@@ -602,5 +636,5 @@ export const MODEL_ORDER = [
   "HP-35s", "HP-Prime",
   "HP-17B", "HP-17BII", "HP-18C", "HP-19B", "HP-19BII",
   "HP-12C-Platinum", "HP-10BII", "HP-20b", "HP-30b",
-  "HP-48GX", "HP-27S", "HP-20S",
+  "HP-48GX", "HP-27S", "HP-20S", "HP-32S", "HP-32SII",
 ] as const;
