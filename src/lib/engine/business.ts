@@ -59,11 +59,15 @@ const VAR_RE = /^[A-Za-z][A-Za-z0-9]*$/;
 
 /** Reserved identifiers the parser knows as functions/constants — never treated
  * as user solver variables. */
+// Only genuine math.js constants/functions are reserved — NOT plain letters like
+// L/G/E, which are legitimate single-letter variables (mapping them to reserved
+// silently dropped them from the solver menu). The ALPHA keyboard types upper
+// case, so the common function names are reserved in both cases.
 const RESERVED = new Set([
-  "pi", "e", "PI", "E",
-  "sin", "cos", "tan", "asin", "acos", "atan", "sqrt", "abs", "exp", "ln", "log",
-  "sinh", "cosh", "tanh", "min", "max", "mod", "pow", "SQRT", "LN", "LOG", "EXP",
-  "IF", "if", "SIGMA", "L", "G", "FP", "IP", "RND", "INV",
+  "pi", "e",
+  "sin", "cos", "tan", "asin", "acos", "atan", "sinh", "cosh", "tanh",
+  "sqrt", "abs", "exp", "ln", "log", "min", "max", "mod", "pow",
+  "SIN", "COS", "TAN", "ASIN", "ACOS", "ATAN", "SQRT", "ABS", "EXP", "LN", "LOG",
 ]);
 
 /** Collect the distinct variable names appearing in an equation string

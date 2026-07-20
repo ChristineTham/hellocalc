@@ -1218,6 +1218,9 @@ export function runLabel(s: RpnEngine, label: string): void {
  * etc.) return false so the UI can no-op them until later milestones.
  */
 export function applyFunction(s: RpnEngine, fn: string): boolean {
+  // any real function replaces X with a plain number — a date echo (set only by
+  // a TIME/BOND date-variable softkey, which doesn't route through here) is stale
+  s.dateShow = false;
   // RPN⇄ALG toggle + algebraic entry (FR-STK-4) — a single interception ahead
   // of the RPN keystroke logic, so the 1200-line switch below is untouched.
   if (fn === "ALG") {
@@ -2844,6 +2847,8 @@ function commitEquation(s: RpnEngine): void {
     return;
   }
   s.solver = { eq, vars: {} };
+  s.app = null; // the solver owns the vars bay — drop any stale app/list panel
+  s.list = null;
   openMenu42(s, "SOLVER");
 }
 
@@ -2885,11 +2890,15 @@ function finVarKey(s: RpnEngine, label: string, appKey: string): void {
   const spec = FIN_APPS[appKey];
   if (!spec) return;
   if (!s.app || s.app.name !== appKey) s.app = { name: appKey, vars: {} };
+  s.list = null; // this app owns the vars bay — drop any stale list panel
   s.dateShow = spec.dates?.has(label) ?? false; // this var holds a date → echo as one
   const compute = (): boolean => {
     const store: Record<string, Value> = {};
     for (const [k, v] of Object.entries(s.app!.vars)) store[k] = bn(v);
-    const r = spec.compute(store, label, xval(s));
+    // the compute argument (e.g. the DEPRC year) is ONLY a freshly-keyed number;
+    // a leftover X is not silently reused — default to 1
+    const argX = s.fresh || s.entry !== null ? xval(s) : bn(1);
+    const r = spec.compute(store, label, argX);
     if (r === null) return false;
     pushX(s, r);
     s.app = { name: s.app!.name, vars: { ...s.app!.vars, [label]: r.toString() } };
@@ -3036,6 +3045,7 @@ export function dispatch(s: RpnEngine, fn: string): boolean {
     if (fn === "INPUT") {
       const items = s.list && s.list.name === nm ? s.list.items : [];
       s.list = { name: nm, items: [...items, xval(s).toString()] };
+      s.app = null; // this list owns the vars bay — drop any stale app panel
       s.entry = null;
       s.lift = true;
       s.fresh = false;
@@ -3112,14 +3122,18 @@ export function dispatch(s: RpnEngine, fn: string): boolean {
   // the shared engine's own commands (the 12C's CLEAR-FIN, the 42S's SUM stat).
   if (fn === "MAIN") {
     openMenu42(s, "MAIN");
-    s.app = null; // "start over" — drop the active app so its panel yields
+    s.app = null; // "start over" — drop every app panel so the glass/bay resets
     s.list = null;
+    s.solver = null;
     return true;
   }
   // the 27S opens the TVM variable menu directly (shift-9); no collision — TVM
   // is not an engine command, only a financial-menu roster name.
   if (fn === "TVM") {
     openMenu42(s, "TVM");
+    s.app = null; // the TVM register strip owns the vars bay here
+    s.list = null;
+    s.solver = null;
     return true;
   }
   if (MENUS42[fn] || DYNAMIC_MENUS.has(fn) || fn === "CLEARM") {

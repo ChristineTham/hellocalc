@@ -71,6 +71,11 @@ describe("SOLVER — variable discovery", () => {
   it("returns null without an '='", () => {
     expect(solverVariables("A + B")).toBeNull();
   });
+  it("keeps single-letter variables L, G, E (not reserved)", () => {
+    expect(solverVariables("AREA = L * W")).toEqual(["AREA", "L", "W"]);
+    expect(solverVariables("F = G * M")).toEqual(["F", "G", "M"]);
+    expect(solverVariables("Y = E * X")).toEqual(["Y", "E", "X"]);
+  });
 });
 
 describe("SOLVER — solve for any variable", () => {

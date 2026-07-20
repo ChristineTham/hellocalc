@@ -106,6 +106,46 @@ describe("TIME — date arithmetic (variable menu)", () => {
   });
 });
 
+describe("panel state coherence + DEPRC year (review fixes)", () => {
+  it("entering a variable app clears a stale list panel (and vice versa)", () => {
+    const s = createRpn();
+    dispatch(s, "MAIN");
+    pressSoft42(s, 0); // FIN
+    pressSoft42(s, 2); // CFLO
+    key(s, "100");
+    dispatch(s, "INPUT"); // s.list = CFLO
+    expect(s.list?.name).toBe("CFLO");
+    dispatch(s, "MAIN");
+    pressSoft42(s, 0); // FIN
+    pressSoft42(s, 3); // BOND
+    key(s, "6");
+    pressSoft42(s, 2); // store CPN% → s.app = BOND
+    expect(s.app?.name).toBe("BOND");
+    expect(s.list).toBeNull(); // the stale CFLO list must be gone
+  });
+
+  it("DEPRC methods default the year to 1 when X is a leftover, not fresh", () => {
+    const s = createRpn();
+    dispatch(s, "MAIN");
+    pressSoft42(s, 0); // FIN
+    pressSoft42(s, 4); // DEPRC
+    key(s, "12000");
+    pressSoft42(s, 0); // BASIS
+    key(s, "2000");
+    pressSoft42(s, 1); // SALV
+    key(s, "5");
+    pressSoft42(s, 2); // LIFE
+    pressSoft42(s, 3); // DMETH
+    key(s, "2");
+    pressSoft42(s, 0); // SL for year 2 (fresh) = (12000-2000)/5 = 2000
+    expect(num(xval(s))).toBeCloseTo(2000, 6);
+    pressSoft42(s, 0); // SL again with NO fresh year → year 1, NOT the leftover 2000
+    expect(num(xval(s))).toBeCloseTo(2000, 6); // straight-line is constant, still 2000
+    // (a leftover-X bug would have used 2000 as the "year" and returned garbage)
+    expect(num(xval(s))).not.toBeCloseTo(0, 6);
+  });
+});
+
 describe("CURRX — currency conversion (variable menu)", () => {
   it("RATE 1.5, #1 = 100 → #2 = 150 (and back)", () => {
     const s = createRpn();

@@ -47,13 +47,16 @@ export default function Home() {
   const active = isNative || model.family === "rpl" ? rpl : rpn;
   const [cheatOpen, setCheatOpen] = useState(false);
 
-  // The menu-driven business machines (17B/17BII) wake into the MAIN menu, like
+  // The menu-driven business machines (17B/17BII…) wake into the MAIN menu, like
   // the real hardware — their six top-row keys are softkeys over FIN/BUS/SUM/
-  // TIME/SOLVE. Clear first so a menu left by another Pioneer model doesn't stack.
+  // TIME/SOLVE. Other Pioneer models share the RPN engine, so clear the menu on
+  // entry too — otherwise a financial MAIN left behind bleeds onto the 42S/35s.
   useEffect(() => {
     if (["HP-17B", "HP-17BII", "HP-18C", "HP-19B", "HP-19BII"].includes(modelId)) {
       rpn.press("Esc");
       rpn.press("MAIN");
+    } else if (model.family === "pioneer") {
+      rpn.press("Esc");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- rpn.press is stable; wake only on model change
   }, [modelId]);
